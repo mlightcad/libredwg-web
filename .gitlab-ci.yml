@@ -1,0 +1,50 @@
+stages:
+  - deploy
+  - pages
+
+variables:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9"
+
+# ----------------------
+# GitLab Pages Deployment
+# ----------------------
+deploy:
+  stage: deploy 
+  image: node:20
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+      - .pnpm-store/
+  before_script:
+    - npm install -g pnpm@${PNPM_VERSION}
+    - cd ./bindings/javascript
+  script:
+    - pnpm install --frozen-lockfile
+    - pnpm build
+    - pnpm doc
+    - cp -r ./docs ./examples
+    - mkdir -p ../../public
+    - cp -r ./examples/* ../../public/
+  artifacts:
+    paths:
+      - public/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+
+# ----------------------
+# GitLab Pages Deployment
+# ----------------------
+pages:
+  stage: pages
+  script:
+    - echo "Deploying to GitLab Pages..."
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+  needs:
+    - job: deploy
+      artifacts: true
