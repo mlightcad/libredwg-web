@@ -1,6 +1,6 @@
 import { DwgPoint3D } from '../common'
 import { DwgEntity } from './entity'
-import { DwgVertexEntity } from './vertex'
+import { DwgVertex2dEntity, DwgVertex3dEntity } from './vertex'
 
 export enum DwgPolylineFlag {
   CLOSED_POLYLINE = 1,
@@ -20,11 +20,11 @@ export enum DwgSmoothType {
   BEZIER = 8
 }
 
-export interface DwgPolylineEntity extends DwgEntity {
+export interface DwgPolyline2dEntity extends DwgEntity {
   /**
    * Entity type
    */
-  type: 'POLYLINE'
+  type: 'POLYLINE2D'
   /**
    * polyline's elevation (in OCS when 2D; WCS when 3D)
    */
@@ -81,5 +81,45 @@ export interface DwgPolylineEntity extends DwgEntity {
    * Extrusion direction (optional; default = 0, 0, 1)
    */
   extrusionDirection?: DwgPoint3D
-  vertices: DwgVertexEntity[]
+  vertices: DwgVertex2dEntity[]
+}
+
+export interface DwgPolyline3dEntity extends DwgEntity {
+  /**
+   * Entity type
+   */
+  type: 'POLYLINE3D'
+  /**
+   * Polyline flag (bit-coded; default = 0):
+   * - 1: This is a closed polyline (or a polygon mesh closed in the M direction)
+   * - 2: Curve-fit vertices have been added
+   * - 4: Spline-fit vertices have been added
+   * - 8: This is a 3D polyline
+   * - 16: This is a 3D polygon mesh
+   * - 32: The polygon mesh is closed in the N direction
+   * - 64: The polyline is a polyface mesh
+   * - 128: The linetype pattern is generated continuously around the vertices of this polyline
+   */
+  flag: number
+  /**
+   * Default start width (optional; default = 0)
+   */
+  startWidth?: number
+  /**
+   * Default end width (optional; default = 0)
+   */
+  endWidth?: number
+  /**
+   * Curves and smooth surface type (optional; default = 0); integer codes, not bit-coded:
+   * - 0: No smooth surface fitted
+   * - 5: Quadratic B-spline surface
+   * - 6: Cubic B-spline surface
+   * - 8: Bezier surface
+   */
+  smoothType?: DwgSmoothType
+  /**
+   * Extrusion direction (optional; default = 0, 0, 1)
+   */
+  extrusionDirection?: DwgPoint3D
+  vertices: DwgVertex3dEntity[]
 }
