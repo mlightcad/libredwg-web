@@ -14,7 +14,6 @@ import {
   DwgMTextEntity,
   DwgPoint2D,
   DwgPoint3D,
-  DwgPolylineEntity,
   DwgRayEntity,
   DwgSplineEntity,
   DwgTableCell,
@@ -651,10 +650,10 @@ export class SvgConverter {
         break
       }
       case 'POLYLINE': {
-        const polyline = entity as DwgPolylineEntity
-        const closed = !!(polyline.flag & 0x1)
-        const vertices = interpolatePolyline(polyline, closed)
-        result = this.vertices(vertices, closed)
+        // const polyline = entity as DwgPolylineEntity
+        // const closed = !!(polyline.flag & 0x1)
+        // const vertices = interpolatePolyline(polyline, closed)
+        // result = this.vertices(vertices, closed)
         break
       }
       case 'RAY':
