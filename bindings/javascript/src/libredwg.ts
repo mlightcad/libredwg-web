@@ -25,6 +25,7 @@ import {
   Dwg_Entity_POLYLINE_3D_Ptr,
   Dwg_Entity_TEXT_Ptr,
   Dwg_Entity_VERTEX_2D,
+  Dwg_Entity_VERTEX_3D,
   Dwg_Field_Value,
   Dwg_File_Type,
   Dwg_Handle,
@@ -1150,6 +1151,43 @@ export class LibreDwg {
     const wasmInstance = this.wasmInstance
     return wasmInstance.dwg_entity_polyline_2d_get_vertices(ptr)
       .data as Dwg_Entity_VERTEX_2D[]
+  }
+
+  /**
+   * Returns the number of points in Dwg_Entity_POLYLINE_3D.
+   * @group Dwg_Entity_POLYLINE_3D Methods
+   * @param ptr Pointer to one Dwg_Object (not Dwg_Entity_POLYLINE_3D) instance.
+   * @returns Returns the number of points in one Dwg_Entity_POLYLINE_3D.
+   */
+  dwg_entity_polyline_3d_get_numpoints(ptr: Dwg_Object_Ptr): number {
+    const wasmInstance = this.wasmInstance
+    return wasmInstance.dwg_entity_polyline_3d_get_numpoints(ptr).data as number
+  }
+
+  /**
+   * Returns points in Dwg_Entity_POLYLINE_3D.
+   * @group Dwg_Entity_POLYLINE_3D Methods
+   * @param ptr Pointer to one Dwg_Object (not Dwg_Entity_POLYLINE_3D) instance.
+   * @returns Returns points in one Dwg_Entity_POLYLINE_3D.
+   */
+  dwg_entity_polyline_3d_get_points(ptr: Dwg_Object_Ptr): DwgPoint3D[] {
+    const wasmInstance = this.wasmInstance
+    return wasmInstance.dwg_entity_polyline_3d_get_points(ptr)
+      .data as DwgPoint3D[]
+  }
+
+  /**
+   * Returns vertices in Dwg_Entity_POLYLINE_3D.
+   * @group Dwg_Entity_POLYLINE_3D Methods
+   * @param ptr Pointer to one Dwg_Object (not Dwg_Entity_POLYLINE_3D) instance.
+   * @returns Returns vertices in one Dwg_Entity_POLYLINE_3D.
+   */
+  dwg_entity_polyline_3d_get_vertices(
+    ptr: Dwg_Object_Ptr
+  ): Dwg_Entity_VERTEX_3D[] {
+    const wasmInstance = this.wasmInstance
+    return wasmInstance.dwg_entity_polyline_3d_get_vertices(ptr)
+      .data as Dwg_Entity_VERTEX_3D[]
   }
 
   static createByWasmInstance(wasmInstance: MainModule): LibreDwgEx {

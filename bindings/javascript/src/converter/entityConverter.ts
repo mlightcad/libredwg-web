@@ -44,12 +44,12 @@ import {
   DwgPoint3D,
   DwgPointEntity,
   DwgPolylineBoundaryPath,
-  DwgPolylineEntity,
+  DwgPolyline2dEntity,
+  DwgPolyline3dEntity,
   DwgProxyEntity,
   DwgRadialDiameterDimensionEntity,
   DwgRayEntity,
   DwgSectionEntity,
-  DwgSmoothType,
   DwgSolidEntity,
   DwgSplineEdge,
   DwgSplineEntity,
@@ -60,7 +60,8 @@ import {
   DwgTextHorizontalAlign,
   DwgTextVerticalAlign,
   DwgToleranceEntity,
-  DwgVertexEntity,
+  DwgVertex2dEntity,
+  DwgVertex3dEntity,
   DwgWipeoutEntity,
   DwgXlineEntity
 } from '../database'
@@ -170,8 +171,10 @@ export class LibreEntityConverter {
         return this.convertOleFrame(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POINT) {
         return this.convertPoint(entity_tio, commonAttrs)
-      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_2D) {
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_2D ) {
         return this.convertPolyline2d(entity_tio, commonAttrs, object_ptr)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_3D) {
+        return this.convertPolyline3d(entity_tio, commonAttrs, object_ptr)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_PROXY_ENTITY) {
         return this.convertProxy(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_RAY) {
@@ -1363,9 +1366,10 @@ export class LibreEntityConverter {
     entity: Dwg_Object_Entity_Ptr,
     commonAttrs: DwgCommonAttributes,
     object: Dwg_Object_Ptr
-  ): DwgPolylineEntity {
+  ): DwgPolyline2dEntity {
     const libredwg = this.libredwg
     const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
+    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type').data as number
     const startWidth = libredwg.dwg_dynapi_entity_value(entity, 'start_width')
       .data as number
     const endWidth = libredwg.dwg_dynapi_entity_value(entity, 'end_width')
@@ -1381,9 +1385,10 @@ export class LibreEntityConverter {
 
     const vertices = libredwg.dwg_entity_polyline_2d_get_vertices(object)
     return {
-      type: 'POLYLINE',
+      type: 'POLYLINE2D',
       ...commonAttrs,
       flag: flag,
+      smoothType: smoothType,
       startWidth: startWidth,
       endWidth: endWidth,
       elevation: elevation,
@@ -1399,13 +1404,49 @@ export class LibreEntityConverter {
           bulge: vertex.bulge,
           flag: vertex.flag,
           tangentDirection: vertex.tangent_dir
-        } as unknown as DwgVertexEntity
+        } as unknown as DwgVertex2dEntity
       }),
       meshMVertexCount: 0,
       meshNVertexCount: 0,
       surfaceMDensity: 0,
       surfaceNDensity: 0,
-      smoothType: DwgSmoothType.NONE
+    }
+  }
+
+  private convertPolyline3d(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes,
+    object: Dwg_Object_Ptr
+  ): DwgPolyline3dEntity {
+    const libredwg = this.libredwg
+    const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
+    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type').data as number
+    const startWidth = libredwg.dwg_dynapi_entity_value(entity, 'start_width')
+      .data as number
+    const endWidth = libredwg.dwg_dynapi_entity_value(entity, 'end_width')
+      .data as number
+    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'extrusion'
+    ).data as DwgPoint3D
+
+    const vertices = libredwg.dwg_entity_polyline_3d_get_vertices(object)
+    return {
+      type: 'POLYLINE3D',
+      ...commonAttrs,
+      flag: flag,
+      smoothType: smoothType,
+      startWidth: startWidth,
+      endWidth: endWidth,
+      extrusionDirection: extrusionDirection,
+      vertices: vertices.map(vertex => {
+        return {
+          x: vertex.point.x,
+          y: vertex.point.y,
+          z: vertex.point.z,
+          flag: vertex.flag
+        } as unknown as DwgVertex3dEntity
+      })
     }
   }
 
