@@ -2,8 +2,8 @@
 
 This is a DWG/DXF JavaScript parser based on libredwg. It can be used in browser and Node.js environments. 
 
-- [Live demo](https://mlight-lee.github.io/libredwg-web/)
-- [API docs](https://mlight-lee.github.io/libredwg-web/docs/)
+- [Live demo](https://mlightcad.github.io/libredwg-web/)
+- [API docs](https://mlightcad.github.io/libredwg-web/docs/)
 
 ## Build WebAssembly
 
@@ -100,7 +100,7 @@ const data = result.data;
 
 Web assembly wrapper is stored in folder [dist](./dist/). It provides one class `LibreDwg` to wrap the web assembly. This class provides
 
-- Method to convert dwg data to [DwgDatabase](https://mlight-lee.github.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html) instance with the strong type definition so that it is easy to use.
+- Method to convert dwg data to [DwgDatabase](https://mlightcad.gitlab.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html) instance with the strong type definition so that it is easy to use.
 - More methods that the raw web assembly API doesn't provide. 
 
 ```typescript
@@ -131,11 +131,11 @@ There are two kinds of interfaces defined to access dwg/dxf drawing data.
 
 ### Interfaces with prifix 'Dwg'
 
-Those interfaces are much more easier to use with better data structure. It is quite similar to interfaces defined in project [@mlightcad/dxf-json](https://github.com/mlight-lee/dxf-json). Those interfaces describe most of commonly used objects in the dwg/dxf drawing.
+Those interfaces are much more easier to use with better data structure. It is quite similar to interfaces defined in project [@mlightcad/dxf-json](https://github.com/mlightcad/dxf-json). Those interfaces describe most of commonly used objects in the dwg/dxf drawing.
 
 ### Interfaces with prefix 'Dwg_'
 
-Those interfaces are JavaScript version of `structs` defined in libredwg C++ code. Only a few `structs` have the correponding JavaScript interface. Most of them are defined to make it easier to convert libredwg data structure to [DwgDatabase](https://mlight-lee.github.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html).
+Those interfaces are JavaScript version of `structs` defined in libredwg C++ code. Only a few `structs` have the correponding JavaScript interface. Most of them are defined to make it easier to convert libredwg data structure to [DwgDatabase](https://mlightcad.gitlab.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html).
 
 So it is recommend to use interfaces with prefix 'Dwg'.
 
