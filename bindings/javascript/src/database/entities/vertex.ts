@@ -12,7 +12,7 @@ export declare enum DwgVertexFlag {
   POLYFACE = 128
 }
 
-export interface DwgVertexEntity extends DwgEntity, DwgPoint3D {
+export interface DwgVertex2dEntity extends DwgEntity, DwgPoint3D {
   startWidth: number
   endWidth: number
   bulge: number
@@ -22,5 +22,10 @@ export interface DwgVertexEntity extends DwgEntity, DwgPoint3D {
   polyfaceIndex1?: number
   polyfaceIndex2?: number
   polyfaceIndex3?: number
+  id: number
+}
+
+export interface DwgVertex3dEntity extends DwgEntity, DwgPoint3D {
+  flag: DwgVertexFlag
   id: number
 }

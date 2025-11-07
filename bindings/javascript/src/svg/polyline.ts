@@ -1,4 +1,4 @@
-import { DwgLWPolylineEntity, DwgPoint2D, DwgPolylineEntity } from '../database'
+import { DwgLWPolylineEntity, DwgPoint2D } from '../database'
 import { Vector2D } from './vector'
 
 export function createPolylineArcPoints(
@@ -66,7 +66,7 @@ export function createPolylineArcPoints(
 }
 
 export function interpolatePolyline(
-  entity: DwgPolylineEntity | DwgLWPolylineEntity,
+  entity: DwgLWPolylineEntity,
   closed: boolean = false
 ) {
   let points: DwgPoint2D[] = []
