@@ -239,6 +239,11 @@ export interface Dwg_Entity_VERTEX_2D {
   tangent_dir: number
 }
 
+export interface Dwg_Entity_VERTEX_3D {
+  flag: number
+  point: DwgPoint3D
+}
+
 export interface Dwg_MLINE_Line {
   num_segparms: number
   segparms: number[]
