@@ -208,7 +208,9 @@ export class LibreDwgConverter {
     // The BLOCK_HEADER has only the abbrevated name, but we want "*D30" instead of "*D".
     // So get full name from BLOCK entity.
     const block = libredwg.dwg_entity_block_header_get_block(item)
-    commonAttrs.name = block.name
+    if (block.name) {
+      commonAttrs.name = block.name
+    }
 
     const flags = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
     const description = libredwg.dwg_dynapi_entity_value(item, 'description')
