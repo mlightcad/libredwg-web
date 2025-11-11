@@ -3,12 +3,12 @@
   "description": "A DWG/DXF JavaScript parser based on libredwg",
   "license": "GPL-2.0-only",
   "private": false,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": "MLight Lee <mlight.lee@outlook.com>",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/mlightcad/libredwg-web"
+    "url": "https://github.com/mlightcad/libredwg-web"
   },
   "keywords": [
     "AutoCAD",

@@ -100,7 +100,7 @@ const data = result.data;
 
 Web assembly wrapper is stored in folder [dist](./dist/). It provides one class `LibreDwg` to wrap the web assembly. This class provides
 
-- Method to convert dwg data to [DwgDatabase](https://mlightcad.gitlab.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html) instance with the strong type definition so that it is easy to use.
+- Method to convert dwg data to [DwgDatabase](https://mlightcad.github.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html) instance with the strong type definition so that it is easy to use.
 - More methods that the raw web assembly API doesn't provide. 
 
 ```typescript
@@ -135,7 +135,7 @@ Those interfaces are much more easier to use with better data structure. It is q
 
 ### Interfaces with prefix 'Dwg_'
 
-Those interfaces are JavaScript version of `structs` defined in libredwg C++ code. Only a few `structs` have the correponding JavaScript interface. Most of them are defined to make it easier to convert libredwg data structure to [DwgDatabase](https://mlightcad.gitlab.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html).
+Those interfaces are JavaScript version of `structs` defined in libredwg C++ code. Only a few `structs` have the correponding JavaScript interface. Most of them are defined to make it easier to convert libredwg data structure to [DwgDatabase](https://mlightcad.github.io/libredwg-web/docs/interfaces/database_database.DwgDatabase.html).
 
 So it is recommend to use interfaces with prefix 'Dwg'.
 
