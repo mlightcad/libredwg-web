@@ -883,7 +883,7 @@ export class LibreEntityConverter {
         }
       }
     }
-    if (name === '') {
+    if (!name) {
       /* pre-R2.0 */
       name = libredwg.dwg_dynapi_entity_value(entity, 'block_name')
         .data as string
