@@ -212,6 +212,9 @@ export class LibreDwgConverter {
       commonAttrs.name = block.name
     }
 
+    // The number of entities
+    const num_owned = libredwg.dwg_dynapi_entity_value(item, 'num_owned').data as number
+
     const flags = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
     const description = libredwg.dwg_dynapi_entity_value(item, 'description')
       .data as string
@@ -243,7 +246,18 @@ export class LibreDwgConverter {
       bmpPreview = uint8ArrayToHexString(bmpPreviewBinaryData)
     }
 
-    const entities = this.convertEntities(obj, commonAttrs.handle)
+    let entities = this.convertEntities(obj, commonAttrs.handle)
+    if (entities.length == 0 || entities.length < num_owned) {
+      const entities_ptr = libredwg.dwg_dynapi_entity_value(item, 'entities').data as number
+      const object_ref_ptr_array = libredwg.dwg_ptr_to_object_ref_ptr_array(entities_ptr, num_owned)
+      const converter = this.entityConverter
+      entities = []
+      for (let index = 0; index < num_owned; index++) {
+        const object = libredwg.dwg_ref_get_object(object_ref_ptr_array[index])
+        const entity = converter.convert(object)
+        if (entity) entities.push(entity)
+      }
+    }
 
     return {
       ...commonAttrs,
