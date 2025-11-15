@@ -141,6 +141,24 @@ DEFINE_ARRAY_FUNC(int32_t)
 DEFINE_ARRAY_FUNC(uint64_t)
 DEFINE_ARRAY_FUNC(int64_t)
 
+emscripten::val dwg_ptr_to_object_ref_array_wrapper(uintptr_t array_ptr, size_t size) {
+  BITCODE_H* array = reinterpret_cast<BITCODE_H*>(array_ptr);
+  emscripten::val jsArray = emscripten::val::array();
+  for (int index = 0; index < size; ++index) {
+    jsArray.call<void>("push", object_ref_to_js_object(array[index]));
+  }
+  return jsArray;
+}
+
+emscripten::val dwg_ptr_to_object_ref_ptr_array_wrapper(uintptr_t array_ptr, size_t size) {
+  BITCODE_H* array = reinterpret_cast<BITCODE_H*>(array_ptr);
+  emscripten::val jsArray = emscripten::val::array();
+  for (int index = 0; index < size; ++index) {
+    jsArray.call<void>("push", reinterpret_cast<uintptr_t>(array[index]));
+  }
+  return jsArray;
+}
+
 emscripten::val dwg_ptr_to_unsigned_char_array(unsigned char* array, size_t size) {
   if (array) {
     emscripten::val result = emscripten::val::global("Uint8Array").new_(size);
@@ -467,6 +485,8 @@ emscripten::val dwg_ptr_to_mline_vertex_array_wrapper(uintptr_t array_ptr, size_
 }
 
 EMSCRIPTEN_BINDINGS(libredwg_array) {
+  DEFINE_FUNC(dwg_ptr_to_object_ref_array);
+  DEFINE_FUNC(dwg_ptr_to_object_ref_ptr_array);
   DEFINE_FUNC(dwg_ptr_to_unsigned_char_array);
   DEFINE_FUNC(dwg_ptr_to_signed_char_array);
   DEFINE_FUNC(dwg_ptr_to_uint16_t_array);

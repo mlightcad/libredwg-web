@@ -626,6 +626,29 @@ export class LibreDwg {
   }
 
   /**
+   * Converts one C++ handle array to one JavaScript Dwg_Object_Ref array.
+   * @group Array Methods
+   * @param ptr Pointer to C++ handle array.
+   * @param size The size of C++ handle array.
+   * @returns Returns one JavaScript Dwg_Object_Ref array from the specified C++ handle array.
+   */
+  dwg_ptr_to_object_ref_array(ptr: Dwg_Array_Ptr, size: number): Dwg_Object_Ref[] {
+    return this.wasmInstance.dwg_ptr_to_object_ref_array(ptr, size)
+  }
+
+
+  /**
+   * Converts one C++ handle array to one JavaScript Dwg_Object_Ref_Ptr array.
+   * @group Array Methods
+   * @param ptr Pointer to C++ handle array.
+   * @param size The size of C++ handle array.
+   * @returns Returns one JavaScript Dwg_Object_Ref_Ptr array from the specified C++ handle array.
+   */
+  dwg_ptr_to_object_ref_ptr_array(ptr: Dwg_Array_Ptr, size: number): Dwg_Object_Ref_Ptr[] {
+    return this.wasmInstance.dwg_ptr_to_object_ref_ptr_array(ptr, size)
+  }
+
+  /**
    * Converts one C++ unsigned char array to one JavaScript number array.
    * @group Array Methods
    * @param ptr Pointer to C++ unsigned char array.

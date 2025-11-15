@@ -473,6 +473,8 @@ interface EmbindModule {
   dwg_ent_set_INT32(_0: number, _1: EmbindString, _2: number): boolean;
   dwg_handle(_0: number): any;
   dwg_object_ref(_0: number): any;
+  dwg_ptr_to_object_ref_array(_0: number, _1: number): any;
+  dwg_ptr_to_object_ref_ptr_array(_0: number, _1: number): any;
   dwg_ptr_to_unsigned_char_array(_0: number, _1: number): any;
   dwg_ptr_to_signed_char_array(_0: number, _1: number): any;
   dwg_ptr_to_uint16_t_array(_0: number, _1: number): any;
