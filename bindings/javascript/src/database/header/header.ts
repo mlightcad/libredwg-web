@@ -1,3 +1,4 @@
+import { Dwg_Color } from '../../types'
 import { DwgPoint3D } from '../common'
 
 export interface DwgHeader {
@@ -63,7 +64,7 @@ export interface DwgHeader {
    * 0 = BYBLOCK; 256 = BYLAYER
    * Initial value:	256
    */
-  CECOLOR?: number
+  CECOLOR?: Dwg_Color
 
   /**
    * The linetype scaling for new objects relative to the LTSCALE command setting. A line created with
