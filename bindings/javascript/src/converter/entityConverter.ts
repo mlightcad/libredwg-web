@@ -79,7 +79,7 @@ import {
 type DwgCommonAttributes = Omit<DwgEntity, 'type'>
 type DwgDimensionCommonAttributes = Omit<
   DwgDimensionEntityCommon,
-  'handle' | 'ownerBlockRecordSoftId' | 'layer' | 'subclassMarker'
+  'handle' | 'ownerBlockRecordSoftId' | 'layer' | 'subclassMarker' | 'transparencyType'
 >
 
 export class LibreEntityConverter {
@@ -2039,6 +2039,19 @@ export class LibreEntityConverter {
   private getCommonAttrs(entity: Dwg_Object_Entity_Ptr): DwgCommonAttributes {
     const libredwg = this.libredwg
     const color = libredwg.dwg_object_entity_get_color_object(entity)
+    // - 0xc0 for ByLayer (also c3 and rgb of 0x100)
+    // - 0xc1 for ByBlock (also c3 and rgb of 0)
+    // - 0xc2 for entities (default), with names with an additional name flag RC
+    // - 0xc3 for truecolor
+    // - 0xc5 for foreground color
+    // - 0xc8 for none (also c3 and rgb of 0x101)
+    const method = color.method
+    let colorIndex = color.index
+    let rgbColor = undefined
+    if (method == 0xC2 || ((color.rgb >>> 24) & 0xFF) === 0xC2) {
+      rgbColor = color.rgb & 0x00FFFFFF
+    }
+    
     const layer = this.getLayerName(entity)
     const handle = libredwg.dwg_object_entity_get_handle_object(entity)
     const ownerhandle =
@@ -2052,14 +2065,15 @@ export class LibreEntityConverter {
       handle: handle.value,
       ownerBlockRecordSoftId: ownerhandle.absolute_ref,
       layer: layer,
-      color: color.rgb,
-      colorIndex: color.index,
+      color: rgbColor,
+      colorIndex: colorIndex,
       colorName: color.name,
       lineType: lineType,
       lineweight: lineweight,
       lineTypeScale: lineTypeScale,
       isVisible: isVisible,
-      transparency: 0 // TODO: Set the correct value
+      transparency: color.alpha,
+      transparencyType: color.alpha_type
     }
   }
 
