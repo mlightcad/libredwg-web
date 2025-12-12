@@ -43,11 +43,56 @@ export interface Dwg_Object_Ref {
 }
 
 export interface Dwg_Color {
+  /**
+   * - <0: turned off
+   * - 0: BYBLOCK
+   * - 256: BYLAYER
+   */
   index: number
+  /**
+   * - 1: has name
+   * - 2: has book_name. 
+   */
   flag: number
+  /**
+   * DXF 420.
+   * The meaning of the first byte of rgb is as follows.
+   * - 0xc0 for ByLayer (also c3 and rgb of 0x100)
+   * - 0xc1 for ByBlock (also c3 and rgb of 0)
+   * - 0xc2 for entities (default), with names with an additional name flag RC
+   * - 0xc3 for truecolor
+   * - 0xc5 for foreground color
+   * - 0xc8 for none (also c3 and rgb of 0x101)
+   */
   rgb: number
+  /**
+   * It is the first byte of rgb.
+   * - 0xc0 for ByLayer (also c3 and rgb of 0x100)
+   * - 0xc1 for ByBlock (also c3 and rgb of 0)
+   * - 0xc2 for entities (default), with names with an additional name flag RC
+   * - 0xc3 for truecolor
+   * - 0xc5 for foreground color
+   * - 0xc8 for none (also c3 and rgb of 0x101)
+   */
+  method: number
+  /** 
+   * DXF 430
+   */ 
   name: string
+  /**
+   * DXF 430, DXF: "book_name$name"
+   */
   book_name: string
+  /**
+   * - 0 BYLAYER
+   * - 1 BYBLOCK
+   * - 3 alpha 
+   */
+  alpha_type: number
+  /**
+   * DXF 440, 0-255
+   */
+  alpha: number
 }
 
 export interface Dwg_Class {
