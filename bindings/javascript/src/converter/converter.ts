@@ -568,10 +568,29 @@ export class LibreDwgConverter {
     const color = libredwg.dwg_dynapi_entity_value(item, 'color')
       .data as Dwg_Color
 
+    // - 0xc0 for ByLayer (also c3 and rgb of 0x100)
+    // - 0xc1 for ByBlock (also c3 and rgb of 0)
+    // - 0xc2 for entities (default), with names with an additional name flag RC
+    // - 0xc3 for truecolor
+    // - 0xc5 for foreground color
+    // - 0xc8 for none (also c3 and rgb of 0x101)
+    const method = color.method
+    let colorIndex = 256
+    let rgbColor = 0xFFFFFF
+    // It looks like that libredwg always returns 256 for property 'index' in Dwg_Color
+    if (method === 0xC3 || ((color.rgb >>> 24) & 0xFF) === 0xC3) {
+      colorIndex = color.rgb & 0x000000FF
+    } else if (method == 0xC2 || ((color.rgb >>> 24) & 0xFF) === 0xC2) {
+      rgbColor = color.rgb & 0x00FFFFFF
+    }
+
     return {
       ...commonAttrs,
       standardFlag: flag,
-      colorIndex: color.index,
+      colorIndex: colorIndex,
+      color: rgbColor,
+      colorName: color.name,
+      transparency: color.alpha,
       lineType: '',
       frozen: frozen != 0,
       off: off != 0,

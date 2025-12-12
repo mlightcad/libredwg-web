@@ -30,10 +30,12 @@ emscripten::val color_to_js_object(const Dwg_Color* color) {
   emscripten::val color_obj = emscripten::val::object();
   color_obj.set("index", color->index);
   color_obj.set("flag", color->flag);
-  // TODO: combine 'rgb' and 'alpha' together and convert them to 'rgba'
   color_obj.set("rgb", color->rgb);
+  color_obj.set("method", color->method);
   color_obj.set("name", std::string(color->name));
   color_obj.set("book_name", std::string(color->book_name));
+  color_obj.set("alpha_type", color->alpha_type);
+  color_obj.set("alpha", color->alpha);
   return color_obj;
 }
 

@@ -4,6 +4,9 @@ export interface DwgLayerTableEntry extends DwgCommonTableEntry {
   name: string
   standardFlag: number
   colorIndex: number
+  color: number
+  colorName?: string;
+  transparency: number;
   lineType: string
   frozen: boolean
   off: boolean
