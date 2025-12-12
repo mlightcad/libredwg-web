@@ -60,23 +60,24 @@ export interface DwgEntity {
   /**
    * A 24-bit color value that should be dealt with in terms of bytes with values of 0 to 255.
    * The lowest byte is the blue value, the middle byte is the green value, and the third byte
-   * is the red value. The top byte is always 0. The group code cannot be used by custom entities
-   * for their own data because the group code is reserved for AcDbEntity, class-level color data
-   * and AcDbEntity, class-level transparency data
+   * is the red value. The top byte is always 0.
    */
   color?: number
   /**
-   * Color name. The group code cannot be used by custom entities for their own data because
-   * the group code is reserved for AcDbEntity, class-level color data and AcDbEntity, class-level
-   * transparency data
+   * Color name.
    */
   colorName?: string
   /**
-   * Transparency value. The group code cannot be used by custom entities for their own data because
-   * the group code is reserved for AcDbEntity, class-level color data and AcDbEntity, class-level
-   * transparency data
+   * Transparency value.
    */
   transparency?: number
+  /**
+   * Transparency type.
+   * - 0 BYLAYER
+   * - 1 BYBLOCK
+   * - 3 alpha 
+   */
+  transparencyType: number
   /**
    * Hard-pointer ID/handle to the plot style object
    */
