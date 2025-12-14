@@ -21,6 +21,7 @@ import {
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
+  Dwg_Array_Ptr,
   Dwg_Color,
   Dwg_Data_Ptr,
   Dwg_LTYPE_Dash,
@@ -616,10 +617,8 @@ export class LibreDwgConverter {
       .data as number
     const patternLen = libredwg.dwg_dynapi_entity_value(item, 'pattern_len')
       .data as number
-    // const dashes = libredwg.dwg_dynapi_entity_value(item, 'dashes').data as Dwg_Array_Ptr
-    // const dashArray = dashes ? libredwg.dwg_ptr_to_ltype_dash_array(dashes, numDashes) : []
-    const dashArray: Dwg_LTYPE_Dash[] = []
-
+    const dashes = libredwg.dwg_dynapi_entity_value(item, 'dashes').data as Dwg_Array_Ptr
+    const dashArray = dashes ? libredwg.dwg_ptr_to_ltype_dash_array(dashes, numDashes) : []
     return {
       ...commonAttrs,
       description: description,
@@ -633,10 +632,17 @@ export class LibreDwgConverter {
   private convertLineTypePattern(dashes: Dwg_LTYPE_Dash[]) {
     const patterns: DwgLineTypeElement[] = []
     dashes.forEach(dash => {
-      // For now always convert complex line type to simple line type
       patterns.push({
         elementLength: dash.length || 0,
-        elementTypeFlag: 0
+        elementTypeFlag: dash.complex_shapecode,
+        shapeNumber: dash.shape_flag,
+        // TODO: convert style handle to style object id
+        // styleObjectId: dash.style,
+        scale: dash.scale,
+        rotation: dash.rotation,
+        offsetX: dash.x_offset,
+        offsetY: dash.y_offset,
+        text: dash.text
       })
     })
     return patterns
