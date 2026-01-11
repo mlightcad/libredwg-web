@@ -8,6 +8,11 @@
 
 using namespace emscripten;
 
+uintptr_t dwg_entity_owner_wrapper(Dwg_Object_Entity_Ptr ent_ptr) {
+  const void * ent = reinterpret_cast<const void *>(ent_ptr);
+  return reinterpret_cast<uintptr_t>(dwg_entity_owner(ent));
+}
+
 emscripten::val dwg_entity_polyline_2d_get_numpoints_wrapper(Dwg_Object_Ptr obj_ptr) {
   Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
   int error = 0;
@@ -323,6 +328,7 @@ emscripten::val dwg_entity_polyline_3d_get_vertices_wrapper(Dwg_Object_Ptr obj_p
 }
 
 EMSCRIPTEN_BINDINGS(libredwg_dwg_object_ref) {
+  DEFINE_FUNC(dwg_entity_owner);
   DEFINE_FUNC(dwg_entity_polyline_2d_get_numpoints);
   DEFINE_FUNC(dwg_entity_polyline_2d_get_points);
   DEFINE_FUNC(dwg_entity_polyline_2d_get_vertices);

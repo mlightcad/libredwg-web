@@ -63,7 +63,8 @@ import {
   DwgVertex2dEntity,
   DwgVertex3dEntity,
   DwgWipeoutEntity,
-  DwgXlineEntity
+  DwgXlineEntity,
+  DwgViewportEntity
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
@@ -191,6 +192,8 @@ export class LibreEntityConverter {
         return this.convertText(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_TOLERANCE) {
         return this.convertTolerance(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_VIEWPORT) {
+        return this.convertViewport(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_WIPEOUT) {
         return this.convertWipeout(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_XLINE) {
@@ -1879,6 +1882,148 @@ export class LibreEntityConverter {
       text: text,
       extrusionDirection: extrusionDirection,
       xAxisDirection: xAxisDirection
+    }
+  }
+
+  private convertViewport(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgViewportEntity {
+    const libredwg = this.libredwg
+    const viewportCenter = libredwg.dwg_dynapi_entity_value(entity, 'center')
+      .data as DwgPoint3D
+    const width = libredwg.dwg_dynapi_entity_value(entity, 'width')
+      .data as number
+    const height = libredwg.dwg_dynapi_entity_value(entity, 'height')
+      .data as number
+    const status = libredwg.dwg_dynapi_entity_value(entity, 'on_off')
+      .data as number
+    const viewportId = libredwg.dwg_dynapi_entity_value(entity, 'id')
+      .data as number
+    const displayCenter = libredwg.dwg_dynapi_entity_value(entity, 'VIEWCTR')
+      .data as DwgPoint2D
+    const snapBase = libredwg.dwg_dynapi_entity_value(entity, 'SNAPBASE')
+      .data as DwgPoint2D
+    const snapSpacing = libredwg.dwg_dynapi_entity_value(entity, 'SNAPUNIT')
+      .data as DwgPoint2D
+    const gridSpacing = libredwg.dwg_dynapi_entity_value(entity, 'GRIDUNIT')
+      .data as DwgPoint2D
+    const viewDirection = libredwg.dwg_dynapi_entity_value(entity, 'VIEWDIR')
+      .data as DwgPoint3D
+    const targetPoint = libredwg.dwg_dynapi_entity_value(entity, 'view_target')
+      .data as DwgPoint3D
+    const perspectiveLensLength = libredwg.dwg_dynapi_entity_value(entity, 'lens_length')
+      .data as number
+    const frontClipZ = libredwg.dwg_dynapi_entity_value(entity, 'front_clip_z')
+      .data as number
+    const backClipZ = libredwg.dwg_dynapi_entity_value(entity, 'back_clip_z')
+      .data as number
+    // TODO: I am not sure whether view size in libredwg represents view height 
+    const viewHeight = libredwg.dwg_dynapi_entity_value(entity, 'VIEWSIZE')
+      .data as number
+    const snapAngle = libredwg.dwg_dynapi_entity_value(entity, 'SNAPANG')
+      .data as number
+    const viewTwistAngle = libredwg.dwg_dynapi_entity_value(entity, 'twist_angle')
+      .data as number
+    const circleZoomPercent = libredwg.dwg_dynapi_entity_value(entity, 'circle_zoom')
+      .data as number
+    // TODO: convert frozenLayerIds and clippingBoundaryId
+    const statusBitFlags = libredwg.dwg_dynapi_entity_value(entity, 'status_flag')
+      .data as number
+    const sheetName = libredwg.dwg_dynapi_entity_value(entity, 'style_sheet')
+      .data as string
+    const renderMode = libredwg.dwg_dynapi_entity_value(entity, 'render_mode')
+      .data as number
+    // TODO: Not sure whether UCSVP in libredwg represents ucsPerViewport
+    const ucsPerViewport = libredwg.dwg_dynapi_entity_value(entity, 'UCSVP')
+      .data as number
+    const ucsOrigin = libredwg.dwg_dynapi_entity_value(entity, 'ucsorg')
+      .data as DwgPoint3D
+    const ucsXAxis = libredwg.dwg_dynapi_entity_value(entity, 'ucsxdir')
+      .data as DwgPoint3D
+    const ucsYAxis = libredwg.dwg_dynapi_entity_value(entity, 'ucsydir')
+      .data as DwgPoint3D
+    const named_ucs_ref = libredwg.dwg_dynapi_entity_value(entity, 'named_ucs')
+      .data as number
+    const ucsId = libredwg.dwg_ref_get_absref(named_ucs_ref)
+    const base_ucs_ref = libredwg.dwg_dynapi_entity_value(entity, 'base_ucs')
+      .data as number
+    const ucsBaseId = libredwg.dwg_ref_get_absref(base_ucs_ref)
+    // TODO: Not sure whether UCSORTHOVIEW represents orthographicType
+    const orthographicType = libredwg.dwg_dynapi_entity_value(entity, 'UCSORTHOVIEW')
+      .data as number
+    const elevation = libredwg.dwg_dynapi_entity_value(entity, 'ucs_elevation')
+      .data as number
+    const shadePlotMode = libredwg.dwg_dynapi_entity_value(entity, 'shadeplot_mode')
+      .data as number
+    const isDefaultLighting = libredwg.dwg_dynapi_entity_value(entity, 'use_default_lights')
+      .data as number
+    const defaultLightingType = libredwg.dwg_dynapi_entity_value(entity, 'default_lighting_type')
+      .data as number
+    const brightness = libredwg.dwg_dynapi_entity_value(entity, 'brightness')
+      .data as number
+    const contrast = libredwg.dwg_dynapi_entity_value(entity, 'contrast')
+      .data as number
+
+    const majorGridFrequency = libredwg.dwg_dynapi_entity_value(entity, 'grid_major')
+      .data as number  
+    const background_ref = libredwg.dwg_dynapi_entity_value(entity, 'background')
+      .data as number
+    const backgroundId = libredwg.dwg_ref_get_absref(background_ref)
+    const shadeplot_ref = libredwg.dwg_dynapi_entity_value(entity, 'shadeplot')
+      .data as number
+    const shadePlotId = libredwg.dwg_ref_get_absref(shadeplot_ref)
+    const visualstyle_ref = libredwg.dwg_dynapi_entity_value(entity, 'visualstyle')
+      .data as number
+    const visualStyleId = libredwg.dwg_ref_get_absref(visualstyle_ref)
+
+    // TODO: convert ambientLightColor
+    const sun_ref = libredwg.dwg_dynapi_entity_value(entity, 'sun')
+      .data as number
+    const sunId = libredwg.dwg_ref_get_absref(sun_ref)
+
+    return {
+      type: 'VIEWPORT',
+      ...commonAttrs,
+      viewportCenter: viewportCenter,
+      width: width,
+      height: height,
+      status: status,
+      viewportId: viewportId,
+      displayCenter: displayCenter,
+      snapBase: snapBase,
+      snapSpacing: snapSpacing,
+      gridSpacing: gridSpacing,
+      viewDirection: viewDirection,
+      targetPoint: targetPoint,
+      perspectiveLensLength: perspectiveLensLength,
+      frontClipZ: frontClipZ,
+      backClipZ: backClipZ,
+      viewHeight: viewHeight,
+      snapAngle: snapAngle,
+      viewTwistAngle: viewTwistAngle,
+      circleZoomPercent: circleZoomPercent,
+      statusBitFlags: statusBitFlags,
+      sheetName: sheetName,
+      renderMode: renderMode,
+      ucsPerViewport: ucsPerViewport,
+      ucsOrigin: ucsOrigin,
+      ucsXAxis: ucsXAxis,
+      ucsYAxis: ucsYAxis,
+      ucsId: ucsId.toString(),
+      ucsBaseId: ucsBaseId.toString(),
+      orthographicType: orthographicType,
+      elevation: elevation,
+      shadePlotMode: shadePlotMode,
+      majorGridFrequency: majorGridFrequency,
+      backgroundId: backgroundId.toString(),
+      shadePlotId: shadePlotId.toString(),
+      visualStyleId: visualStyleId.toString(),
+      isDefaultLighting: !!isDefaultLighting,
+      defaultLightingType: defaultLightingType,
+      brightness: brightness,
+      contrast: contrast,
+      sunId: sunId.toString()
     }
   }
 

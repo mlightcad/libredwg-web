@@ -364,6 +364,7 @@ interface EmbindModule {
   dwg_ref_object_relative(_0: number, _1: number, _2: number): number;
   dwg_ref_object_silent(_0: number, _1: number): number;
   dwg_resolve_handleref(_0: number, _1: number): number;
+  dwg_entity_owner(_0: number): number;
   dwg_get_version_type(_0: number): number;
   dwg_get_codepage(_0: number): number;
   dwg_get_num_classes(_0: number): number;

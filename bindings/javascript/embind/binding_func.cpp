@@ -12,6 +12,14 @@ using namespace emscripten;
 emscripten::val dwg_read_file_wrapper(const std::string& filename) {
   Dwg_Data* dwg = new Dwg_Data();
   int error = dwg_read_file(filename.c_str(), dwg);
+  for (BITCODE_BL i = 0; i < dwg->num_object_refs; i++)
+    {
+      // scan num_objects for the id (absolute_ref)
+      Dwg_Object *restrict obj
+          = dwg_resolve_handle (dwg, dwg->object_ref[i]->absolute_ref);
+      dwg->object_ref[i]->obj = obj;
+    }
+  dwg->dirty_refs = 0;
 
   emscripten::val result = emscripten::val::object();
   result.set("error", error);
