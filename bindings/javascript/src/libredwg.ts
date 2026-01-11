@@ -1005,6 +1005,18 @@ export class LibreDwg {
     return this.wasmInstance.dwg_object_entity_get_color_object(ptr)
   }
 
+
+  /**
+   * Returns pointer to BLOCK_HEADER owner for generic entity from ent->ownerhandle.
+   * @group Dwg_Object_Entity Methods
+   * @param ptr Pointer to one Dwg_Object_Entity instance.
+   * @returns Returns pointer to BLOCK_HEADER owner.
+   */
+  dwg_entity_owner(ptr: Dwg_Object_Entity_TIO_Ptr): Dwg_Object_Entity_TIO_Ptr {
+    const wasmInstance = this.wasmInstance
+    return wasmInstance.dwg_entity_owner(ptr)
+  }
+
   /**
    * Returns block name of one Dwg_Entity_* instance with one block field. For example,
    * dimension entities have one 'block' field which represents the block that contains
