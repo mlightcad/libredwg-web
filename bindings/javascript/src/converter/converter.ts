@@ -16,8 +16,7 @@ import {
   DwgPoint3D,
   DwgStyleTableEntry,
   DwgVPortTableEntry,
-  HEADER_VARIABLES,
-  isModelSpace
+  HEADER_VARIABLES
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
@@ -116,9 +115,7 @@ export class LibreDwgConverter {
             {
               const btr = this.convertBlockRecord(tio, obj)
               db.tables.BLOCK_RECORD.entries.push(btr)
-              if (isModelSpace(btr.name)) {
-                db.entities = btr.entities
-              }
+              btr.entities.forEach(entity => db.entities.push(entity))
             }
             break
           case Dwg_Object_Type.DWG_TYPE_DIMSTYLE:
@@ -247,8 +244,11 @@ export class LibreDwgConverter {
       bmpPreview = uint8ArrayToHexString(bmpPreviewBinaryData)
     }
 
+    // Sometimes function get_first_owned_entity returns 0 when trying to iterate entities in one block.
+    // I guess it is one bug on libredwg. I logged [one bug](https://github.com/LibreDWG/libredwg/issues/1199)
+    // on libredwg too. In this time, I try to use property 'entities' of block header to iterate entities.
     let entities = this.convertEntities(obj, commonAttrs.handle)
-    if (entities.length == 0 || entities.length < num_owned) {
+    if (entities.length == 0) {
       const entities_ptr = libredwg.dwg_dynapi_entity_value(item, 'entities').data as number
       const object_ref_ptr_array = libredwg.dwg_ptr_to_object_ref_ptr_array(entities_ptr, num_owned)
       const converter = this.entityConverter
@@ -256,7 +256,10 @@ export class LibreDwgConverter {
       for (let index = 0; index < num_owned; index++) {
         const object = libredwg.dwg_ref_get_object(object_ref_ptr_array[index])
         const entity = converter.convert(object)
-        if (entity) entities.push(entity)
+        if (entity) {
+          entity.ownerBlockRecordSoftId = commonAttrs.handle
+          entities.push(entity)
+        }
       }
     }
 
