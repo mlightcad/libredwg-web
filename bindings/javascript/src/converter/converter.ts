@@ -16,7 +16,9 @@ import {
   DwgPoint3D,
   DwgStyleTableEntry,
   DwgVPortTableEntry,
-  HEADER_VARIABLES
+  HEADER_VARIABLES,
+  isModelSpace,
+  isPaperSpace
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
@@ -115,7 +117,10 @@ export class LibreDwgConverter {
             {
               const btr = this.convertBlockRecord(tio, obj)
               db.tables.BLOCK_RECORD.entries.push(btr)
-              btr.entities.forEach(entity => db.entities.push(entity))
+              // db.entities should contains entities in model space and paper space only
+              if (isModelSpace(btr.name) || isPaperSpace(btr.name)) {
+                btr.entities.forEach(entity => db.entities.push(entity))
+              }
             }
             break
           case Dwg_Object_Type.DWG_TYPE_DIMSTYLE:
