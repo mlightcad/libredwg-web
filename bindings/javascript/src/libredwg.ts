@@ -178,8 +178,8 @@ export class LibreDwg {
   }
 
   /**
-   * Converts Dwg_Data instance to DwgDatabase instance and returns conversion statistics. 
-   * DwgDatabase instance doesn't depend on Dwg_Data instance any more after conversion. 
+   * Converts Dwg_Data instance to DwgDatabase instance and returns conversion statistics.
+   * DwgDatabase instance doesn't depend on Dwg_Data instance any more after conversion.
    * So you can call function dwg_free to free memory occupied by Dwg_Data.
    * @param data Pointer to Dwg_Data instance.
    * @returns Returns the converted DwgDatabase and conversion statistics.
@@ -632,10 +632,12 @@ export class LibreDwg {
    * @param size The size of C++ handle array.
    * @returns Returns one JavaScript Dwg_Object_Ref array from the specified C++ handle array.
    */
-  dwg_ptr_to_object_ref_array(ptr: Dwg_Array_Ptr, size: number): Dwg_Object_Ref[] {
+  dwg_ptr_to_object_ref_array(
+    ptr: Dwg_Array_Ptr,
+    size: number
+  ): Dwg_Object_Ref[] {
     return this.wasmInstance.dwg_ptr_to_object_ref_array(ptr, size)
   }
-
 
   /**
    * Converts one C++ handle array to one JavaScript Dwg_Object_Ref_Ptr array.
@@ -644,7 +646,10 @@ export class LibreDwg {
    * @param size The size of C++ handle array.
    * @returns Returns one JavaScript Dwg_Object_Ref_Ptr array from the specified C++ handle array.
    */
-  dwg_ptr_to_object_ref_ptr_array(ptr: Dwg_Array_Ptr, size: number): Dwg_Object_Ref_Ptr[] {
+  dwg_ptr_to_object_ref_ptr_array(
+    ptr: Dwg_Array_Ptr,
+    size: number
+  ): Dwg_Object_Ref_Ptr[] {
     return this.wasmInstance.dwg_ptr_to_object_ref_ptr_array(ptr, size)
   }
 
@@ -1004,7 +1009,6 @@ export class LibreDwg {
   dwg_object_entity_get_color_object(ptr: Dwg_Object_Entity_Ptr): Dwg_Color {
     return this.wasmInstance.dwg_object_entity_get_color_object(ptr)
   }
-
 
   /**
    * Returns pointer to BLOCK_HEADER owner for generic entity from ent->ownerhandle.

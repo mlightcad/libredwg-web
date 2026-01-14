@@ -17,8 +17,10 @@ import {
   DwgStyleTableEntry,
   DwgVPortTableEntry,
   HEADER_VARIABLES,
+  idToString,
   isModelSpace,
-  isPaperSpace
+  isPaperSpace,
+  isValidPointer
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
@@ -196,7 +198,7 @@ export class LibreDwgConverter {
         wasAProxyFlag: cls.s_zombie,
         // DWG_TYPE_PROXY_ENTITY = 0x1F2 /* 498 */,
         // DWG_TYPE_PROXY_OBJECT = 0x1F3 /* 499 */,
-        isAnEntityFlag: cls.item_class_id === 0x1F2
+        isAnEntityFlag: cls.item_class_id === 0x1f2
       })
     }
   }
@@ -216,7 +218,8 @@ export class LibreDwgConverter {
     }
 
     // The number of entities
-    const num_owned = libredwg.dwg_dynapi_entity_value(item, 'num_owned').data as number
+    const num_owned = libredwg.dwg_dynapi_entity_value(item, 'num_owned')
+      .data as number
 
     const flags = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
     const description = libredwg.dwg_dynapi_entity_value(item, 'description')
@@ -254,8 +257,12 @@ export class LibreDwgConverter {
     // on libredwg too. In this time, I try to use property 'entities' of block header to iterate entities.
     let entities = this.convertEntities(obj, commonAttrs.handle)
     if (entities.length == 0) {
-      const entities_ptr = libredwg.dwg_dynapi_entity_value(item, 'entities').data as number
-      const object_ref_ptr_array = libredwg.dwg_ptr_to_object_ref_ptr_array(entities_ptr, num_owned)
+      const entities_ptr = libredwg.dwg_dynapi_entity_value(item, 'entities')
+        .data as number
+      const object_ref_ptr_array = libredwg.dwg_ptr_to_object_ref_ptr_array(
+        entities_ptr,
+        num_owned
+      )
       const converter = this.entityConverter
       entities = []
       for (let index = 0; index < num_owned; index++) {
@@ -284,7 +291,7 @@ export class LibreDwgConverter {
 
   private convertEntities(
     obj: Dwg_Object_Ptr,
-    ownerHandle: number
+    ownerHandle: string
   ): DwgEntity[] {
     const libredwg = this.libredwg
     const converter = this.entityConverter
@@ -585,12 +592,12 @@ export class LibreDwgConverter {
     // - 0xc8 for none (also c3 and rgb of 0x101)
     const method = color.method
     let colorIndex = 256
-    let rgbColor = 0xFFFFFF
+    let rgbColor = 0xffffff
     // It looks like that libredwg always returns 256 for property 'index' in Dwg_Color
-    if (method === 0xC3 || ((color.rgb >>> 24) & 0xFF) === 0xC3) {
-      colorIndex = color.rgb & 0x000000FF
-    } else if (method == 0xC2 || ((color.rgb >>> 24) & 0xFF) === 0xC2) {
-      rgbColor = color.rgb & 0x00FFFFFF
+    if (method === 0xc3 || ((color.rgb >>> 24) & 0xff) === 0xc3) {
+      colorIndex = color.rgb & 0x000000ff
+    } else if (method == 0xc2 || ((color.rgb >>> 24) & 0xff) === 0xc2) {
+      rgbColor = color.rgb & 0x00ffffff
     }
 
     return {
@@ -625,8 +632,11 @@ export class LibreDwgConverter {
       .data as number
     const patternLen = libredwg.dwg_dynapi_entity_value(item, 'pattern_len')
       .data as number
-    const dashes = libredwg.dwg_dynapi_entity_value(item, 'dashes').data as Dwg_Array_Ptr
-    const dashArray = dashes ? libredwg.dwg_ptr_to_ltype_dash_array(dashes, numDashes) : []
+    const dashes = libredwg.dwg_dynapi_entity_value(item, 'dashes')
+      .data as Dwg_Array_Ptr
+    const dashArray = dashes
+      ? libredwg.dwg_ptr_to_ltype_dash_array(dashes, numDashes)
+      : []
     return {
       ...commonAttrs,
       description: description,
@@ -779,12 +789,12 @@ export class LibreDwgConverter {
     const background = libredwg.dwg_dynapi_entity_value(item, 'background')
       .data as Dwg_Object_Ref_Ptr
     const backgroundObjectId = background
-      ? libredwg.dwg_ref_get_absref(background).toString()
+      ? idToString(libredwg.dwg_ref_get_absref(background))
       : undefined
     const visualstyle = libredwg.dwg_dynapi_entity_value(item, 'visualstyle')
       .data as Dwg_Object_Ref_Ptr
     const visualStyleObjectId = visualstyle
-      ? libredwg.dwg_ref_get_absref(visualstyle).toString()
+      ? idToString(libredwg.dwg_ref_get_absref(visualstyle))
       : undefined
 
     // BITCODE_B UCSFOLLOW;
@@ -853,8 +863,8 @@ export class LibreDwgConverter {
       libredwg.dwg_object_object_get_ownerhandle_object(object_tio)
     const handle = libredwg.dwg_object_get_handle_object(obj)
     return {
-      handle: handle.value,
-      ownerHandle: ownerhandle.absolute_ref,
+      handle: idToString(handle.value),
+      ownerHandle: idToString(ownerhandle.absolute_ref),
       name: libredwg.dwg_dynapi_entity_value(tio, 'name').data as string
     }
   }
@@ -923,10 +933,30 @@ export class LibreDwgConverter {
       .data as DwgPoint3D
     const elevation = libredwg.dwg_dynapi_entity_value(item, 'ucs_elevation')
       .data as number
-    // BITCODE_H block_header;
-    // BITCODE_H active_viewport;
+
+    const block_header_ref = libredwg.dwg_dynapi_entity_value(
+      item,
+      'block_header'
+    ).data as number
+    const paperSpaceTableId = idToString(
+      libredwg.dwg_ref_get_absref(block_header_ref)
+    )
+
+    const active_viewport_ref = libredwg.dwg_dynapi_entity_value(
+      item,
+      'active_viewport'
+    ).data as number
+    const viewportId = idToString(
+      libredwg.dwg_ref_get_absref(active_viewport_ref)
+    )
+
+    const named_ucs_ref = libredwg.dwg_dynapi_entity_value(item, 'named_ucs')
+      .data as number
+    const namedUcsId = isValidPointer(named_ucs_ref)
+      ? idToString(libredwg.dwg_ref_get_absref(named_ucs_ref))
+      : undefined
+
     // BITCODE_H base_ucs;
-    // BITCODE_H named_ucs;
     // BITCODE_BL num_viewports; // r2004+
     // BITCODE_H *viewports;     // r2004+
 
@@ -945,9 +975,9 @@ export class LibreDwgConverter {
       ucsXAxis: ucsXAxis,
       ucsYAxis: ucsYAxis,
       orthographicType: orthographicType,
-      paperSpaceTableId: '', // TODO: Set the correct value
-      viewportId: '', // TODO: Set the correct value
-      // namedUcsId?: string;
+      paperSpaceTableId: paperSpaceTableId,
+      viewportId: viewportId,
+      namedUcsId: namedUcsId,
       // orthographicUcsId?: string;
       shadePlotId: '' // TODO: Set the correct value
     }

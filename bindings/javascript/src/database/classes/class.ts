@@ -40,7 +40,7 @@ export interface DwgClass {
    */
   wasAProxyFlag: boolean
   /**
-   * Is-an-entity flag. Set to 1 if class was derived from the AcDbEntity class and can reside in 
+   * Is-an-entity flag. Set to 1 if class was derived from the AcDbEntity class and can reside in
    * the BLOCKS or ENTITIES section. If 0, instances may appear only in the OBJECTS section
    */
   isAnEntityFlag: boolean

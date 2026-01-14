@@ -9,6 +9,18 @@ export const isPaperSpace = (name: string) => {
   return name && name.toUpperCase().startsWith(MODEL_SPACE_PREFIX)
 }
 
+export const idToString = (id: number | bigint) => {
+  return id.toString(16).toUpperCase()
+}
+
+export const isValidPointer = (ptr: number | bigint) => {
+  if (typeof ptr === 'bigint') {
+    return ptr !== 0n
+  } else {
+    return ptr !== 0
+  }
+}
+
 export interface DwgPoint2D {
   x: number
   y: number
