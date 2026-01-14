@@ -20,9 +20,9 @@ import {
   DwgTableEntity,
   DwgTextEntity,
   DwgTextHorizontalAlign,
-  DwgXlineEntity,
-  isModelSpace
+  DwgXlineEntity
 } from '../database'
+import { isModelSpace } from '../converter/utils'
 import { Box2D } from './box2d'
 import { evaluateBSpline } from './bspline'
 import { Color } from './color'
