@@ -16,11 +16,7 @@ import {
   DwgPoint3D,
   DwgStyleTableEntry,
   DwgVPortTableEntry,
-  HEADER_VARIABLES,
-  idToString,
-  isModelSpace,
-  isPaperSpace,
-  isValidPointer
+  HEADER_VARIABLES
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
@@ -34,6 +30,7 @@ import {
   Dwg_Object_Type
 } from '../types'
 import { LibreEntityConverter } from './entityConverter'
+import { idToString, isModelSpace, isPaperSpace } from './utils'
 
 /**
  * Class used to convert Dwg_Data instance to DwgDatabase instance.
@@ -85,63 +82,67 @@ export class LibreDwgConverter {
 
     for (let i = 0; i < num_objects; i++) {
       const obj = libredwg.dwg_get_object(data, i)
-      const tio = libredwg.dwg_object_to_object_tio(obj)
-      if (tio) {
-        const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
-        switch (fixedtype) {
-          case Dwg_Object_Type.DWG_TYPE_LAYER:
-            {
-              const layer = this.convertLayer(tio, obj)
-              db.tables.LAYER.entries.push(layer)
-              this.entityConverter.layers.set(layer.handle, layer.name)
-            }
-            break
-          case Dwg_Object_Type.DWG_TYPE_LTYPE:
-            {
-              const ltype = this.convertLineType(tio, obj)
-              db.tables.LTYPE.entries.push(ltype)
-              this.entityConverter.ltypes.set(ltype.handle, ltype.name)
-            }
-            break
-          default:
-            break
+      if (obj) {
+        const tio = libredwg.dwg_object_to_object_tio(obj)
+        if (tio) {
+          const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
+          switch (fixedtype) {
+            case Dwg_Object_Type.DWG_TYPE_LAYER:
+              {
+                const layer = this.convertLayer(tio, obj)
+                db.tables.LAYER.entries.push(layer)
+                this.entityConverter.layers.set(layer.handle, layer.name)
+              }
+              break
+            case Dwg_Object_Type.DWG_TYPE_LTYPE:
+              {
+                const ltype = this.convertLineType(tio, obj)
+                db.tables.LTYPE.entries.push(ltype)
+                this.entityConverter.ltypes.set(ltype.handle, ltype.name)
+              }
+              break
+            default:
+              break
+          }
         }
       }
     }
 
     for (let i = 0; i < num_objects; i++) {
       const obj = libredwg.dwg_get_object(data, i)
-      const tio = libredwg.dwg_object_to_object_tio(obj)
-      if (tio) {
-        const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
-        switch (fixedtype) {
-          case Dwg_Object_Type.DWG_TYPE_BLOCK_HEADER:
-            {
-              const btr = this.convertBlockRecord(tio, obj)
-              db.tables.BLOCK_RECORD.entries.push(btr)
-              // db.entities should contains entities in model space and paper space only
-              if (isModelSpace(btr.name) || isPaperSpace(btr.name)) {
-                btr.entities.forEach(entity => db.entities.push(entity))
+      if (obj) {
+        const tio = libredwg.dwg_object_to_object_tio(obj)
+        if (tio) {
+          const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
+          switch (fixedtype) {
+            case Dwg_Object_Type.DWG_TYPE_BLOCK_HEADER:
+              {
+                const btr = this.convertBlockRecord(tio, obj)
+                db.tables.BLOCK_RECORD.entries.push(btr)
+                // db.entities should contains entities in model space and paper space only
+                if (isModelSpace(btr.name) || isPaperSpace(btr.name)) {
+                  btr.entities.forEach(entity => db.entities.push(entity))
+                }
               }
-            }
-            break
-          case Dwg_Object_Type.DWG_TYPE_DIMSTYLE:
-            db.tables.DIMSTYLE.entries.push(this.convertDimStyle(tio, obj))
-            break
-          case Dwg_Object_Type.DWG_TYPE_STYLE:
-            db.tables.STYLE.entries.push(this.convertStyle(tio, obj))
-            break
-          case Dwg_Object_Type.DWG_TYPE_VPORT:
-            db.tables.VPORT.entries.push(this.convertViewport(tio, obj))
-            break
-          case Dwg_Object_Type.DWG_TYPE_IMAGEDEF:
-            db.objects.IMAGEDEF.push(this.convertImageDef(tio, obj))
-            break
-          case Dwg_Object_Type.DWG_TYPE_LAYOUT:
-            db.objects.LAYOUT.push(this.convertLayout(tio, obj))
-            break
-          default:
-            break
+              break
+            case Dwg_Object_Type.DWG_TYPE_DIMSTYLE:
+              db.tables.DIMSTYLE.entries.push(this.convertDimStyle(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_STYLE:
+              db.tables.STYLE.entries.push(this.convertStyle(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_VPORT:
+              db.tables.VPORT.entries.push(this.convertViewport(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_IMAGEDEF:
+              db.objects.IMAGEDEF.push(this.convertImageDef(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_LAYOUT:
+              db.objects.LAYOUT.push(this.convertLayout(tio, obj))
+              break
+            default:
+              break
+          }
         }
       }
     }
@@ -175,9 +176,9 @@ export class LibreDwgConverter {
         name == 'DIMTXSTY' ||
         name == 'TEXTSTYLE'
       ) {
-        value = libredwg.dwg_ref_get_object_name(value as number)
+        value = !!value ? libredwg.dwg_ref_get_object_name(value as number) : ''
       } else if (name == 'DRAGVS') {
-        value = libredwg.dwg_ref_get_absref(value as number)
+        value = !!value ? libredwg.dwg_ref_get_absref(value as number) : 2
       }
       // @ts-expect-error header variable name
       header[name] = value
@@ -952,7 +953,7 @@ export class LibreDwgConverter {
 
     const named_ucs_ref = libredwg.dwg_dynapi_entity_value(item, 'named_ucs')
       .data as number
-    const namedUcsId = isValidPointer(named_ucs_ref)
+    const namedUcsId = !!named_ucs_ref
       ? idToString(libredwg.dwg_ref_get_absref(named_ucs_ref))
       : undefined
 
