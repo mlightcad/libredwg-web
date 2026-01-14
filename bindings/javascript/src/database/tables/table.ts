@@ -1,7 +1,7 @@
 export interface DwgCommonTableEntry {
   name: string
-  handle: number
-  ownerHandle: number
+  handle: string
+  ownerHandle: string
 }
 
 export interface DwgTable<T extends DwgCommonTableEntry> {
