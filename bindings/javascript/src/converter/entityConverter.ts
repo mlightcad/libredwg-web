@@ -64,8 +64,7 @@ import {
   DwgVertex3dEntity,
   DwgWipeoutEntity,
   DwgXlineEntity,
-  DwgViewportEntity,
-  idToString
+  DwgViewportEntity
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
@@ -77,6 +76,7 @@ import {
   Dwg_Object_Type,
   Dwg_TABLE_Cell
 } from '../types'
+import { idToString } from './utils'
 
 type DwgCommonAttributes = Omit<DwgEntity, 'type'>
 type DwgDimensionCommonAttributes = Omit<
@@ -842,8 +842,9 @@ export class LibreEntityConverter {
       entity,
       'imagedefreactor'
     ).data as number
-    const imageDefReactorHandle =
-      idToString(libredwg.dwg_ref_get_absref(imagedefreactor_ref))
+    const imageDefReactorHandle = idToString(
+      libredwg.dwg_ref_get_absref(imagedefreactor_ref)
+    )
 
     return {
       type: 'IMAGE',
