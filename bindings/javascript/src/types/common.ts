@@ -51,7 +51,7 @@ export interface Dwg_Color {
   index: number
   /**
    * - 1: has name
-   * - 2: has book_name. 
+   * - 2: has book_name.
    */
   flag: number
   /**
@@ -75,9 +75,9 @@ export interface Dwg_Color {
    * - 0xc8 for none (also c3 and rgb of 0x101)
    */
   method: number
-  /** 
+  /**
    * DXF 430
-   */ 
+   */
   name: string
   /**
    * DXF 430, DXF: "book_name$name"
@@ -86,7 +86,7 @@ export interface Dwg_Color {
   /**
    * - 0 BYLAYER
    * - 1 BYBLOCK
-   * - 3 alpha 
+   * - 3 alpha
    */
   alpha_type: number
   /**
