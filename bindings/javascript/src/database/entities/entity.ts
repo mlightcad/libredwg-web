@@ -8,11 +8,11 @@ export interface DwgEntity {
   /**
    * Handle
    */
-  handle: number
+  handle: string
   /**
    * Soft-pointer ID/handle to owner BLOCK_RECORD object
    */
-  ownerBlockRecordSoftId: number
+  ownerBlockRecordSoftId: string
   /**
    * Absent or zero indicates entity is in model space. 1 indicates entity is in paper space (optional).
    */
@@ -75,7 +75,7 @@ export interface DwgEntity {
    * Transparency type.
    * - 0 BYLAYER
    * - 1 BYBLOCK
-   * - 3 alpha 
+   * - 3 alpha
    */
   transparencyType: number
   /**
