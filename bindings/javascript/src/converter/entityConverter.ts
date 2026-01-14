@@ -64,7 +64,8 @@ import {
   DwgVertex3dEntity,
   DwgWipeoutEntity,
   DwgXlineEntity,
-  DwgViewportEntity
+  DwgViewportEntity,
+  idToString
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
@@ -80,13 +81,17 @@ import {
 type DwgCommonAttributes = Omit<DwgEntity, 'type'>
 type DwgDimensionCommonAttributes = Omit<
   DwgDimensionEntityCommon,
-  'handle' | 'ownerBlockRecordSoftId' | 'layer' | 'subclassMarker' | 'transparencyType'
+  | 'handle'
+  | 'ownerBlockRecordSoftId'
+  | 'layer'
+  | 'subclassMarker'
+  | 'transparencyType'
 >
 
 export class LibreEntityConverter {
   libredwg: LibreDwgEx
-  layers: Map<number, string> = new Map()
-  ltypes: Map<number, string> = new Map()
+  layers: Map<string, string> = new Map()
+  ltypes: Map<string, string> = new Map()
   unknownEntityCount: number
 
   constructor(instance: LibreDwgEx) {
@@ -172,7 +177,7 @@ export class LibreEntityConverter {
         return this.convertOleFrame(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POINT) {
         return this.convertPoint(entity_tio, commonAttrs)
-      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_2D ) {
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_2D) {
         return this.convertPolyline2d(entity_tio, commonAttrs, object_ptr)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_3D) {
         return this.convertPolyline3d(entity_tio, commonAttrs, object_ptr)
@@ -198,7 +203,7 @@ export class LibreEntityConverter {
         return this.convertWipeout(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_XLINE) {
         return this.convertXline(entity_tio, commonAttrs)
-      } else if (fixedtype === Dwg_Object_Type.DWG_TYPE_UNKNOWN_ENT){
+      } else if (fixedtype === Dwg_Object_Type.DWG_TYPE_UNKNOWN_ENT) {
         this.unknownEntityCount++
       }
     }
@@ -1372,7 +1377,8 @@ export class LibreEntityConverter {
   ): DwgPolyline2dEntity {
     const libredwg = this.libredwg
     const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
-    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type').data as number
+    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type')
+      .data as number
     const startWidth = libredwg.dwg_dynapi_entity_value(entity, 'start_width')
       .data as number
     const endWidth = libredwg.dwg_dynapi_entity_value(entity, 'end_width')
@@ -1412,7 +1418,7 @@ export class LibreEntityConverter {
       meshMVertexCount: 0,
       meshNVertexCount: 0,
       surfaceMDensity: 0,
-      surfaceNDensity: 0,
+      surfaceNDensity: 0
     }
   }
 
@@ -1423,7 +1429,8 @@ export class LibreEntityConverter {
   ): DwgPolyline3dEntity {
     const libredwg = this.libredwg
     const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
-    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type').data as number
+    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type')
+      .data as number
     const startWidth = libredwg.dwg_dynapi_entity_value(entity, 'start_width')
       .data as number
     const endWidth = libredwg.dwg_dynapi_entity_value(entity, 'end_width')
@@ -1455,7 +1462,7 @@ export class LibreEntityConverter {
 
   private convertProxy(
     entity: Dwg_Object_Entity_Ptr,
-    commonAttrs: DwgCommonAttributes,
+    commonAttrs: DwgCommonAttributes
   ): DwgProxyEntity {
     const libredwg = this.libredwg
     const classId = libredwg.dwg_dynapi_entity_value(entity, 'class_id')
@@ -1912,24 +1919,32 @@ export class LibreEntityConverter {
       .data as DwgPoint3D
     const targetPoint = libredwg.dwg_dynapi_entity_value(entity, 'view_target')
       .data as DwgPoint3D
-    const perspectiveLensLength = libredwg.dwg_dynapi_entity_value(entity, 'lens_length')
-      .data as number
+    const perspectiveLensLength = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'lens_length'
+    ).data as number
     const frontClipZ = libredwg.dwg_dynapi_entity_value(entity, 'front_clip_z')
       .data as number
     const backClipZ = libredwg.dwg_dynapi_entity_value(entity, 'back_clip_z')
       .data as number
-    // TODO: I am not sure whether view size in libredwg represents view height 
+    // TODO: I am not sure whether view size in libredwg represents view height
     const viewHeight = libredwg.dwg_dynapi_entity_value(entity, 'VIEWSIZE')
       .data as number
     const snapAngle = libredwg.dwg_dynapi_entity_value(entity, 'SNAPANG')
       .data as number
-    const viewTwistAngle = libredwg.dwg_dynapi_entity_value(entity, 'twist_angle')
-      .data as number
-    const circleZoomPercent = libredwg.dwg_dynapi_entity_value(entity, 'circle_zoom')
-      .data as number
+    const viewTwistAngle = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'twist_angle'
+    ).data as number
+    const circleZoomPercent = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'circle_zoom'
+    ).data as number
     // TODO: convert frozenLayerIds and clippingBoundaryId
-    const statusBitFlags = libredwg.dwg_dynapi_entity_value(entity, 'status_flag')
-      .data as number
+    const statusBitFlags = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'status_flag'
+    ).data as number
     const sheetName = libredwg.dwg_dynapi_entity_value(entity, 'style_sheet')
       .data as string
     const renderMode = libredwg.dwg_dynapi_entity_value(entity, 'render_mode')
@@ -1950,31 +1965,45 @@ export class LibreEntityConverter {
       .data as number
     const ucsBaseId = libredwg.dwg_ref_get_absref(base_ucs_ref)
     // TODO: Not sure whether UCSORTHOVIEW represents orthographicType
-    const orthographicType = libredwg.dwg_dynapi_entity_value(entity, 'UCSORTHOVIEW')
-      .data as number
+    const orthographicType = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'UCSORTHOVIEW'
+    ).data as number
     const elevation = libredwg.dwg_dynapi_entity_value(entity, 'ucs_elevation')
       .data as number
-    const shadePlotMode = libredwg.dwg_dynapi_entity_value(entity, 'shadeplot_mode')
-      .data as number
-    const isDefaultLighting = libredwg.dwg_dynapi_entity_value(entity, 'use_default_lights')
-      .data as number
-    const defaultLightingType = libredwg.dwg_dynapi_entity_value(entity, 'default_lighting_type')
-      .data as number
+    const shadePlotMode = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'shadeplot_mode'
+    ).data as number
+    const isDefaultLighting = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'use_default_lights'
+    ).data as number
+    const defaultLightingType = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'default_lighting_type'
+    ).data as number
     const brightness = libredwg.dwg_dynapi_entity_value(entity, 'brightness')
       .data as number
     const contrast = libredwg.dwg_dynapi_entity_value(entity, 'contrast')
       .data as number
 
-    const majorGridFrequency = libredwg.dwg_dynapi_entity_value(entity, 'grid_major')
-      .data as number  
-    const background_ref = libredwg.dwg_dynapi_entity_value(entity, 'background')
-      .data as number
+    const majorGridFrequency = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'grid_major'
+    ).data as number
+    const background_ref = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'background'
+    ).data as number
     const backgroundId = libredwg.dwg_ref_get_absref(background_ref)
     const shadeplot_ref = libredwg.dwg_dynapi_entity_value(entity, 'shadeplot')
       .data as number
     const shadePlotId = libredwg.dwg_ref_get_absref(shadeplot_ref)
-    const visualstyle_ref = libredwg.dwg_dynapi_entity_value(entity, 'visualstyle')
-      .data as number
+    const visualstyle_ref = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'visualstyle'
+    ).data as number
     const visualStyleId = libredwg.dwg_ref_get_absref(visualstyle_ref)
 
     // TODO: convert ambientLightColor
@@ -2010,20 +2039,20 @@ export class LibreEntityConverter {
       ucsOrigin: ucsOrigin,
       ucsXAxis: ucsXAxis,
       ucsYAxis: ucsYAxis,
-      ucsId: ucsId.toString(),
-      ucsBaseId: ucsBaseId.toString(),
+      ucsId: idToString(ucsId),
+      ucsBaseId: idToString(ucsBaseId),
       orthographicType: orthographicType,
       elevation: elevation,
       shadePlotMode: shadePlotMode,
       majorGridFrequency: majorGridFrequency,
-      backgroundId: backgroundId.toString(),
-      shadePlotId: shadePlotId.toString(),
-      visualStyleId: visualStyleId.toString(),
+      backgroundId: idToString(backgroundId),
+      shadePlotId: idToString(shadePlotId),
+      visualStyleId: idToString(visualStyleId),
       isDefaultLighting: !!isDefaultLighting,
       defaultLightingType: defaultLightingType,
       brightness: brightness,
       contrast: contrast,
-      sunId: sunId.toString()
+      sunId: idToString(sunId)
     }
   }
 
@@ -2193,10 +2222,10 @@ export class LibreEntityConverter {
     const method = color.method
     let colorIndex = color.index
     let rgbColor = undefined
-    if (method == 0xC2 || ((color.rgb >>> 24) & 0xFF) === 0xC2) {
-      rgbColor = color.rgb & 0x00FFFFFF
+    if (method == 0xc2 || ((color.rgb >>> 24) & 0xff) === 0xc2) {
+      rgbColor = color.rgb & 0x00ffffff
     }
-    
+
     const layer = this.getLayerName(entity)
     const handle = libredwg.dwg_object_entity_get_handle_object(entity)
     const ownerhandle =
@@ -2207,8 +2236,8 @@ export class LibreEntityConverter {
     const isVisible = !libredwg.dwg_object_entity_get_invisible(entity)
 
     return {
-      handle: handle.value,
-      ownerBlockRecordSoftId: ownerhandle.absolute_ref,
+      handle: idToString(handle.value),
+      ownerBlockRecordSoftId: idToString(ownerhandle.absolute_ref),
       layer: layer,
       color: rgbColor,
       colorIndex: colorIndex,
@@ -2225,14 +2254,14 @@ export class LibreEntityConverter {
   private getLayerName(entity: Dwg_Object_Entity_Ptr) {
     const libredwg = this.libredwg
     const layer = libredwg.dwg_object_entity_get_layer_object_ref(entity)
-    const name = this.layers.get(layer.handleref.value)
+    const name = this.layers.get(idToString(layer.handleref.value))
     return name ?? '0'
   }
 
   private getLtypeName(entity: Dwg_Object_Entity_Ptr) {
     const libredwg = this.libredwg
     const ltype = libredwg.dwg_object_entity_get_ltype_object_ref(entity)
-    const name = this.ltypes.get(ltype.handleref.value)
+    const name = this.ltypes.get(idToString(ltype.handleref.value))
     return name ?? ''
   }
 }
