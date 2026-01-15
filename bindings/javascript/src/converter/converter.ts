@@ -236,7 +236,7 @@ export class LibreDwgConverter {
       .data as number
     const layout_ptr = libredwg.dwg_dynapi_entity_value(item, 'layout')
       .data as number
-    const layout = libredwg.dwg_ref_get_absref(layout_ptr)
+    const layout = idToString(libredwg.dwg_ref_get_absref(layout_ptr))
 
     let bmpPreview = ''
     const uint8ArrayToHexString = (bytes: Uint8Array): string => {

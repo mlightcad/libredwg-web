@@ -25,13 +25,13 @@ export interface DwgImageEntity extends DwgEntity {
   uPixel: DwgPoint3D
   vPixel: DwgPoint3D
   imageSize: DwgPoint2D
-  imageDefHandle: number
+  imageDefHandle: string
   flags: DwgImageFlags
   clipping: number
   brightness: number
   contrast: number
   fade: number
-  imageDefReactorHandle: number
+  imageDefReactorHandle: string
   clippingBoundaryType: DwgImageClippingBoundaryType
   countBoundaryPoints: number
   clippingBoundaryPath: DwgPoint3D[]

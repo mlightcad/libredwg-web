@@ -46,7 +46,7 @@ export interface DwgTableEntity extends DwgEntity {
   rowHeightArr: number[]
   columnWidthArr: number[]
   tableStyleId?: string
-  blockRecordHandle?: number
+  blockRecordHandle?: string
   cells: DwgTableCell[]
   bmpPreview: string
 }
