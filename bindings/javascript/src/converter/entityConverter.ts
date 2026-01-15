@@ -837,13 +837,13 @@ export class LibreEntityConverter {
 
     const imagedef_ref = libredwg.dwg_dynapi_entity_value(entity, 'imagedef')
       .data as number
-    const imageDefHandle = libredwg.dwg_ref_get_absref(imagedef_ref)
+    const imageDefHandle = idToString(libredwg.dwg_ref_get_absref(imagedef_ref))
     const imagedefreactor_ref = libredwg.dwg_dynapi_entity_value(
       entity,
       'imagedefreactor'
     ).data as number
     const imageDefReactorHandle =
-      libredwg.dwg_ref_get_absref(imagedefreactor_ref)
+      idToString(libredwg.dwg_ref_get_absref(imagedefreactor_ref))
 
     return {
       type: 'IMAGE',
@@ -1722,6 +1722,20 @@ export class LibreEntityConverter {
       col_widths_ptr,
       columnCount
     )
+    const table_style_ref = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'tablestyle'
+    ).data as number
+    const tableStyleId = idToString(
+      libredwg.dwg_ref_get_absref(table_style_ref)
+    )
+    const block_header_ref = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'block_header'
+    ).data as number
+    const blockRecordHandle = idToString(
+      libredwg.dwg_ref_get_absref(block_header_ref)
+    )
     const overrideFlag = libredwg.dwg_dynapi_entity_value(
       entity,
       'table_flag_override'
@@ -1760,8 +1774,8 @@ export class LibreEntityConverter {
       borderVisibilityOverrideFlag: borderVisibilityOverrideFlag,
       rowHeightArr: rowHeightArr,
       columnWidthArr: columnWidthArr,
-      tableStyleId: '', // TODO: Set the correct value
-      blockRecordHandle: 0, // TODO: Set the correct value
+      tableStyleId: tableStyleId,
+      blockRecordHandle: blockRecordHandle,
       cells: this.convertTableCells(cells),
       bmpPreview: ''
     }

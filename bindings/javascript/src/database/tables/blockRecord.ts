@@ -31,7 +31,7 @@ export interface DwgBlockRecordTableEntry extends DwgCommonTableEntry {
   /**
    * Hard-pointer ID/handle to associated LAYOUT object
    */
-  layout: number
+  layout: string
   /**
    * Block insertion units.
    */
