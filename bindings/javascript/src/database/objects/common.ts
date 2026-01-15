@@ -1,6 +1,6 @@
 export interface DwgCommonObject {
-  ownerHandle: number
-  // ownerDictionaryIdHard: number;
-  // ownerDictionaryIdSoft: number;
-  handle: number
+  ownerHandle: string
+  // ownerDictionaryIdHard: string;
+  // ownerDictionaryIdSoft: string;
+  handle: string
 }

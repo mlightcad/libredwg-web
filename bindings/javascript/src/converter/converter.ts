@@ -990,8 +990,8 @@ export class LibreDwgConverter {
       libredwg.dwg_object_object_get_ownerhandle_object(object_tio)
     const handle = libredwg.dwg_object_get_handle_object(obj)
     return {
-      handle: handle.value,
-      ownerHandle: ownerhandle.absolute_ref
+      handle: idToString(handle.value),
+      ownerHandle: idToString(ownerhandle.absolute_ref)
     }
   }
 }
