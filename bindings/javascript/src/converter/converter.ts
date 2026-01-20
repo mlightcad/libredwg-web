@@ -257,21 +257,25 @@ export class LibreDwgConverter {
     // I guess it is one bug on libredwg. I logged [one bug](https://github.com/LibreDWG/libredwg/issues/1199)
     // on libredwg too. In this time, I try to use property 'entities' of block header to iterate entities.
     let entities = this.convertEntities(obj, commonAttrs.handle)
-    if (entities.length == 0) {
+    if (!entities || entities.length == 0) {
+      entities = []
       const entities_ptr = libredwg.dwg_dynapi_entity_value(item, 'entities')
         .data as number
-      const object_ref_ptr_array = libredwg.dwg_ptr_to_object_ref_ptr_array(
-        entities_ptr,
-        num_owned
-      )
-      const converter = this.entityConverter
-      entities = []
-      for (let index = 0; index < num_owned; index++) {
-        const object = libredwg.dwg_ref_get_object(object_ref_ptr_array[index])
-        const entity = converter.convert(object)
-        if (entity) {
-          entity.ownerBlockRecordSoftId = commonAttrs.handle
-          entities.push(entity)
+      if (entities_ptr) {
+        const object_ref_ptr_array = libredwg.dwg_ptr_to_object_ref_ptr_array(
+          entities_ptr,
+          num_owned
+        )
+        const converter = this.entityConverter
+        for (let index = 0; index < num_owned; index++) {
+          const object = libredwg.dwg_ref_get_object(
+            object_ref_ptr_array[index]
+          )
+          const entity = converter.convert(object)
+          if (entity) {
+            entity.ownerBlockRecordSoftId = commonAttrs.handle
+            entities.push(entity)
+          }
         }
       }
     }
