@@ -43,9 +43,9 @@ import {
   DwgPoint2D,
   DwgPoint3D,
   DwgPointEntity,
-  DwgPolylineBoundaryPath,
   DwgPolyline2dEntity,
   DwgPolyline3dEntity,
+  DwgPolylineBoundaryPath,
   DwgProxyEntity,
   DwgRadialDiameterDimensionEntity,
   DwgRayEntity,
@@ -62,10 +62,9 @@ import {
   DwgToleranceEntity,
   DwgVertex2dEntity,
   DwgVertex3dEntity,
+  DwgViewportEntity,
   DwgWipeoutEntity,
-  DwgXlineEntity,
-  DwgViewportEntity
-} from '../database'
+  DwgXlineEntity} from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
   Dwg_Color,
@@ -2235,7 +2234,7 @@ export class LibreEntityConverter {
     // - 0xc5 for foreground color
     // - 0xc8 for none (also c3 and rgb of 0x101)
     const method = color.method
-    let colorIndex = color.index
+    const colorIndex = color.index
     let rgbColor = undefined
     if (method == 0xc2 || ((color.rgb >>> 24) & 0xff) === 0xc2) {
       rgbColor = color.rgb & 0x00ffffff
