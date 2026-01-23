@@ -345,6 +345,7 @@ interface EmbindModule {
   dwg_object_object_get_num_reactors(_0: number): number;
   dwg_object_object_get_reactors(_0: number): number;
   dwg_object_entity_get_ownerhandle(_0: number): number;
+  dwg_object_entity_get_xdicobjhandle(_0: number): number;
   dwg_object_entity_get_handle(_0: number): number;
   dwg_object_entity_get_line_weight(_0: number): number;
   dwg_object_entity_get_entmode(_0: number): number;
@@ -498,6 +499,7 @@ interface EmbindModule {
   dwg_object_object_get_ownerhandle_object(_0: number): any;
   dwg_object_object_get_handle_object(_0: number): any;
   dwg_object_entity_get_ownerhandle_object(_0: number): any;
+  dwg_object_entity_get_xdicobjhandle_object(_0: number): any;
   dwg_object_entity_get_handle_object(_0: number): any;
   dwg_object_entity_get_layer_object_ref(_0: number): any;
   dwg_object_entity_get_ltype_object_ref(_0: number): any;

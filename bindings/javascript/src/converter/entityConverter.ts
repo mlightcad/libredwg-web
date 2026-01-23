@@ -64,7 +64,8 @@ import {
   DwgVertex3dEntity,
   DwgViewportEntity,
   DwgWipeoutEntity,
-  DwgXlineEntity} from '../database'
+  DwgXlineEntity
+} from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
   Dwg_Color,
@@ -2244,6 +2245,8 @@ export class LibreEntityConverter {
     const handle = libredwg.dwg_object_entity_get_handle_object(entity)
     const ownerhandle =
       libredwg.dwg_object_entity_get_ownerhandle_object(entity)
+    const ownerDictionaryHardId =
+      libredwg.dwg_object_entity_get_xdicobjhandle_object(entity)
     const lineType = this.getLtypeName(entity)
     const lineweight = libredwg.dwg_object_entity_get_line_weight(entity)
     const lineTypeScale = libredwg.dwg_object_entity_get_ltype_scale(entity)
@@ -2251,6 +2254,7 @@ export class LibreEntityConverter {
 
     return {
       handle: idToString(handle.value),
+      ownerDictionaryHardId: idToString(ownerDictionaryHardId.absolute_ref),
       ownerBlockRecordSoftId: idToString(ownerhandle.absolute_ref),
       layer: layer,
       color: rgbColor,

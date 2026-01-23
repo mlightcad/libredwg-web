@@ -977,6 +977,18 @@ export class LibreDwg {
   }
 
   /**
+   * Returns hard-owner ID/handle to owner dictionary of one Dwg_Object_Entity instance.
+   * @group Dwg_Object_Entity Methods
+   * @param ptr Pointer to one Dwg_Object_Entity instance.
+   * @returns Returns hard-owner ID/handle to owner dictionary of one Dwg_Object_Entity instance.
+   */
+  dwg_object_entity_get_xdicobjhandle_object(
+    ptr: Dwg_Object_Entity_Ptr
+  ): Dwg_Object_Ref {
+    return this.wasmInstance.dwg_object_entity_get_xdicobjhandle_object(ptr)
+  }
+
+  /**
    * Returns the layer handle of one Dwg_Object_Entity instance.
    * @group Dwg_Object_Entity Methods
    * @param ptr Pointer to one Dwg_Object_Entity instance.

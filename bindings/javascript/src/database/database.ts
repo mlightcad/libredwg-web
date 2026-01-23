@@ -1,7 +1,11 @@
 import { DwgClass } from './classes'
 import { DwgEntity } from './entities'
 import { DwgHeader } from './header'
-import { DwgImageDefObject, DwgLayoutObject } from './objects'
+import {
+  DwgImageDefObject,
+  DwgLayoutObject,
+  DwgSpatialFilterObject
+} from './objects'
 import {
   DwgBlockRecordTableEntry,
   DwgDimStyleTableEntry,
@@ -24,6 +28,7 @@ export interface DwgDatabase {
   objects: {
     IMAGEDEF: DwgImageDefObject[]
     LAYOUT: DwgLayoutObject[]
+    SPATIAL_FILTER: DwgSpatialFilterObject[]
   }
   header: DwgHeader
   /**

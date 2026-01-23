@@ -14,6 +14,7 @@ import {
   DwgLTypeTableEntry,
   DwgPoint2D,
   DwgPoint3D,
+  DwgSpatialFilterObject,
   DwgStyleTableEntry,
   DwgVPortTableEntry,
   HEADER_VARIABLES
@@ -69,7 +70,8 @@ export class LibreDwgConverter {
       },
       objects: {
         IMAGEDEF: [],
-        LAYOUT: []
+        LAYOUT: [],
+        SPATIAL_FILTER: []
       },
       header: {},
       entities: [],
@@ -139,6 +141,11 @@ export class LibreDwgConverter {
               break
             case Dwg_Object_Type.DWG_TYPE_LAYOUT:
               db.objects.LAYOUT.push(this.convertLayout(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_SPATIAL_FILTER:
+              db.objects.SPATIAL_FILTER.push(
+                this.convertSpatialFilter(tio, obj)
+              )
               break
             default:
               break
@@ -985,6 +992,77 @@ export class LibreDwgConverter {
       namedUcsId: namedUcsId,
       // orthographicUcsId?: string;
       shadePlotId: '' // TODO: Set the correct value
+    }
+  }
+
+  private convertSpatialFilter(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgSpatialFilterObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+
+    const origin = libredwg.dwg_dynapi_entity_value(item, 'origin')
+      .data as DwgPoint3D
+    const numberOfPointsOnClipBoundary = libredwg.dwg_dynapi_entity_value(
+      item,
+      'num_clip_verts'
+    ).data as number
+    const clip_verts_ptr = libredwg.dwg_dynapi_entity_value(item, 'clip_verts')
+      .data as number
+    const vertices = libredwg.dwg_ptr_to_point2d_array(
+      clip_verts_ptr,
+      numberOfPointsOnClipBoundary
+    )
+    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
+      item,
+      'extrusion'
+    ).data as DwgPoint3D
+    const clipBoundaryVisible = libredwg.dwg_dynapi_entity_value(
+      item,
+      'display_boundary_on'
+    ).data as number
+    const frontClippingPlaneFlag = libredwg.dwg_dynapi_entity_value(
+      item,
+      'front_clip_on'
+    ).data as number
+    const frontClippingPlaneDistance = libredwg.dwg_dynapi_entity_value(
+      item,
+      'front_clip_z'
+    ).data as number
+    const backClippingPlaneFlag = libredwg.dwg_dynapi_entity_value(
+      item,
+      'back_clip_on'
+    ).data as number
+    const backClippingPlaneDistance = libredwg.dwg_dynapi_entity_value(
+      item,
+      'back_clip_z'
+    ).data as number
+    const transform_ptr = libredwg.dwg_dynapi_entity_value(item, 'transform')
+      .data as number
+    const matrix = libredwg.dwg_ptr_to_double_array(transform_ptr, 12)
+    const inverse_transform_ptr = libredwg.dwg_dynapi_entity_value(
+      item,
+      'inverse_transform'
+    ).data as number
+    const invertBlockMatrix = libredwg.dwg_ptr_to_double_array(
+      inverse_transform_ptr,
+      12
+    )
+
+    return {
+      ...commonAttrs,
+      origin: origin,
+      numberOfPointsOnClipBoundary: numberOfPointsOnClipBoundary,
+      vertices: vertices,
+      extrusionDirection: extrusionDirection,
+      clipBoundaryVisible: !!clipBoundaryVisible,
+      frontClippingPlaneFlag: !!frontClippingPlaneFlag,
+      frontClippingPlaneDistance: frontClippingPlaneDistance,
+      backClippingPlaneFlag: !!backClippingPlaneFlag,
+      backClippingPlaneDistance: backClippingPlaneDistance,
+      matrix: matrix,
+      invertBlockMatrix: invertBlockMatrix
     }
   }
 

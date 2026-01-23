@@ -720,6 +720,19 @@ emscripten::val dwg_object_entity_get_ownerhandle_object_wrapper(Dwg_Object_Enti
   return object_ref_to_js_object(ownerhandle);
 }
 
+uintptr_t dwg_object_entity_get_xdicobjhandle_wrapper(Dwg_Object_Entity_Ptr ent_ptr) {
+  Dwg_Object_Entity* ent = reinterpret_cast<Dwg_Object_Entity*>(ent_ptr);
+  int error = 0;
+  return reinterpret_cast<uintptr_t>(dwg_ent_get_xdicobjhandle(ent, &error));
+}
+
+emscripten::val dwg_object_entity_get_xdicobjhandle_object_wrapper(Dwg_Object_Entity_Ptr ent_ptr) {
+  Dwg_Object_Entity* ent = reinterpret_cast<Dwg_Object_Entity*>(ent_ptr);
+  int error = 0;
+  Dwg_Object_Ref* xdicobjhandle = dwg_ent_get_xdicobjhandle(ent, &error);
+  return object_ref_to_js_object(xdicobjhandle);
+}
+
 uintptr_t dwg_object_entity_get_handle_wrapper(Dwg_Object_Entity_Ptr ent_ptr) {
   Dwg_Object_Entity* ent = reinterpret_cast<Dwg_Object_Entity*>(ent_ptr);
   int error = 0;
@@ -856,6 +869,8 @@ uintptr_t dwg_object_entity_get_reactors_wrapper(Dwg_Object_Entity_Ptr ent_ptr) 
 EMSCRIPTEN_BINDINGS(libredwg_dwg_object_entity) {
   DEFINE_FUNC(dwg_object_entity_get_ownerhandle);
   DEFINE_FUNC(dwg_object_entity_get_ownerhandle_object);
+  DEFINE_FUNC(dwg_object_entity_get_xdicobjhandle);
+  DEFINE_FUNC(dwg_object_entity_get_xdicobjhandle_object);
   DEFINE_FUNC(dwg_object_entity_get_handle);
   DEFINE_FUNC(dwg_object_entity_get_handle_object);
   DEFINE_FUNC(dwg_object_entity_get_layer_object_ref);
