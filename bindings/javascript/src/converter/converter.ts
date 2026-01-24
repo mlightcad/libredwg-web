@@ -1,9 +1,11 @@
 import {
+  DwgAppIdEntry,
   DwgBlockRecordTableEntry,
   DwgClass,
   DwgCommonObject,
   DwgCommonTableEntry,
   DwgDatabase,
+  DwgDictionaryObject,
   DwgDimStyleTableEntry,
   DwgEntity,
   DwgHeader,
@@ -49,6 +51,9 @@ export class LibreDwgConverter {
     this.entityConverter.clear()
     const db: DwgDatabase = {
       tables: {
+        APPID: {
+          entries: []
+        },
         BLOCK_RECORD: {
           entries: []
         },
@@ -69,6 +74,7 @@ export class LibreDwgConverter {
         }
       },
       objects: {
+        DICTIONARY: [],
         IMAGEDEF: [],
         LAYOUT: [],
         SPATIAL_FILTER: []
@@ -117,6 +123,9 @@ export class LibreDwgConverter {
         if (tio) {
           const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
           switch (fixedtype) {
+            case Dwg_Object_Type.DWG_TYPE_APPID:
+              db.tables.APPID.entries.push(this.convertAppId(tio))
+              break
             case Dwg_Object_Type.DWG_TYPE_BLOCK_HEADER:
               {
                 const btr = this.convertBlockRecord(tio, obj)
@@ -135,6 +144,9 @@ export class LibreDwgConverter {
               break
             case Dwg_Object_Type.DWG_TYPE_VPORT:
               db.tables.VPORT.entries.push(this.convertViewport(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_DICTIONARY:
+              db.objects.DICTIONARY.push(this.convertDictionary(tio, obj))
               break
             case Dwg_Object_Type.DWG_TYPE_IMAGEDEF:
               db.objects.IMAGEDEF.push(this.convertImageDef(tio, obj))
@@ -208,6 +220,17 @@ export class LibreDwgConverter {
         // DWG_TYPE_PROXY_OBJECT = 0x1F3 /* 499 */,
         isAnEntityFlag: cls.item_class_id === 0x1f2
       })
+    }
+  }
+
+  private convertAppId(item: Dwg_Object_Object_Ptr): DwgAppIdEntry {
+    const libredwg = this.libredwg
+    const name = libredwg.dwg_dynapi_entity_value(item, 'name').data as string
+    const flag = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
+
+    return {
+      name: name,
+      standardFlag: flag
     }
   }
 
@@ -878,6 +901,43 @@ export class LibreDwgConverter {
       handle: idToString(handle.value),
       ownerHandle: idToString(ownerhandle.absolute_ref),
       name: libredwg.dwg_dynapi_entity_value(tio, 'name').data as string
+    }
+  }
+
+  private convertDictionary(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgDictionaryObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+
+    const isHardOwner = libredwg.dwg_dynapi_entity_value(item, 'is_hardowner')
+      .data as number
+    const cloningFlag = libredwg.dwg_dynapi_entity_value(item, 'cloning')
+      .data as number
+    const numitems = libredwg.dwg_dynapi_entity_value(item, 'numitems')
+      .data as number
+    const itemhandles_ptr = libredwg.dwg_dynapi_entity_value(
+      item,
+      'itemhandles'
+    ).data as number
+    const itemhandles = libredwg.dwg_ptr_to_object_ref_array(
+      itemhandles_ptr,
+      numitems
+    )
+    const texts = libredwg.dwg_object_dictionary_get_texts(obj)
+
+    const entries: Record<string, string> = {}
+    itemhandles.forEach(
+      (handle, index) =>
+        (entries[texts[index]] = idToString(handle.absolute_ref))
+    )
+
+    return {
+      ...commonAttrs,
+      isHardOwner: !!isHardOwner,
+      cloningFlag: cloningFlag,
+      entries: entries
     }
   }
 

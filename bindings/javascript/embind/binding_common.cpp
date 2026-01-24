@@ -1,4 +1,5 @@
 #include "binding_common.h"
+#include "bits.h"
 
 emscripten::val char_array_to_js_object(char* utf8) {
   emscripten::val str_obj = emscripten::val::object();
@@ -179,6 +180,30 @@ emscripten::val dwg_ptr_to_signed_char_array(signed char* array, size_t size) {
     return result;
   }
   return emscripten::val::null();
+}
+
+emscripten::val dwg_ptr_to_wchar_string_array(BITCODE_TU* array, size_t size) {
+  emscripten::val jsArray = emscripten::val::array();
+  for (size_t i = 0; i < size; ++i) {
+    BITCODE_TU wstr = (BITCODE_TU)array[i];
+    if (wstr) {
+      char *utf8 = bit_convert_TU(wstr);
+      if (wstr && !utf8) {
+        jsArray.call<void>("push", emscripten::val::null());
+      } else {
+        jsArray.call<void>("push", std::string(utf8));
+        free(utf8);
+      }
+    } else {
+      jsArray.call<void>("push", emscripten::val::null());
+    }
+  }
+  return jsArray;
+}
+
+emscripten::val dwg_ptr_to_wchar_string_array_wrapper(uintptr_t array_ptr, size_t size) {
+  BITCODE_TU* array = reinterpret_cast<BITCODE_TU*>(array_ptr);
+  return dwg_ptr_to_wchar_string_array(array, size);
 }
 
 emscripten::val dwg_ptr_to_unsigned_char_array_wrapper(uintptr_t array_ptr, size_t size) {
@@ -489,6 +514,7 @@ emscripten::val dwg_ptr_to_mline_vertex_array_wrapper(uintptr_t array_ptr, size_
 EMSCRIPTEN_BINDINGS(libredwg_array) {
   DEFINE_FUNC(dwg_ptr_to_object_ref_array);
   DEFINE_FUNC(dwg_ptr_to_object_ref_ptr_array);
+  DEFINE_FUNC(dwg_ptr_to_wchar_string_array);
   DEFINE_FUNC(dwg_ptr_to_unsigned_char_array);
   DEFINE_FUNC(dwg_ptr_to_signed_char_array);
   DEFINE_FUNC(dwg_ptr_to_uint16_t_array);

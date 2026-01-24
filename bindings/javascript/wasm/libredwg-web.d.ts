@@ -477,6 +477,7 @@ interface EmbindModule {
   dwg_object_ref(_0: number): any;
   dwg_ptr_to_object_ref_array(_0: number, _1: number): any;
   dwg_ptr_to_object_ref_ptr_array(_0: number, _1: number): any;
+  dwg_ptr_to_wchar_string_array(_0: number, _1: number): any;
   dwg_ptr_to_unsigned_char_array(_0: number, _1: number): any;
   dwg_ptr_to_signed_char_array(_0: number, _1: number): any;
   dwg_ptr_to_uint16_t_array(_0: number, _1: number): any;
@@ -516,6 +517,7 @@ interface EmbindModule {
   dwg_entity_polyline_3d_get_points(_0: number): any;
   dwg_entity_polyline_3d_get_vertices(_0: number): any;
   dwg_entity_block_header_get_preview(_0: number): any;
+  dwg_object_dictionary_get_texts(_0: number): any;
   dwg_read_file(_0: EmbindString): any;
   dwg_bmp(_0: number): any;
   dwg_get_class(_0: number, _1: number): any;

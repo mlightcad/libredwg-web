@@ -654,6 +654,19 @@ export class LibreDwg {
   }
 
   /**
+   * Converts one C++ wchar_t* array to one JavaScript string array.
+   * @group Array Methods
+   * @param ptr Pointer to C++ wchar_t* array.
+   * @param size The size of C++ wchar_t* array.
+   * @returns Returns one JavaScript string array from the specified C++ wchar_t* array.
+   */
+  dwg_ptr_to_wchar_string_array(ptr: Dwg_Array_Ptr, size: number): string[] {
+    // const array = this.wasmInstance.dwg_ptr_to_char_string_array(ptr, size) as Array<Dwg_String>
+    // return array.map(item => item.data)
+    return this.wasmInstance.dwg_ptr_to_wchar_string_array(ptr, size)
+  }
+
+  /**
    * Converts one C++ unsigned char array to one JavaScript number array.
    * @group Array Methods
    * @param ptr Pointer to C++ unsigned char array.
@@ -1239,6 +1252,20 @@ export class LibreDwg {
     const wasmInstance = this.wasmInstance
     return wasmInstance.dwg_entity_polyline_3d_get_vertices(ptr)
       .data as Dwg_Entity_VERTEX_3D[]
+  }
+
+  /**
+   * Returns texts in Dwg_Object_DICTIONARY.
+   * @group Dwg_Object_DICTIONARY Methods
+   * @param ptr Pointer to one Dwg_Object (not Dwg_Object_DICTIONARY) instance.
+   * @returns Returns texts in one Dwg_Object_DICTIONARY.
+   */
+  dwg_object_dictionary_get_texts(
+    ptr: Dwg_Object_Ptr
+  ): string[] {
+    const wasmInstance = this.wasmInstance
+    return wasmInstance.dwg_object_dictionary_get_texts(ptr)
+      .data as string[]
   }
 
   static createByWasmInstance(wasmInstance: MainModule): LibreDwgEx {
