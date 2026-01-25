@@ -1,3 +1,4 @@
+#include <stack>
 #include "binding_common.h"
 #include "bits.h"
 
@@ -889,6 +890,100 @@ uintptr_t dwg_object_entity_get_reactors_wrapper(Dwg_Object_Entity_Ptr ent_ptr) 
   return reinterpret_cast<uintptr_t>(dwg_ent_get_reactors(ent, &error));
 }
 
+emscripten::val dwg_object_entity_get_xdata_wrapper(Dwg_Object_Entity_Ptr ent_ptr) {
+  Dwg_Object_Entity* ent = reinterpret_cast<Dwg_Object_Entity*>(ent_ptr);
+
+  emscripten::val result = emscripten::val::array();
+  for (int i = 0; i < ent->num_eed; i++) {
+    Dwg_Eed *eed = &ent->eed[i];
+    emscripten::val eed_obj = emscripten::val::object();
+
+    // name of APPID
+    Dwg_Object *appid = dwg_resolve_handle(ent->dwg, eed->handle.value);
+    if (appid && appid->fixedtype == DWG_TYPE_APPID) {
+      char *utf8 = bit_convert_TU((BITCODE_TU)appid->tio.object->tio.APPID->name);
+      eed_obj.set("appName", std::string(utf8));
+    } else {
+      eed_obj.set("appName", std::string("ACAD"));
+    }
+
+    emscripten::val entries_obj = emscripten::val::array();
+    std::stack<emscripten::val> stack;
+    stack.push(entries_obj);
+    for (int j = 0; j < eed->size; j++) {
+      Dwg_Eed_Data *data = &eed->data[j];
+      const int code = data->code + 1000;
+
+      emscripten::val entry_obj = emscripten::val::object();
+      entry_obj.set("code", code);
+      switch (data->code) {
+        case 0: {
+          if (!data->u.eed_0.length)
+            entry_obj.set("value", std::string(""));
+          else if (data->u.eed_0.is_tu)
+            entry_obj.set("value", std::string(bit_convert_TU(data->u.eed_0_r2007.string)));
+          else
+            entry_obj.set("value", std::string(data->u.eed_0.string));
+          break;
+        }
+        case 2:
+          if (data->u.eed_2.close) {
+            if (!stack.empty()) {
+              stack.pop();
+            }
+            if (stack.size() >= 1) {
+              entries_obj = stack.top();
+            }
+          } else {
+            entries_obj = emscripten::val::array();
+            stack.push(entries_obj);
+          }
+          break;
+        case 3:
+          entry_obj.set("value", data->u.eed_3.layer);
+          break;
+        case 4:
+          entry_obj.set("value", dwg_ptr_to_unsigned_char_array(data->u.eed_4.data, data->u.eed_4.length));
+          break;
+        case 5:
+          entry_obj.set("value", data->u.eed_5.entity);
+          break; // not in DXF
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15: {
+          emscripten::val point_obj = emscripten::val::object();
+          point_obj.set("x", data->u.eed_10.point.x);
+          point_obj.set("y", data->u.eed_10.point.y);
+          point_obj.set("z", data->u.eed_10.point.z);
+          entry_obj.set("value", point_obj);
+          break;
+        }
+        case 40:
+        case 41:
+        case 42:
+          entry_obj.set("value", data->u.eed_40.real);
+          break;
+        case 70:
+          entry_obj.set("value", data->u.eed_70.rs);
+          break;
+        case 71:
+          entry_obj.set("value", data->u.eed_71.rl);
+          break;
+        default:
+          entry_obj.set("value", 0);
+      }
+      entries_obj.call<void>("push", entry_obj);
+    }
+
+    eed_obj.set("value", entries_obj);
+    result.call<void>("push", eed_obj);
+  }
+  return result;
+}
+
 /**
  * Methods to access fields of Dwg_Object_Entity
  */
@@ -915,6 +1010,7 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_object_entity) {
   DEFINE_FUNC(dwg_object_entity_has_edge_visualstyle);
   DEFINE_FUNC(dwg_object_entity_get_num_reactors);
   DEFINE_FUNC(dwg_object_entity_get_reactors);
+  DEFINE_FUNC(dwg_object_entity_get_xdata);
 }
 
 /***********************************************************************/

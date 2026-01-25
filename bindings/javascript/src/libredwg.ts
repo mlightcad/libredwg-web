@@ -9,7 +9,8 @@ import {
   DwgPoint3D,
   DwgPoint4D,
   DwgVersion,
-  dwgVersions
+  dwgVersions,
+  DwgXData
 } from './database'
 import { SvgConverter } from './svg'
 import {
@@ -1033,6 +1034,16 @@ export class LibreDwg {
    */
   dwg_object_entity_get_color_object(ptr: Dwg_Object_Entity_Ptr): Dwg_Color {
     return this.wasmInstance.dwg_object_entity_get_color_object(ptr)
+  }
+
+  /**
+   * Returns xdata of one Dwg_Object_Entity instance.
+   * @group Dwg_Object_Entity Methods
+   * @param ptr Pointer to one Dwg_Object_Entity instance.
+   * @returns Returns xdata of one Dwg_Object_Entity instance.
+   */
+  dwg_object_entity_get_xdata(ptr: Dwg_Object_Entity_Ptr): DwgXData {
+    return this.wasmInstance.dwg_object_entity_get_xdata(ptr)
   }
 
   /**

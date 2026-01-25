@@ -2251,6 +2251,7 @@ export class LibreEntityConverter {
     const lineweight = libredwg.dwg_object_entity_get_line_weight(entity)
     const lineTypeScale = libredwg.dwg_object_entity_get_ltype_scale(entity)
     const isVisible = !libredwg.dwg_object_entity_get_invisible(entity)
+    const xdata = libredwg.dwg_object_entity_get_xdata(entity)
 
     return {
       handle: idToString(handle.value),
@@ -2265,7 +2266,8 @@ export class LibreEntityConverter {
       lineTypeScale: lineTypeScale,
       isVisible: isVisible,
       transparency: color.alpha,
-      transparencyType: color.alpha_type
+      transparencyType: color.alpha_type,
+      xdata: xdata
     }
   }
 
