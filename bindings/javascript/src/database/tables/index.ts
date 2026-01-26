@@ -1,3 +1,4 @@
+export * from './appId'
 export * from './blockRecord'
 export * from './dimStyle'
 export * from './layer'

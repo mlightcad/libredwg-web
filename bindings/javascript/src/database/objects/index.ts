@@ -1,4 +1,6 @@
 export * from './common'
+export * from './dictionary'
 export * from './imageDef'
 export * from './layout'
 export * from './plotSetting'
+export * from './spatialFilter'

@@ -46,3 +46,5 @@ emscripten::val dwg_ptr_to_signed_char_array(signed char* array, size_t size);
 emscripten::val dwg_ptr_to_object_ref_array(BITCODE_H* array, size_t size);
 
 emscripten::val dwg_ptr_to_object_ref_ptr_array(BITCODE_H* array, size_t size);
+
+emscripten::val dwg_ptr_to_wchar_string_array(BITCODE_TU* array, size_t size);
