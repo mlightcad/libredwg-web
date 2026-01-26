@@ -327,7 +327,7 @@ emscripten::val dwg_entity_polyline_3d_get_vertices_wrapper(Dwg_Object_Ptr obj_p
   return result;
 }
 
-EMSCRIPTEN_BINDINGS(libredwg_dwg_object_ref) {
+EMSCRIPTEN_BINDINGS(libredwg_dwg_entity) {
   DEFINE_FUNC(dwg_entity_owner);
   DEFINE_FUNC(dwg_entity_polyline_2d_get_numpoints);
   DEFINE_FUNC(dwg_entity_polyline_2d_get_points);
@@ -336,4 +336,25 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_object_ref) {
   DEFINE_FUNC(dwg_entity_polyline_3d_get_points);
   DEFINE_FUNC(dwg_entity_polyline_3d_get_vertices);
   DEFINE_FUNC(dwg_entity_block_header_get_preview);
+}
+
+emscripten::val dwg_object_dictionary_get_texts_wrapper(Dwg_Object_Ptr obj_ptr) {
+  Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
+  if (obj && obj->fixedtype == DWG_TYPE_DICTIONARY) {
+    Dwg_Object_DICTIONARY* dict = obj->tio.object->tio.DICTIONARY;
+    emscripten::val result = emscripten::val::object();
+    result.set("success", true);
+    result.set("data", dwg_ptr_to_wchar_string_array((BITCODE_TU*)dict->texts, dict->numitems));
+    return result;
+  } else {
+    emscripten::val result = emscripten::val::object();
+    result.set("success", false);
+    result.set("message", std::string("Failed to get the number of points!"));
+    result.set("data", emscripten::val::array());
+    return result;
+  }
+}
+
+EMSCRIPTEN_BINDINGS(libredwg_dwg_object) {
+  DEFINE_FUNC(dwg_object_dictionary_get_texts);
 }

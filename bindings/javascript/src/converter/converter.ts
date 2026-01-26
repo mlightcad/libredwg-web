@@ -1,9 +1,11 @@
 import {
+  DwgAppIdEntry,
   DwgBlockRecordTableEntry,
   DwgClass,
   DwgCommonObject,
   DwgCommonTableEntry,
   DwgDatabase,
+  DwgDictionaryObject,
   DwgDimStyleTableEntry,
   DwgEntity,
   DwgHeader,
@@ -14,6 +16,7 @@ import {
   DwgLTypeTableEntry,
   DwgPoint2D,
   DwgPoint3D,
+  DwgSpatialFilterObject,
   DwgStyleTableEntry,
   DwgVPortTableEntry,
   HEADER_VARIABLES
@@ -48,6 +51,9 @@ export class LibreDwgConverter {
     this.entityConverter.clear()
     const db: DwgDatabase = {
       tables: {
+        APPID: {
+          entries: []
+        },
         BLOCK_RECORD: {
           entries: []
         },
@@ -68,8 +74,10 @@ export class LibreDwgConverter {
         }
       },
       objects: {
+        DICTIONARY: [],
         IMAGEDEF: [],
-        LAYOUT: []
+        LAYOUT: [],
+        SPATIAL_FILTER: []
       },
       header: {},
       entities: [],
@@ -115,6 +123,9 @@ export class LibreDwgConverter {
         if (tio) {
           const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
           switch (fixedtype) {
+            case Dwg_Object_Type.DWG_TYPE_APPID:
+              db.tables.APPID.entries.push(this.convertAppId(tio))
+              break
             case Dwg_Object_Type.DWG_TYPE_BLOCK_HEADER:
               {
                 const btr = this.convertBlockRecord(tio, obj)
@@ -134,11 +145,19 @@ export class LibreDwgConverter {
             case Dwg_Object_Type.DWG_TYPE_VPORT:
               db.tables.VPORT.entries.push(this.convertViewport(tio, obj))
               break
+            case Dwg_Object_Type.DWG_TYPE_DICTIONARY:
+              db.objects.DICTIONARY.push(this.convertDictionary(tio, obj))
+              break
             case Dwg_Object_Type.DWG_TYPE_IMAGEDEF:
               db.objects.IMAGEDEF.push(this.convertImageDef(tio, obj))
               break
             case Dwg_Object_Type.DWG_TYPE_LAYOUT:
               db.objects.LAYOUT.push(this.convertLayout(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_SPATIAL_FILTER:
+              db.objects.SPATIAL_FILTER.push(
+                this.convertSpatialFilter(tio, obj)
+              )
               break
             default:
               break
@@ -201,6 +220,17 @@ export class LibreDwgConverter {
         // DWG_TYPE_PROXY_OBJECT = 0x1F3 /* 499 */,
         isAnEntityFlag: cls.item_class_id === 0x1f2
       })
+    }
+  }
+
+  private convertAppId(item: Dwg_Object_Object_Ptr): DwgAppIdEntry {
+    const libredwg = this.libredwg
+    const name = libredwg.dwg_dynapi_entity_value(item, 'name').data as string
+    const flag = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
+
+    return {
+      name: name,
+      standardFlag: flag
     }
   }
 
@@ -874,6 +904,43 @@ export class LibreDwgConverter {
     }
   }
 
+  private convertDictionary(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgDictionaryObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+
+    const isHardOwner = libredwg.dwg_dynapi_entity_value(item, 'is_hardowner')
+      .data as number
+    const cloningFlag = libredwg.dwg_dynapi_entity_value(item, 'cloning')
+      .data as number
+    const numitems = libredwg.dwg_dynapi_entity_value(item, 'numitems')
+      .data as number
+    const itemhandles_ptr = libredwg.dwg_dynapi_entity_value(
+      item,
+      'itemhandles'
+    ).data as number
+    const itemhandles = libredwg.dwg_ptr_to_object_ref_array(
+      itemhandles_ptr,
+      numitems
+    )
+    const texts = libredwg.dwg_object_dictionary_get_texts(obj)
+
+    const entries: Record<string, string> = {}
+    itemhandles.forEach(
+      (handle, index) =>
+        (entries[texts[index]] = idToString(handle.absolute_ref))
+    )
+
+    return {
+      ...commonAttrs,
+      isHardOwner: !!isHardOwner,
+      cloningFlag: cloningFlag,
+      entries: entries
+    }
+  }
+
   private convertImageDef(
     item: Dwg_Object_Object_Ptr,
     obj: Dwg_Object_Ptr
@@ -985,6 +1052,77 @@ export class LibreDwgConverter {
       namedUcsId: namedUcsId,
       // orthographicUcsId?: string;
       shadePlotId: '' // TODO: Set the correct value
+    }
+  }
+
+  private convertSpatialFilter(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgSpatialFilterObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+
+    const origin = libredwg.dwg_dynapi_entity_value(item, 'origin')
+      .data as DwgPoint3D
+    const numberOfPointsOnClipBoundary = libredwg.dwg_dynapi_entity_value(
+      item,
+      'num_clip_verts'
+    ).data as number
+    const clip_verts_ptr = libredwg.dwg_dynapi_entity_value(item, 'clip_verts')
+      .data as number
+    const vertices = libredwg.dwg_ptr_to_point2d_array(
+      clip_verts_ptr,
+      numberOfPointsOnClipBoundary
+    )
+    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
+      item,
+      'extrusion'
+    ).data as DwgPoint3D
+    const clipBoundaryVisible = libredwg.dwg_dynapi_entity_value(
+      item,
+      'display_boundary_on'
+    ).data as number
+    const frontClippingPlaneFlag = libredwg.dwg_dynapi_entity_value(
+      item,
+      'front_clip_on'
+    ).data as number
+    const frontClippingPlaneDistance = libredwg.dwg_dynapi_entity_value(
+      item,
+      'front_clip_z'
+    ).data as number
+    const backClippingPlaneFlag = libredwg.dwg_dynapi_entity_value(
+      item,
+      'back_clip_on'
+    ).data as number
+    const backClippingPlaneDistance = libredwg.dwg_dynapi_entity_value(
+      item,
+      'back_clip_z'
+    ).data as number
+    const transform_ptr = libredwg.dwg_dynapi_entity_value(item, 'transform')
+      .data as number
+    const matrix = libredwg.dwg_ptr_to_double_array(transform_ptr, 12)
+    const inverse_transform_ptr = libredwg.dwg_dynapi_entity_value(
+      item,
+      'inverse_transform'
+    ).data as number
+    const invertBlockMatrix = libredwg.dwg_ptr_to_double_array(
+      inverse_transform_ptr,
+      12
+    )
+
+    return {
+      ...commonAttrs,
+      origin: origin,
+      numberOfPointsOnClipBoundary: numberOfPointsOnClipBoundary,
+      vertices: vertices,
+      extrusionDirection: extrusionDirection,
+      clipBoundaryVisible: !!clipBoundaryVisible,
+      frontClippingPlaneFlag: !!frontClippingPlaneFlag,
+      frontClippingPlaneDistance: frontClippingPlaneDistance,
+      backClippingPlaneFlag: !!backClippingPlaneFlag,
+      backClippingPlaneDistance: backClippingPlaneDistance,
+      matrix: matrix,
+      invertBlockMatrix: invertBlockMatrix
     }
   }
 
