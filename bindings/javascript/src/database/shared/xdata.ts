@@ -5,6 +5,6 @@ export interface DwgXData {
   value: DwgXDataEntry[]
 }
 export interface DwgXDataEntry {
-  name?: string
+  code?: number
   value: DwgXDataEntry[] | number | string | DwgPoint3D
 }

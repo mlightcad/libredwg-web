@@ -9,7 +9,8 @@ import {
   DwgPoint3D,
   DwgPoint4D,
   DwgVersion,
-  dwgVersions
+  dwgVersions,
+  DwgXData
 } from './database'
 import { SvgConverter } from './svg'
 import {
@@ -654,6 +655,19 @@ export class LibreDwg {
   }
 
   /**
+   * Converts one C++ wchar_t* array to one JavaScript string array.
+   * @group Array Methods
+   * @param ptr Pointer to C++ wchar_t* array.
+   * @param size The size of C++ wchar_t* array.
+   * @returns Returns one JavaScript string array from the specified C++ wchar_t* array.
+   */
+  dwg_ptr_to_wchar_string_array(ptr: Dwg_Array_Ptr, size: number): string[] {
+    // const array = this.wasmInstance.dwg_ptr_to_char_string_array(ptr, size) as Array<Dwg_String>
+    // return array.map(item => item.data)
+    return this.wasmInstance.dwg_ptr_to_wchar_string_array(ptr, size)
+  }
+
+  /**
    * Converts one C++ unsigned char array to one JavaScript number array.
    * @group Array Methods
    * @param ptr Pointer to C++ unsigned char array.
@@ -977,6 +991,18 @@ export class LibreDwg {
   }
 
   /**
+   * Returns hard-owner ID/handle to owner dictionary of one Dwg_Object_Entity instance.
+   * @group Dwg_Object_Entity Methods
+   * @param ptr Pointer to one Dwg_Object_Entity instance.
+   * @returns Returns hard-owner ID/handle to owner dictionary of one Dwg_Object_Entity instance.
+   */
+  dwg_object_entity_get_xdicobjhandle_object(
+    ptr: Dwg_Object_Entity_Ptr
+  ): Dwg_Object_Ref {
+    return this.wasmInstance.dwg_object_entity_get_xdicobjhandle_object(ptr)
+  }
+
+  /**
    * Returns the layer handle of one Dwg_Object_Entity instance.
    * @group Dwg_Object_Entity Methods
    * @param ptr Pointer to one Dwg_Object_Entity instance.
@@ -1008,6 +1034,16 @@ export class LibreDwg {
    */
   dwg_object_entity_get_color_object(ptr: Dwg_Object_Entity_Ptr): Dwg_Color {
     return this.wasmInstance.dwg_object_entity_get_color_object(ptr)
+  }
+
+  /**
+   * Returns xdata of one Dwg_Object_Entity instance.
+   * @group Dwg_Object_Entity Methods
+   * @param ptr Pointer to one Dwg_Object_Entity instance.
+   * @returns Returns xdata of one Dwg_Object_Entity instance.
+   */
+  dwg_object_entity_get_xdata(ptr: Dwg_Object_Entity_Ptr): DwgXData {
+    return this.wasmInstance.dwg_object_entity_get_xdata(ptr)
   }
 
   /**
@@ -1227,6 +1263,20 @@ export class LibreDwg {
     const wasmInstance = this.wasmInstance
     return wasmInstance.dwg_entity_polyline_3d_get_vertices(ptr)
       .data as Dwg_Entity_VERTEX_3D[]
+  }
+
+  /**
+   * Returns texts in Dwg_Object_DICTIONARY.
+   * @group Dwg_Object_DICTIONARY Methods
+   * @param ptr Pointer to one Dwg_Object (not Dwg_Object_DICTIONARY) instance.
+   * @returns Returns texts in one Dwg_Object_DICTIONARY.
+   */
+  dwg_object_dictionary_get_texts(
+    ptr: Dwg_Object_Ptr
+  ): string[] {
+    const wasmInstance = this.wasmInstance
+    return wasmInstance.dwg_object_dictionary_get_texts(ptr)
+      .data as string[]
   }
 
   static createByWasmInstance(wasmInstance: MainModule): LibreDwgEx {

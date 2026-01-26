@@ -4,7 +4,7 @@ export interface DwgCommonTableEntry {
   ownerHandle: string
 }
 
-export interface DwgTable<T extends DwgCommonTableEntry> {
+export interface DwgTable<T> {
   // name: string;
   // handle: string;
   // ownerDictionaryIds?: string[];
