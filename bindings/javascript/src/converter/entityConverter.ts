@@ -434,9 +434,9 @@ export class LibreEntityConverter {
     const fieldLength = libredwg.dwg_dynapi_entity_value(entity, 'field_length')
       .data as number
     const lockPositionFlag = libredwg.dwg_dynapi_entity_value(
-        entity,
-        'lock_position_flag'
-      ).data as number
+      entity,
+      'lock_position_flag'
+    ).data as number
     const duplicateRecordCloningFlag = libredwg.dwg_dynapi_entity_value(
       entity,
       'keep_duplicate_records'
