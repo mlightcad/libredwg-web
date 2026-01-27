@@ -518,6 +518,7 @@ interface EmbindModule {
   dwg_entity_polyline_3d_get_points(_0: number): any;
   dwg_entity_polyline_3d_get_vertices(_0: number): any;
   dwg_entity_block_header_get_preview(_0: number): any;
+  dwg_entity_insert_get_attribs(_0: number): any;
   dwg_object_dictionary_get_texts(_0: number): any;
   dwg_read_file(_0: EmbindString): any;
   dwg_bmp(_0: number): any;
