@@ -6,6 +6,7 @@ import {
   DwgArcEntity,
   DwgAttachmentPoint,
   DwgAttdefEntity,
+  DwgAttribEntity,
   DwgBoundaryPath,
   DwgBoundaryPathEdge,
   DwgBoundaryPathEdgeType,
@@ -138,6 +139,8 @@ export class LibreEntityConverter {
         return this.convertArc(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTDEF) {
         return this.convertAttdef(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTRIB) {
+        return this.convertAttrib(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_CIRCLE) {
         return this.convertCircle(entity_tio, commonAttrs)
       } else if (
@@ -389,7 +392,7 @@ export class LibreEntityConverter {
     ).data as number
     const isReallyLocked = libredwg.dwg_dynapi_entity_value(
       entity,
-      'is_locked_in_block'
+      'is_really_locked'
     ).data as number
     // TODO: double check whether 'mtext_type' is 'mtextFlag'
     const mtextFlag = libredwg.dwg_dynapi_entity_value(entity, 'mtext_type')
@@ -412,6 +415,58 @@ export class LibreEntityConverter {
       mtextFlag: mtextFlag,
       isReallyLocked: isReallyLocked > 0,
       alignmentPoint: alignmentPoint,
+      annotationScale: 1, // TODO: Set the correct value
+      attrTag: '', // TODO: Set the correct value
+      mtext: this.convertEmbeddedMText(entity, 'ATTDEF_mtext')
+    }
+  }
+
+  private convertAttrib(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgAttribEntity {
+    const libredwg = this.libredwg
+
+    const text = this.convertTextBase(entity)
+    const tag = libredwg.dwg_dynapi_entity_value(entity, 'tag').data as string
+    const flags = libredwg.dwg_dynapi_entity_value(entity, 'flags')
+      .data as number
+    const fieldLength = libredwg.dwg_dynapi_entity_value(entity, 'field_length')
+      .data as number
+    const lockPositionFlag = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'lock_position_flag'
+    ).data as number
+    const duplicateRecordCloningFlag = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'keep_duplicate_records'
+    ).data as number
+    // TODO: double check whether 'mtext_type' is 'mtextFlag'
+    const mtextFlag = libredwg.dwg_dynapi_entity_value(entity, 'mtext_type')
+      .data as number
+    const isReallyLocked = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'is_really_locked'
+    ).data as number
+    const alignmentPoint = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'alignment_pt'
+    ).data as DwgPoint2D
+
+    return {
+      type: 'ATTRIB',
+      ...commonAttrs,
+      text: text,
+      tag: tag,
+      flags: flags,
+      fieldLength: fieldLength,
+      lockPositionFlag: !!lockPositionFlag,
+      duplicateRecordCloningFlag: !!duplicateRecordCloningFlag,
+      mtextFlag: mtextFlag,
+      isReallyLocked: !!isReallyLocked,
+      numberOfSecondaryAttrs: 0, // TODO: libredwg doesn't support it yet.
+      secondaryAttrsHardId: '0', // TODO: libredwg doesn't support it yet.
+      alignmentPoint: { ...alignmentPoint, z: 0 },
       annotationScale: 1, // TODO: Set the correct value
       attrTag: '', // TODO: Set the correct value
       mtext: this.convertEmbeddedMText(entity, 'ATTDEF_mtext')
@@ -919,6 +974,21 @@ export class LibreEntityConverter {
       'extrusion'
     ).data as DwgPoint3D
 
+    const attrib_ptr_array = libredwg.dwg_entity_insert_get_attribs(entity)
+    const attribs: DwgAttribEntity[] = []
+    attrib_ptr_array.forEach(object_ptr => {
+      const entity = libredwg.dwg_object_to_entity(object_ptr)
+      const entity_tio = libredwg.dwg_object_to_entity_tio(object_ptr)
+      if (entity && entity_tio) {
+        // Get values of the common attributes of ATTRIB entity
+        const commonAttrs = this.getCommonAttrs(entity)
+        const fixedtype = libredwg.dwg_object_get_fixedtype(object_ptr)
+        if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTRIB) {
+          attribs.push(this.convertAttrib(entity_tio, commonAttrs))
+        }
+      }
+    })
+
     // TODO: convert block attributes
     return {
       type: 'INSERT',
@@ -933,7 +1003,8 @@ export class LibreEntityConverter {
       rowCount: rowCount,
       columnSpacing: columnSpacing,
       rowSpacing: rowSpacing,
-      extrusionDirection: extrusionDirection
+      extrusionDirection: extrusionDirection,
+      attribs: attribs
     }
   }
 

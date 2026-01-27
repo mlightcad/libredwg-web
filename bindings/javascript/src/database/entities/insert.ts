@@ -1,4 +1,5 @@
 import { DwgPoint3D } from '../common'
+import { DwgAttribEntity } from './attrib'
 import { DwgEntity } from './entity'
 
 export interface DwgInsertEntity extends DwgEntity {
@@ -56,4 +57,8 @@ export interface DwgInsertEntity extends DwgEntity {
    * Extrusion direction (optional; default = 0, 0, 1)
    */
   extrusionDirection: DwgPoint3D
+  /**
+   * Attributes associated with the INSERT entity
+   */
+  attribs: DwgAttribEntity[]
 }
