@@ -327,6 +327,23 @@ emscripten::val dwg_entity_polyline_3d_get_vertices_wrapper(Dwg_Object_Ptr obj_p
   return result;
 }
 
+emscripten::val dwg_entity_insert_get_attribs_wrapper(Dwg_Object_Entity_Ptr obj_ptr) {
+  Dwg_Entity_INSERT* ent = reinterpret_cast<Dwg_Entity_INSERT*>(obj_ptr);
+  emscripten::val result = emscripten::val::object();
+  emscripten::val attribs = emscripten::val::array();
+  result.set("data", attribs);
+
+  Dwg_Object *o;
+  for (BITCODE_BL j = 0; j < ent->num_owned; j++) {
+    o = ent->attribs && ent->attribs[j] ? ent->attribs[j]->obj : NULL;
+    if (o && o->fixedtype == DWG_TYPE_ATTRIB) {
+      attribs.call<void>("push", reinterpret_cast<uintptr_t>(o));
+    }
+  }    
+
+  return result;
+}
+
 EMSCRIPTEN_BINDINGS(libredwg_dwg_entity) {
   DEFINE_FUNC(dwg_entity_owner);
   DEFINE_FUNC(dwg_entity_polyline_2d_get_numpoints);
@@ -336,6 +353,7 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_entity) {
   DEFINE_FUNC(dwg_entity_polyline_3d_get_points);
   DEFINE_FUNC(dwg_entity_polyline_3d_get_vertices);
   DEFINE_FUNC(dwg_entity_block_header_get_preview);
+  DEFINE_FUNC(dwg_entity_insert_get_attribs);
 }
 
 emscripten::val dwg_object_dictionary_get_texts_wrapper(Dwg_Object_Ptr obj_ptr) {

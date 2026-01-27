@@ -58,7 +58,7 @@ export interface DwgAttribEntity extends DwgEntity {
   /**
    * hard-pointer id of secondary attribute(s) or attribute definition(s)
    */
-  secondaryAttrsHardId: number
+  secondaryAttrsHardId: string
   /**
    * Alignment point of attribute or attribute definition.
    */
