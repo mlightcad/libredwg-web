@@ -1266,6 +1266,20 @@ export class LibreDwg {
   }
 
   /**
+   * Returns attributes associated with INSERT entity.
+   * @group Dwg_Entity_INSERT Methods
+   * @param ptr Pointer to one Dwg_Object (not Dwg_Entity_INSERT) instance.
+   * @returns Returns attributes associated with INSERT entity.
+   */
+  dwg_entity_insert_get_attribs(
+    ptr: Dwg_Object_Ptr
+  ): number[] {
+    const wasmInstance = this.wasmInstance
+    return wasmInstance.dwg_entity_insert_get_attribs(ptr)
+      .data as number[]
+  }
+
+  /**
    * Returns texts in Dwg_Object_DICTIONARY.
    * @group Dwg_Object_DICTIONARY Methods
    * @param ptr Pointer to one Dwg_Object (not Dwg_Object_DICTIONARY) instance.
