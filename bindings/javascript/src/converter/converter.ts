@@ -10,6 +10,7 @@ import {
   DwgEntity,
   DwgHeader,
   DwgImageDefObject,
+  DwgInsertEntity,
   DwgLayerTableEntry,
   DwgLayoutObject,
   DwgLineTypeElement,
@@ -130,9 +131,19 @@ export class LibreDwgConverter {
               {
                 const btr = this.convertBlockRecord(tio, obj)
                 db.tables.BLOCK_RECORD.entries.push(btr)
-                // db.entities should contains entities in model space and paper space only
+                // Store entities in model space and paper space to db.entities to keep the
+                // the consistent data structure as DXF file
                 if (isModelSpace(btr.name) || isPaperSpace(btr.name)) {
-                  btr.entities.forEach(entity => db.entities.push(entity))
+                  btr.entities.forEach(entity => {
+                    db.entities.push(entity)
+                    // Store ATTRIB entity in db.entities to keep the the consistent data
+                    // structure as DXF file
+                    if (entity.type === 'INSERT') {
+                      (entity as DwgInsertEntity).attribs.forEach(attrib => {
+                        db.entities.push(attrib)
+                      })
+                    }
+                  })
                 }
               }
               break
