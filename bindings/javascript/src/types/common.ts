@@ -1,4 +1,5 @@
 import { DwgPoint2D, DwgPoint2DWithWeight, DwgPoint3D } from '../database'
+import { Dwg_Color_Method } from './enums'
 
 export type Dwg_Array_Ptr = number
 export type Dwg_Data_Ptr = number
@@ -74,7 +75,7 @@ export interface Dwg_Color {
    * - 0xc5 for foreground color
    * - 0xc8 for none (also c3 and rgb of 0x101)
    */
-  method: number
+  method: Dwg_Color_Method
   /**
    * DXF 430
    */

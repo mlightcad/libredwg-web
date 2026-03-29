@@ -19,6 +19,7 @@ import {
   DwgPoint3D,
   DwgSpatialFilterObject,
   DwgStyleTableEntry,
+  DwgViewportEntity,
   DwgVPortTableEntry,
   HEADER_VARIABLES
 } from '../database'
@@ -176,6 +177,21 @@ export class LibreDwgConverter {
         }
       }
     }
+
+    // Process viewport entities: sort by objectId (handle) and assign viewportId
+    const viewportEntities = db.entities.filter(entity => entity.type === 'VIEWPORT') as DwgViewportEntity[]
+    viewportEntities.sort((a, b) => {
+      // Convert handle to hex number for sorting
+      const handleA = parseInt(a.handle, 16)
+      const handleB = parseInt(b.handle, 16)
+      return handleA - handleB
+    })
+    
+    // Assign viewportId starting from 1
+    viewportEntities.forEach((viewport, index) => {
+      viewport.viewportId = index + 1
+    })
+
     return db
   }
 
