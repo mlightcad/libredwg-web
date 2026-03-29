@@ -33,7 +33,7 @@ emscripten::val color_to_js_object(const Dwg_Color* color) {
   color_obj.set("index", color->index);
   color_obj.set("flag", color->flag);
   color_obj.set("rgb", color->rgb);
-  color_obj.set("method", color->method);
+  color_obj.set("method", static_cast<int>(color->method));
   color_obj.set("name", std::string(color->name));
   color_obj.set("book_name", std::string(color->book_name));
   color_obj.set("alpha_type", color->alpha_type);

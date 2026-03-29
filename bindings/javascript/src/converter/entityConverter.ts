@@ -1993,8 +1993,6 @@ export class LibreEntityConverter {
       .data as number
     const status = libredwg.dwg_dynapi_entity_value(entity, 'on_off')
       .data as number
-    const viewportId = libredwg.dwg_dynapi_entity_value(entity, 'id')
-      .data as number
     const displayCenter = libredwg.dwg_dynapi_entity_value(entity, 'VIEWCTR')
       .data as DwgPoint2D
     const snapBase = libredwg.dwg_dynapi_entity_value(entity, 'SNAPBASE')
@@ -2106,7 +2104,7 @@ export class LibreEntityConverter {
       width: width,
       height: height,
       status: status,
-      viewportId: viewportId,
+      viewportId: 0, // Will be set later in LibreDwgConverter.convert
       displayCenter: displayCenter,
       snapBase: snapBase,
       snapSpacing: snapSpacing,
