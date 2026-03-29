@@ -367,3 +367,12 @@ export enum Dwg_Hatch_Edge_Type {
   EllipticArc = 3,
   Spline = 4
 }
+
+export enum Dwg_Color_Method {
+  ByLayer = 0xc0,
+  ByBlock = 0xc1,
+  Entities = 0xc2,
+  TrueColor = 0xc3,
+  ForegroundColor = 0xc5,
+  None = 0xc8
+}
