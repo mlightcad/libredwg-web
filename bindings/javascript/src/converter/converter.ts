@@ -655,11 +655,14 @@ export class LibreDwgConverter {
     const method = color.method
     let colorIndex = 256
     let rgbColor = 0xffffff
-    // It looks like that libredwg always returns 256 for property 'index' in Dwg_Color
+    // NOTE: Some older DWG formats use method=0x0 and provide the ACI index via color.index.
     if (method === 0xc3 || ((color.rgb >>> 24) & 0xff) === 0xc3) {
       colorIndex = color.rgb & 0x000000ff
     } else if (method == 0xc2 || ((color.rgb >>> 24) & 0xff) === 0xc2) {
       rgbColor = color.rgb & 0x00ffffff
+    } else if (color.index >= 1 && color.index <= 255) {
+      // Older DWG format: ACI index is directly available in color.index.
+      colorIndex = color.index
     }
 
     return {
