@@ -692,7 +692,7 @@ export class SvgConverter {
       color.color = entity.color
     }
 
-    // If it is white color, convert it to black because the background of svg is white
+    // ACI 7 is one background-dependent color
     if (color.colorIndex == 7) {
       color.colorIndex = 256
     }
