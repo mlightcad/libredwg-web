@@ -46,7 +46,7 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ./bindings/javascript
 
-      - name: Build demo pages
+      - name: Build javascript api package
         run: pnpm build
         working-directory: ./bindings/javascript
 
