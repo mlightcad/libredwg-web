@@ -333,13 +333,39 @@ emscripten::val dwg_entity_insert_get_attribs_wrapper(Dwg_Object_Entity_Ptr obj_
   emscripten::val attribs = emscripten::val::array();
   result.set("data", attribs);
 
+  if (!ent || !ent->has_attribs) {
+    return result;
+  }
+
   Dwg_Object *o;
-  for (BITCODE_BL j = 0; j < ent->num_owned; j++) {
-    o = ent->attribs && ent->attribs[j] ? ent->attribs[j]->obj : NULL;
-    if (o && o->fixedtype == DWG_TYPE_ATTRIB) {
-      attribs.call<void>("push", reinterpret_cast<uintptr_t>(o));
+
+  // R_2004a+ storage: owned handle vector. AC1018+ DWGs use this path.
+  if (ent->num_owned > 0 && ent->attribs) {
+    for (BITCODE_BL j = 0; j < ent->num_owned; j++) {
+      o = ent->attribs[j] ? ent->attribs[j]->obj : NULL;
+      if (o && o->fixedtype == DWG_TYPE_ATTRIB) {
+        attribs.call<void>("push", reinterpret_cast<uintptr_t>(o));
+      }
     }
-  }    
+    return result;
+  }
+
+  // R_13b1..R_2000 storage: linked list walk from first_attrib to last_attrib.
+  // AC1015 (R_2000) DWGs never populate num_owned/attribs[] — the attribs are
+  // reachable only as consecutive objects between first_attrib and last_attrib.
+  if (ent->first_attrib && ent->first_attrib->obj) {
+    Dwg_Object *first = ent->first_attrib->obj;
+    Dwg_Object *last  = ent->last_attrib ? ent->last_attrib->obj : NULL;
+    o = first;
+    // Safety cap to avoid runaway loops on corrupt files.
+    for (unsigned int guard = 0; o && guard < 100000; guard++) {
+      if (o->fixedtype == DWG_TYPE_ATTRIB) {
+        attribs.call<void>("push", reinterpret_cast<uintptr_t>(o));
+      }
+      if (o == last) break;
+      o = dwg_next_object(o);
+    }
+  }
 
   return result;
 }
