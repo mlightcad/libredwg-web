@@ -179,14 +179,16 @@ export class LibreDwgConverter {
     }
 
     // Process viewport entities: sort by objectId (handle) and assign viewportId
-    const viewportEntities = db.entities.filter(entity => entity.type === 'VIEWPORT') as DwgViewportEntity[]
+    const viewportEntities = db.entities.filter(
+      entity => entity.type === 'VIEWPORT'
+    ) as DwgViewportEntity[]
     viewportEntities.sort((a, b) => {
       // Convert handle to hex number for sorting
       const handleA = parseInt(a.handle, 16)
       const handleB = parseInt(b.handle, 16)
       return handleA - handleB
     })
-    
+
     // Assign viewportId starting from 1
     viewportEntities.forEach((viewport, index) => {
       viewport.viewportId = index + 1
@@ -645,6 +647,16 @@ export class LibreDwgConverter {
       .data as number
     const color = libredwg.dwg_dynapi_entity_value(item, 'color')
       .data as Dwg_Color
+    const ltypeRef = libredwg.dwg_dynapi_entity_value(item, 'ltype')
+      .data as number
+    let ltypeName = 'Continuous'
+    if (ltypeRef) {
+      try {
+        ltypeName = libredwg.dwg_ref_get_object_name(ltypeRef)
+      } catch {
+        // ref may be invalid in some DWG files
+      }
+    }
 
     // - 0xc0 for ByLayer (also c3 and rgb of 0x100)
     // - 0xc1 for ByBlock (also c3 and rgb of 0)
@@ -672,7 +684,7 @@ export class LibreDwgConverter {
       color: rgbColor,
       colorName: color.name,
       transparency: color.alpha,
-      lineType: '',
+      lineType: ltypeName,
       frozen: frozen != 0,
       off: off != 0,
       frozenInNew: frozenInNew != 0,

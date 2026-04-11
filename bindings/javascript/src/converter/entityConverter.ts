@@ -139,10 +139,10 @@ export class LibreEntityConverter {
         return this.convertArc(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTDEF) {
         return this.convertAttdef(entity_tio, commonAttrs)
-      // libredwg stores ATTRIB as children of one INSERT entity.
-      // It does not exist in iterator of dwg data.
-      // } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTRIB) {
-      //   return this.convertAttrib(entity_tio, commonAttrs)
+        // libredwg stores ATTRIB as children of one INSERT entity.
+        // It does not exist in iterator of dwg data.
+        // } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTRIB) {
+        //   return this.convertAttrib(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_CIRCLE) {
         return this.convertCircle(entity_tio, commonAttrs)
       } else if (
