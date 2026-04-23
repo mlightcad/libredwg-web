@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convert Dwg to DXF</title>
+    <style>
+      #status:empty {
+        height: 1em;
+      }
+    </style>
+</head>
+<body>
+    <h1>Convert Dwg to DXF</h1>
+    <input type="file" id="fileInput" accept=".dwg" />
+    <button id="download-dxf-btn" disabled>Download DXF</button>
+    <p id="status"></p>
+    <script type="module" src="dist/libredwg-web.js" defer></script>
+    <script type="module">
+      import { LibreDwg } from './dist/libredwg-web.js'
+
+      const libredwg = await LibreDwg.create()
+      const fileInput = document.getElementById('fileInput')
+      const downloadButton = document.getElementById('download-dxf-btn')
+      const status = document.getElementById('status')
+
+      let dxfContent = null
+      let outputFileName = 'drawing.dxf'
+
+      const resetResult = () => {
+        dxfContent = null
+        outputFileName = 'drawing.dxf'
+        downloadButton.disabled = true
+      }
+
+      const getOutputFileName = (inputFileName) => {
+        const dotIndex = inputFileName.lastIndexOf('.')
+        if (dotIndex <= 0) {
+          return `${inputFileName}.dxf`
+        }
+        return `${inputFileName.slice(0, dotIndex)}.dxf`
+      }
+
+      downloadButton.addEventListener('click', () => {
+        if (!dxfContent) {
+          alert('No DXF file to download!')
+          return
+        }
+
+        const blob = new Blob([dxfContent], { type: 'application/dxf' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = outputFileName
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      })
+
+      fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0]
+        resetResult()
+
+        if (!file) {
+          status.textContent = 'No file selected'
+          return
+        }
+
+        status.textContent = 'Converting...'
+
+        const reader = new FileReader()
+        reader.onload = function(e) {
+          const fileContent = e.target.result
+          try {
+            const converted = libredwg.dwg_write_dxf(fileContent)
+            if (!converted) {
+              status.textContent = 'Failed to convert DWG to DXF.'
+              return
+            }
+
+            dxfContent = converted
+            outputFileName = getOutputFileName(file.name)
+            downloadButton.disabled = false
+            status.textContent = `Converted successfully: ${outputFileName} (${converted.length} bytes)`
+          } catch (error) {
+            status.textContent = 'Failed to convert DWG to DXF.'
+            console.error('Failed to convert dwg file to dxf: ', error)
+          }
+        }
+
+        reader.readAsArrayBuffer(file)
+      })
+    </script>
+</body>
+</html>
