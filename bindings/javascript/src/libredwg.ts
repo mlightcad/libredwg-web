@@ -92,16 +92,21 @@ export class LibreDwg {
   dwg_read_data(fileContent: string | ArrayBuffer, fileType: number) {
     if (fileType == Dwg_File_Type.DWG) {
       const fileName = 'tmp.dwg'
-      this.wasmInstance.FS.writeFile(
-        fileName,
-        new Uint8Array(fileContent as ArrayBuffer)
-      )
-      const result = this.wasmInstance.dwg_read_file(fileName)
-      if (result.error != 0) {
-        console.log('Open dwg file with error code: ', result.error)
+      try {
+        this.wasmInstance.FS.writeFile(
+          fileName,
+          new Uint8Array(fileContent as ArrayBuffer)
+        )
+        const result = this.wasmInstance.dwg_read_file(fileName)
+        if (result.error != 0) {
+          console.log('Open dwg file with error code: ', result.error)
+        }
+        return result.data as Dwg_Data_Ptr
+      } finally {
+        if (this.wasmInstance.FS.analyzePath(fileName, false).exists) {
+          this.wasmInstance.FS.unlink(fileName)
+        }
       }
-      this.wasmInstance.FS.unlink(fileName)
-      return result.data as Dwg_Data_Ptr
     }
     // else if (fileType == Dwg_File_Type.DXF) {
     //   const fileName = "tmp.dxf";
@@ -113,6 +118,39 @@ export class LibreDwg {
     //   this.wasmInstance.FS.unlink(fileName);
     //   return result.data as Dwg_Data_Ptr;
     // }
+  }
+
+  /**
+   * Converts DWG file content to DXF file content.
+   * @param fileContent DWG file content.
+   * @returns Returns DXF file content if conversion succeeds. Otherwise returns null.
+   */
+  dwg_write_dxf(fileContent: string | ArrayBuffer): Uint8Array | null {
+    const inputFileName = 'tmp.dwg'
+    const outputFileName = 'tmp.dxf'
+
+    try {
+      this.wasmInstance.FS.writeFile(
+        inputFileName,
+        new Uint8Array(fileContent as ArrayBuffer)
+      )
+      const error = this.wasmInstance.dwg_write_dxf(
+        inputFileName,
+        outputFileName
+      )
+      if (error != 0) {
+        console.log('Convert dwg to dxf with error code: ', error)
+        return null
+      }
+      return this.wasmInstance.FS.readFile(outputFileName) as Uint8Array
+    } finally {
+      if (this.wasmInstance.FS.analyzePath(inputFileName, false).exists) {
+        this.wasmInstance.FS.unlink(inputFileName)
+      }
+      if (this.wasmInstance.FS.analyzePath(outputFileName, false).exists) {
+        this.wasmInstance.FS.unlink(outputFileName)
+      }
+    }
   }
 
   /**
