@@ -6,6 +6,16 @@
 #include "dwg.h"
 #include "common.h"
 #include "binding_common.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifndef DISABLE_DXF
+#include "bits.h"
+#include "out_dxf.h"
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 using namespace emscripten;
 
@@ -27,14 +37,68 @@ emscripten::val dwg_read_file_wrapper(const std::string& filename) {
   return result;
 }
 
-// emscripten::val dxf_read_file_wrapper(const std::string& filename) {
-//   Dwg_Data* dwg = new Dwg_Data(); 
-//   int error = dxf_read_file(filename.c_str(), dwg);
+int dwg_write_dxf_wrapper(
+  const std::string& input_filename,
+  const std::string& output_filename) {
+#ifdef DISABLE_DXF
+  (void)input_filename;
+  (void)output_filename;
+  return DWG_ERR_NOTYETSUPPORTED;
+#else
+  if (input_filename == output_filename)
+    return DWG_ERR_IOERROR;
 
+  Dwg_Data dwg = {};
+  Bit_Chain dat = {};
+
+  int error = dwg_read_file(input_filename.c_str(), &dwg);
+  if (error >= DWG_ERR_CRITICAL)
+    {
+      dwg_free(&dwg);
+      return error;
+    }
+
+  dat.version = dwg.header.version;
+  dat.from_version = dwg.header.from_version;
+  dat.fh = fopen(output_filename.c_str(), "wb");
+  if (!dat.fh)
+    {
+      dwg_free(&dwg);
+      return DWG_ERR_IOERROR;
+    }
+
+  error = dwg_write_dxf(&dat, &dwg);
+  fclose(dat.fh);
+  dwg_free(&dwg);
+  return error;
+#endif
+}
+
+// emscripten::val dxf_read_file_wrapper(const std::string& filename) {
 //   emscripten::val result = emscripten::val::object();
+// #if defined(DISABLE_DXF) || !defined(USE_WRITE)
+//   (void)filename;
+//   result.set("error", DWG_ERR_NOTYETSUPPORTED);
+//   result.set("data", static_cast<uintptr_t>(0));
+//   return result;
+// #else
+//   Dwg_Data* dwg = new Dwg_Data();
+//   int error = dxf_read_file(filename.c_str(), dwg);
+//   if (error < DWG_ERR_CRITICAL)
+//     {
+//       for (BITCODE_BL i = 0; i < dwg->num_object_refs; i++)
+//         {
+//           Dwg_Object *restrict obj
+//               = dwg_resolve_handle (dwg, dwg->object_ref[i]->absolute_ref);
+//           dwg->object_ref[i]->obj = obj;
+//         }
+//       dwg->dirty_refs = 0;
+//     }
+
 //   result.set("error", error);
 //   result.set("data", reinterpret_cast<uintptr_t>(dwg));
 //   return result;
+// #endif
 // }
 
 // emscripten::val dwg_write_file_wrapper(
@@ -843,6 +907,7 @@ uintptr_t dwg_absref_get_object_wrapper(
 
 EMSCRIPTEN_BINDINGS(libredwg_api) {
   DEFINE_FUNC(dwg_read_file);
+  DEFINE_FUNC(dwg_write_dxf);
   // DEFINE_FUNC(dxf_read_file);
   // DEFINE_FUNC(dwg_write_file);
   DEFINE_FUNC(dwg_get_version_type);
