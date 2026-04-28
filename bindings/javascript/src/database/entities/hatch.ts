@@ -157,13 +157,21 @@ export interface DwgHatchEntityBase extends DwgEntity {
   gradientFlag?: DwgHatchGradientFlag
 }
 
+export interface DwgGradientColor {
+  reservedData: number
+  rgb: number
+  colorIndex?: number
+}
+
 export interface DwgGradientHatchEntity extends DwgHatchEntityBase {
+  gradientName: string
   gradientFlag: DwgHatchGradientFlag.Gradient
   gradientColorFlag: DwgHatchGradientColorFlag
   numberOfColors: 0 | 2
   gradientRotation?: number
   gradientDefinition: number
   colorTint?: number
+  gradientColors?: Array<DwgGradientColor>
 }
 
 export type DwgHatchEntity = DwgGradientHatchEntity | DwgHatchEntityBase
