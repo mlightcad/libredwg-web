@@ -21,7 +21,9 @@ import {
   DwgEmbeddedMText,
   DwgEntity,
   DwgHatchAssociativity,
-  DwgHatchEntityBase,
+  DwgHatchEntity,
+  DwgHatchGradientColorFlag,
+  DwgHatchGradientFlag,
   DwgHatchPatternType,
   DwgHatchSolidFill,
   DwgHatchStyle,
@@ -676,7 +678,7 @@ export class LibreEntityConverter {
   private convertHatch(
     entity: Dwg_Object_Entity_Ptr,
     commonAttrs: DwgCommonAttributes
-  ): DwgHatchEntityBase {
+  ): DwgHatchEntity  {
     const libredwg = this.libredwg
     const extrusionDirection = libredwg.dwg_dynapi_entity_value(
       entity,
@@ -737,8 +739,7 @@ export class LibreEntityConverter {
       numberOfSeedPoints
     )
 
-    return {
-      type: 'HATCH',
+    const result = {
       ...commonAttrs,
       // elevationPoint: DwgPoint3D
       extrusionDirection: extrusionDirection,
@@ -771,6 +772,43 @@ export class LibreEntityConverter {
       // offsetVector?: DwgPoint3D
       seedPoints: seedPoints
       // gradientFlag?: DwgHatchGradientFlag
+    }
+
+    const gradientFlag = libredwg.dwg_dynapi_entity_value(entity, 'is_gradient_fill')
+      .data as number
+    if (gradientFlag > 0) {
+      const gradientName = libredwg.dwg_dynapi_entity_value(entity, 'gradient_name')
+        .data as string
+      const gradientRotation = libredwg.dwg_dynapi_entity_value(entity, 'gradient_angle')
+        .data as number
+      const gradientDefinition = libredwg.dwg_dynapi_entity_value(entity, 'gradient_shift')
+        .data as number
+      const colorTint = libredwg.dwg_dynapi_entity_value(entity, 'gradient_tint')
+        .data as number
+      const gradientColorFlag = libredwg.dwg_dynapi_entity_value(entity, 'single_color_gradient')
+        .data as number
+      // const numberOfColors = libredwg.dwg_dynapi_entity_value(entity, 'num_colors')
+      //   .data as number
+      const gradientColors_ptr = libredwg.dwg_dynapi_entity_value(entity, 'colors')
+        .data as number
+      const gradientColors = libredwg.dwg_ptr_to_hatch_gradient_color_array(gradientColors_ptr, (gradientColorFlag == 1) ? 1 : 2)
+
+      return {
+        type: 'HATCH',
+        ...result,
+        gradientFlag: DwgHatchGradientFlag.Gradient,
+        gradientColorFlag: gradientColorFlag == 1 ? DwgHatchGradientColorFlag.OneColor : DwgHatchGradientColorFlag.TwoColor,
+        gradientName,
+        gradientRotation,
+        gradientDefinition,
+        colorTint,
+        gradientColors
+      }
+    } else {
+      return {
+        type: 'HATCH',
+        ...result
+      }
     }
   }
 

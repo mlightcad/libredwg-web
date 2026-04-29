@@ -5,6 +5,7 @@ import {
   DwgCodePage,
   dwgCodePageToEncoding,
   DwgDatabase,
+  DwgGradientColor,
   DwgPoint2D,
   DwgPoint3D,
   DwgPoint4D,
@@ -894,6 +895,21 @@ export class LibreDwg {
     size: number
   ): Dwg_HATCH_Path[] {
     return this.wasmInstance.dwg_ptr_to_hatch_path_array(ptr, size)
+  }
+
+  /**
+   * Converts one C++ hatch gradient color array to one JavaScript hatch gradient color array.
+   * @group Array Methods
+   * @group Dwg_Entity_HATCH Methods
+   * @param ptr Pointer to C++ hatch gradient color array.
+   * @param size The size of C++ hatch gradient color array.
+   * @returns Returns one JavaScript hatch gradient color array from the specified C++ hatch gradient color array.
+   */
+  dwg_ptr_to_hatch_gradient_color_array(
+    ptr: Dwg_Array_Ptr,
+    size: number
+  ): DwgGradientColor[] {
+    return this.wasmInstance.dwg_ptr_to_hatch_gradient_color_array(ptr, size)
   }
 
   /**

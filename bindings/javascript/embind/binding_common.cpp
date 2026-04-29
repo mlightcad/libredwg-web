@@ -466,6 +466,20 @@ emscripten::val dwg_ptr_to_hatch_path_array_wrapper(uintptr_t array_ptr, size_t 
   return pathes;
 }
 
+emscripten::val dwg_ptr_to_hatch_gradient_color_array_wrapper(uintptr_t array_ptr, size_t size) {
+  Dwg_HATCH_Color* array = reinterpret_cast<Dwg_HATCH_Color*>(array_ptr);
+  emscripten::val colors = emscripten::val::array();
+  for (int i = 0; i < size; ++i) {
+    auto gradient_color = array[i];
+    emscripten::val gradient_color_obj = emscripten::val::object();
+    gradient_color_obj.set("reservedData", gradient_color.shift_value);
+    gradient_color_obj.set("rgb", gradient_color.color.rgb);
+    gradient_color_obj.set("colorIndex", gradient_color.color.index);
+    colors.call<void>("push", gradient_color_obj);
+  }
+  return colors;
+}
+
 emscripten::val dwg_ptr_to_mline_vertex_array_wrapper(uintptr_t array_ptr, size_t size) {
   Dwg_MLINE_vertex* array = reinterpret_cast<Dwg_MLINE_vertex*>(array_ptr);
   emscripten::val vertices = emscripten::val::array();
@@ -532,6 +546,7 @@ EMSCRIPTEN_BINDINGS(libredwg_array) {
   DEFINE_FUNC(dwg_ptr_to_table_cell_array);
   DEFINE_FUNC(dwg_ptr_to_hatch_defline_array);
   DEFINE_FUNC(dwg_ptr_to_hatch_path_array);
+  DEFINE_FUNC(dwg_ptr_to_hatch_gradient_color_array);
   DEFINE_FUNC(dwg_ptr_to_mline_vertex_array);
 }
 
