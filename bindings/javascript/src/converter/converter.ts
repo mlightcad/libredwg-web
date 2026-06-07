@@ -789,8 +789,8 @@ export class LibreDwgConverter {
       .data as number
     const viewHeight = libredwg.dwg_dynapi_entity_value(item, 'VIEWSIZE')
       .data as number
-    // BITCODE_BD view_width;   // in DWG r13+, needed to calc. aspect_ratio
-    // BITCODE_BD aspect_ratio; // DXF 41 = view_width / VIEWSIZE
+    const aspectRatio = libredwg.dwg_dynapi_entity_value(item, 'aspect_ratio')
+      .data as number
     const center = libredwg.dwg_dynapi_entity_value(item, 'VIEWCTR')
       .data as DwgPoint2D
     const viewTarget = libredwg.dwg_dynapi_entity_value(item, 'view_target')
@@ -903,6 +903,7 @@ export class LibreDwgConverter {
       frontClippingPlane: frontClippingPlane,
       backClippingPlane: backClippingPlane,
       viewHeight: viewHeight,
+      aspectRatio: aspectRatio,
       snapRotationAngle: snapRotationAngle,
       viewTwistAngle: viewTwistAngle,
       circleSides: circleSides,
