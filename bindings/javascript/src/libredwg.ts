@@ -25,6 +25,7 @@ import {
   Dwg_Entity_MTEXT_Ptr,
   Dwg_Entity_POLYLINE_2D_Ptr,
   Dwg_Entity_POLYLINE_3D_Ptr,
+  Dwg_Entity_PROXY_ENTITY_Ptr,
   Dwg_Entity_TEXT_Ptr,
   Dwg_Entity_VERTEX_2D,
   Dwg_Entity_VERTEX_3D,
@@ -1192,6 +1193,38 @@ export class LibreDwg {
     const wasmInstance = this.wasmInstance
     return wasmInstance.dwg_entity_block_header_get_preview(ptr)
       .data as Uint8Array
+  }
+
+  /**
+   * Returns graphics (proxy) binary data of one Dwg_Entity_PROXY_ENTITY instance.
+   * @group Dwg_Entity_PROXY_ENTITY Methods
+   * @param ptr Pointer to one Dwg_Entity_PROXY_ENTITY instance.
+   * @returns Graphics data bytes, or null when absent.
+   */
+  dwg_entity_proxy_entity_get_graphics_data(
+    ptr: Dwg_Entity_PROXY_ENTITY_Ptr
+  ): Uint8Array | null {
+    const result = this.wasmInstance.dwg_entity_proxy_entity_get_graphics_data(ptr)
+    if (!result.success) {
+      return null
+    }
+    return (result.data as Uint8Array | null) ?? null
+  }
+
+  /**
+   * Returns entity binary data of one Dwg_Entity_PROXY_ENTITY instance.
+   * @group Dwg_Entity_PROXY_ENTITY Methods
+   * @param ptr Pointer to one Dwg_Entity_PROXY_ENTITY instance.
+   * @returns Entity data bytes, or null when absent.
+   */
+  dwg_entity_proxy_entity_get_entity_data(
+    ptr: Dwg_Entity_PROXY_ENTITY_Ptr
+  ): Uint8Array | null {
+    const result = this.wasmInstance.dwg_entity_proxy_entity_get_entity_data(ptr)
+    if (!result.success) {
+      return null
+    }
+    return (result.data as Uint8Array | null) ?? null
   }
 
   /**

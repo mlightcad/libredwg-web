@@ -76,6 +76,7 @@ import {
   Dwg_Color,
   Dwg_Hatch_Edge_Type,
   Dwg_HATCH_Path,
+  Dwg_Entity_PROXY_ENTITY_Ptr,
   Dwg_Object_Entity_Ptr,
   Dwg_Object_Ptr,
   Dwg_Object_Type,
@@ -1582,7 +1583,7 @@ export class LibreEntityConverter {
   }
 
   private convertProxyEntity(
-    entity: Dwg_Object_Entity_Ptr,
+    entity: Dwg_Entity_PROXY_ENTITY_Ptr,
     commonAttrs: DwgCommonAttributes
   ): DwgProxyEntity {
     const libredwg = this.libredwg
@@ -1611,21 +1612,15 @@ export class LibreEntityConverter {
     const numObjIds = libredwg.dwg_dynapi_entity_value(entity, 'num_objids')
       .data as number
 
-    const entityDataSizeBytes = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'data_size'
-    ).data as number
-    const graphicsData = this.readBinaryTfField(
-      entity,
-      'proxy_data',
-      graphicsDataSize
-    )
-    const entityData = this.readBinaryTfField(
-      entity,
-      'data',
-      entityDataSizeBytes ||
-        (entityDataSize > 0 ? Math.ceil(entityDataSize / 8) : 0)
-    )
+    const graphicsBytes =
+      libredwg.dwg_entity_proxy_entity_get_graphics_data(entity)
+    const entityBytes = libredwg.dwg_entity_proxy_entity_get_entity_data(entity)
+    const graphicsData = graphicsBytes
+      ? uint8ArrayToHexString(graphicsBytes)
+      : undefined
+    const entityData = entityBytes
+      ? uint8ArrayToHexString(entityBytes)
+      : undefined
 
     let linkedObjectIds: string[] | undefined
     if (numObjIds > 0) {
@@ -1677,26 +1672,6 @@ export class LibreEntityConverter {
     }
 
     return result
-  }
-
-  private readBinaryTfField(
-    entity: Dwg_Object_Entity_Ptr,
-    field: string,
-    size: number
-  ): string | undefined {
-    if (size <= 0) {
-      return undefined
-    }
-    const ptr = this.libredwg.dwg_dynapi_entity_value(entity, field)
-      .data as number
-    if (!ptr) {
-      return undefined
-    }
-    const bytes = this.libredwg.dwg_ptr_to_unsigned_char_array(ptr, size)
-    if (!bytes || bytes.length === 0) {
-      return undefined
-    }
-    return uint8ArrayToHexString(new Uint8Array(bytes))
   }
 
   private getOriginalDxfName(classId: number): string | undefined {
