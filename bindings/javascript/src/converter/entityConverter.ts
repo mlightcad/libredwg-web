@@ -50,6 +50,8 @@ import {
   DwgPolyline3dEntity,
   DwgPolylineBoundaryPath,
   DwgProxyEntity,
+  DwgProxyOriginalDataFormat,
+  DwgClassLookup,
   DwgRadialDiameterDimensionEntity,
   DwgRayEntity,
   DwgSectionEntity,
@@ -79,7 +81,7 @@ import {
   Dwg_Object_Type,
   Dwg_TABLE_Cell
 } from '../types'
-import { idToString } from './utils'
+import { idToString, uint8ArrayToHexString } from './utils'
 
 type DwgCommonAttributes = Omit<DwgEntity, 'type'>
 type DwgDimensionCommonAttributes = Omit<
@@ -95,6 +97,7 @@ export class LibreEntityConverter {
   libredwg: LibreDwgEx
   layers: Map<string, string> = new Map()
   ltypes: Map<string, string> = new Map()
+  classes: DwgClassLookup[] = []
   unknownEntityCount: number
 
   constructor(instance: LibreDwgEx) {
@@ -116,12 +119,18 @@ export class LibreEntityConverter {
         this.ltypes.set(ltype.handle, ltype.name)
       })
     }
+    this.classes = db.classes
     this.unknownEntityCount = 0
+  }
+
+  setClasses(classes: DwgClassLookup[]) {
+    this.classes = classes
   }
 
   clear() {
     this.layers.clear()
     this.ltypes.clear()
+    this.classes = []
     this.unknownEntityCount = 0
   }
 
@@ -189,7 +198,7 @@ export class LibreEntityConverter {
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_3D) {
         return this.convertPolyline3d(entity_tio, commonAttrs, object_ptr)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_PROXY_ENTITY) {
-        return this.convertProxy(entity_tio, commonAttrs)
+        return this.convertProxyEntity(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_RAY) {
         return this.convertRay(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SECTIONOBJECT) {
@@ -1572,18 +1581,133 @@ export class LibreEntityConverter {
     }
   }
 
-  private convertProxy(
+  private convertProxyEntity(
     entity: Dwg_Object_Entity_Ptr,
     commonAttrs: DwgCommonAttributes
   ): DwgProxyEntity {
     const libredwg = this.libredwg
-    const classId = libredwg.dwg_dynapi_entity_value(entity, 'class_id')
+    const proxyEntityClassId = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'proxy_id'
+    ).data as number
+    const applicationEntityClassId = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'class_id'
+    ).data as number
+    const graphicsDataSize = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'proxy_data_size'
+    ).data as number
+    const entityDataSize = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'data_numbits'
+    ).data as number
+    const objectDrawingFormat = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'version'
+    ).data as number
+    const fromDxf = libredwg.dwg_dynapi_entity_value(entity, 'from_dxf')
       .data as number
-    return {
-      type: 'PROXY',
-      ...commonAttrs,
-      applicationEntityClassId: classId
+    const numObjIds = libredwg.dwg_dynapi_entity_value(entity, 'num_objids')
+      .data as number
+
+    const entityDataSizeBytes = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'data_size'
+    ).data as number
+    const graphicsData = this.readBinaryTfField(
+      entity,
+      'proxy_data',
+      graphicsDataSize
+    )
+    const entityData = this.readBinaryTfField(
+      entity,
+      'data',
+      entityDataSizeBytes ||
+        (entityDataSize > 0 ? Math.ceil(entityDataSize / 8) : 0)
+    )
+
+    let linkedObjectIds: string[] | undefined
+    if (numObjIds > 0) {
+      const objidsPtr = libredwg.dwg_dynapi_entity_value(entity, 'objids')
+        .data as number
+      if (objidsPtr) {
+        const objids = libredwg.dwg_ptr_to_object_ref_array(
+          objidsPtr,
+          numObjIds
+        )
+        linkedObjectIds = objids.map(ref => idToString(ref.absolute_ref))
+      }
     }
+
+    const originalDxfName = this.getOriginalDxfName(applicationEntityClassId)
+
+    const result: DwgProxyEntity = {
+      type: 'ACAD_PROXY_ENTITY',
+      subclassMarker: 'AcDbProxyEntity',
+      ...commonAttrs,
+      proxyEntityClassId: proxyEntityClassId || 498,
+      applicationEntityClassId
+    }
+
+    if (originalDxfName) {
+      result.originalDxfName = originalDxfName
+    }
+    if (graphicsDataSize > 0) {
+      result.graphicsDataSize = graphicsDataSize
+    }
+    if (graphicsData) {
+      result.graphicsData = graphicsData
+    }
+    if (entityDataSize > 0) {
+      result.entityDataSize = entityDataSize
+    }
+    if (entityData) {
+      result.entityData = entityData
+    }
+    if (linkedObjectIds && linkedObjectIds.length > 0) {
+      result.linkedObjectIds = linkedObjectIds
+    }
+    if (objectDrawingFormat) {
+      result.objectDrawingFormat = objectDrawingFormat
+    }
+    if (fromDxf === 0 || fromDxf === 1) {
+      result.originalDataFormat =
+        fromDxf as DwgProxyOriginalDataFormat
+    }
+
+    return result
+  }
+
+  private readBinaryTfField(
+    entity: Dwg_Object_Entity_Ptr,
+    field: string,
+    size: number
+  ): string | undefined {
+    if (size <= 0) {
+      return undefined
+    }
+    const ptr = this.libredwg.dwg_dynapi_entity_value(entity, field)
+      .data as number
+    if (!ptr) {
+      return undefined
+    }
+    const bytes = this.libredwg.dwg_ptr_to_unsigned_char_array(ptr, size)
+    if (!bytes || bytes.length === 0) {
+      return undefined
+    }
+    return uint8ArrayToHexString(new Uint8Array(bytes))
+  }
+
+  private getOriginalDxfName(classId: number): string | undefined {
+    if (this.classes.length === 0 || classId < 0) {
+      return undefined
+    }
+    const index = classId >= 500 ? classId - 500 : classId
+    if (index >= 0 && index < this.classes.length) {
+      return this.classes[index].dxfName
+    }
+    return undefined
   }
 
   private convertRay(
