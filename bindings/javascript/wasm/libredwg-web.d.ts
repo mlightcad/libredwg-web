@@ -10,10 +10,9 @@ declare namespace RuntimeExports {
         export let currentPath: string;
         export let initialized: boolean;
         export let ignorePermissions: boolean;
-        export { ErrnoError };
         export let filesystems: any;
         export let syncFSRequests: number;
-        export let readFiles: {};
+        export { ErrnoError };
         export { FSStream };
         export { FSNode };
         export function lookupPath(path: any, opts?: {}): {
@@ -114,11 +113,10 @@ declare namespace RuntimeExports {
         export function llseek(stream: any, offset: any, whence: any): any;
         export function read(stream: any, buffer: any, offset: any, length: any, position: any): any;
         export function write(stream: any, buffer: any, offset: any, length: any, position: any, canOwn: any): any;
-        export function allocate(stream: any, offset: any, length: any): void;
         export function mmap(stream: any, length: any, position: any, prot: any, flags: any): any;
         export function msync(stream: any, buffer: any, offset: any, length: any, mmapFlags: any): any;
         export function ioctl(stream: any, cmd: any, arg: any): any;
-        export function readFile(path: any, opts?: {}): any;
+        export function readFile(path: any, opts?: {}): Uint8Array<any>;
         export function writeFile(path: any, data: any, opts?: {}): void;
         export function cwd(): any;
         export function chdir(path: any): void;
@@ -152,10 +150,10 @@ declare namespace RuntimeExports {
     /**
      * @param {string|null=} returnType
      * @param {Array=} argTypes
-     * @param {Arguments|Array=} args
+     * @param {Array=} args
      * @param {Object=} opts
      */
-    function ccall(ident: any, returnType?: (string | null) | undefined, argTypes?: any[] | undefined, args?: (Arguments | any[]) | undefined, opts?: any | undefined): any;
+    function ccall(ident: any, returnType?: (string | null) | undefined, argTypes?: any[] | undefined, args?: any[] | undefined, opts?: any | undefined): any;
     /**
      * @param {string=} returnType
      * @param {Array=} argTypes
@@ -171,13 +169,11 @@ declare namespace RuntimeExports {
      *   maximum number of bytes to read. You can omit this parameter to scan the
      *   string until the first 0 byte. If maxBytesToRead is passed, and the string
      *   at [ptr, ptr+maxBytesToReadr[ contains a null byte in the middle, then the
-     *   string will cut short at that byte index (i.e. maxBytesToRead will not
-     *   produce a string of exact length [ptr, ptr+maxBytesToRead[) N.B. mixing
-     *   frequent uses of UTF8ToString() with and without maxBytesToRead may throw
-     *   JS JIT optimizations off, so it is worth to consider consistently using one
+     *   string will cut short at that byte index.
+     * @param {boolean=} ignoreNul - If true, the function will not stop on a NUL character.
      * @return {string}
      */
-    function UTF8ToString(ptr: number, maxBytesToRead?: number | undefined): string;
+    function UTF8ToString(ptr: number, maxBytesToRead?: number | undefined, ignoreNul?: boolean | undefined): string;
     function stringToNewUTF8(str: any): any;
     /**
      * @param {number} ptr
@@ -185,17 +181,6 @@ declare namespace RuntimeExports {
      * @param {string} type
      */
     function setValue(ptr: number, value: number, type?: string): void;
-    let HEAPF32: any;
-    let HEAPF64: any;
-    let HEAP_DATA_VIEW: any;
-    let HEAP8: any;
-    let HEAPU8: any;
-    let HEAP16: any;
-    let HEAPU16: any;
-    let HEAP32: any;
-    let HEAPU32: any;
-    let HEAP64: any;
-    let HEAPU64: any;
 }
 declare class ErrnoError {
     constructor(errno: any);
@@ -247,6 +232,8 @@ export interface ClassHandle {
   delete(): void;
   deleteLater(): this;
   isDeleted(): boolean;
+  // @ts-ignore - If targeting lower than ESNext, this symbol might not exist.
+  [Symbol.dispose](): void;
   clone(): this;
 }
 export interface Dwg_Version_TypeValue<T extends number> {
@@ -520,6 +507,8 @@ interface EmbindModule {
   dwg_entity_polyline_3d_get_points(_0: number): any;
   dwg_entity_polyline_3d_get_vertices(_0: number): any;
   dwg_entity_block_header_get_preview(_0: number): any;
+  dwg_entity_get_preview(_0: number): any;
+  dwg_entity_proxy_entity_get_entity_data(_0: number): any;
   dwg_entity_insert_get_attribs(_0: number): any;
   dwg_object_dictionary_get_texts(_0: number): any;
   dwg_read_file(_0: EmbindString): any;
