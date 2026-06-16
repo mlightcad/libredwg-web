@@ -12,3 +12,11 @@ export const isPaperSpace = (name: string) => {
 export const idToString = (id: number | bigint) => {
   return id.toString(16).toUpperCase()
 }
+
+export const uint8ArrayToHexString = (bytes: Uint8Array): string => {
+  const hexChars: string[] = new Array(bytes.length)
+  for (let i = 0; i < bytes.length; i++) {
+    hexChars[i] = bytes[i].toString(16).toUpperCase().padStart(2, '0')
+  }
+  return hexChars.join('')
+}
