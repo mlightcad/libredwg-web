@@ -28,6 +28,7 @@ export type Dwg_Entity_IMAGE_Ptr = number
 export type Dwg_Entity_LWPOLYLINE_Ptr = number
 export type Dwg_Entity_MTEXT_Ptr = number
 export type Dwg_Entity_TEXT_Ptr = number
+export type Dwg_Entity_PROXY_ENTITY_Ptr = number
 
 export interface Dwg_Handle {
   code: number

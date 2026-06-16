@@ -178,6 +178,51 @@ emscripten::val dwg_entity_block_header_get_preview_wrapper(Dwg_Object_Object_Pt
   return result;
 }
 
+emscripten::val dwg_entity_get_preview_wrapper(Dwg_Object_Ptr obj_ptr) {
+  Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
+  emscripten::val result = emscripten::val::object();
+  if (!obj || obj->supertype != DWG_SUPERTYPE_ENTITY) {
+    result.set("success", false);
+    result.set("message", "Null pointer or not an entity!");
+    return result;
+  }
+  Dwg_Object_Entity* ent = obj->tio.entity;
+  if (!ent || !ent->preview || ent->preview_size <= 0) {
+    result.set("success", true);
+    result.set("data", emscripten::val::null());
+    return result;
+  }
+  result.set("success", true);
+  result.set("size", ent->preview_size);
+  result.set("data", dwg_ptr_to_unsigned_char_array((unsigned char*)ent->preview,
+                                                    ent->preview_size));
+  return result;
+}
+
+emscripten::val dwg_entity_proxy_entity_get_entity_data_wrapper(uintptr_t ent_tio_ptr) {
+  Dwg_Entity_PROXY_ENTITY* proxy =
+      reinterpret_cast<Dwg_Entity_PROXY_ENTITY*>(ent_tio_ptr);
+  emscripten::val result = emscripten::val::object();
+  if (!proxy) {
+    result.set("success", false);
+    result.set("message", "Null pointer passed!");
+    return result;
+  }
+  size_t size = proxy->data_size;
+  if (size == 0 && proxy->data_numbits > 0) {
+    size = (proxy->data_numbits + 7) / 8;
+  }
+  result.set("success", true);
+  result.set("size", static_cast<BITCODE_BL>(size));
+  result.set("numbits", proxy->data_numbits);
+  if (!proxy->data || size == 0) {
+    result.set("data", emscripten::val::null());
+    return result;
+  }
+  result.set("data", dwg_ptr_to_unsigned_char_array(proxy->data, size));
+  return result;
+}
+
 emscripten::val dwg_entity_polyline_3d_get_numpoints_wrapper(Dwg_Object_Ptr obj_ptr) {
   Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
   int error = 0;
@@ -379,6 +424,8 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_entity) {
   DEFINE_FUNC(dwg_entity_polyline_3d_get_points);
   DEFINE_FUNC(dwg_entity_polyline_3d_get_vertices);
   DEFINE_FUNC(dwg_entity_block_header_get_preview);
+  DEFINE_FUNC(dwg_entity_get_preview);
+  DEFINE_FUNC(dwg_entity_proxy_entity_get_entity_data);
   DEFINE_FUNC(dwg_entity_insert_get_attribs);
 }
 

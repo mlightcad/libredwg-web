@@ -88,6 +88,7 @@ export class LibreDwgConverter {
     const libredwg = this.libredwg
     this.convertHeader(data, db.header)
     this.convertClasses(data, db.classes)
+    this.entityConverter.setClasses(db.classes)
     const num_objects = libredwg.dwg_get_num_objects(data)
 
     for (let i = 0; i < num_objects; i++) {
