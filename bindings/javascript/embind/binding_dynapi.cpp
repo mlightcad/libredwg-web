@@ -96,18 +96,10 @@ emscripten::val get_obj_value(const Dwg_Data *dwg, T _obj, const Dwg_DYNAPI_fiel
         result.set("data", std::string(utf8));
         free(utf8);
     } else {
-      char *ptr = *(char **)((char*)_obj + f->offset);
-      if (!ptr) {
-        result.set("data", std::string(""));
-        result.set("bin", emscripten::val::null());
-      } else if (strEQc (f->type, "TF") && !f->is_string && f->dxf == 310) {
-        // Binary chunk (DXF 310). Length comes from a companion *_size field.
-        result.set("data", reinterpret_cast<uintptr_t>(ptr));
-      } else {
-        const std::string str = std::string(ptr);
-        result.set("data", str);
-        result.set("bin", dwg_ptr_to_unsigned_char_array((unsigned char*)ptr, str.length()));
-      }
+      char *utf8 = *(char **)((char*)_obj + f->offset);
+      const std::string str = std::string(utf8);
+      result.set("data", str);
+      result.set("bin", dwg_ptr_to_unsigned_char_array((unsigned char*)utf8, str.length()));
     }
   } else if (strEQc(f->type, "RL") || strEQc(f->type, "BL") || strEQc (f->type, "MS")) {
     // INT32

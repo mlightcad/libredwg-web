@@ -7620,6 +7620,23 @@ add_ent_preview (Dwg_Object *restrict obj, Bit_Chain *restrict dat,
     ent->preview_size = written;
   if (ent->preview_size)
     ent->preview_exists = 1;
+  /* DXF: proxy graphics (92/310) are stored in ent->preview; copy to
+     PROXY_ENTITY.proxy_data for API consumers. */
+  if (obj->fixedtype == DWG_TYPE_PROXY_ENTITY && ent->preview
+      && ent->preview_size && obj->tio.entity->tio.PROXY_ENTITY)
+    {
+      Dwg_Entity_PROXY_ENTITY *proxy = obj->tio.entity->tio.PROXY_ENTITY;
+      if (!proxy->proxy_data)
+        {
+          proxy->proxy_data_size = ent->preview_size;
+          proxy->proxy_data = (BITCODE_RC *)malloc (ent->preview_size + 1);
+          if (proxy->proxy_data)
+            {
+              memcpy (proxy->proxy_data, ent->preview, ent->preview_size);
+              proxy->proxy_data[ent->preview_size] = '\0';
+            }
+        }
+    }
   return pair;
 }
 

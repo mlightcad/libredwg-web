@@ -6062,10 +6062,28 @@ DWG_ENTITY (PROXY_ENTITY)
   DXF_OR_PRINT {
     // preview 92/310 is also proxy data
     FIELD_BL (proxy_data_size, 92)
+    FIELD_TF (proxy_data, _obj->proxy_data_size, 310);
   } else {
     FIELD_VALUE (proxy_data_size) = _ent->preview_size;
+    DECODER {
+      /* DWG: graphics data was already read into _ent->preview */
+      if (_obj->proxy_data_size > 0 && _ent->preview)
+        {
+          _obj->proxy_data = (BITCODE_RC *)malloc (_obj->proxy_data_size + 1);
+          if (_obj->proxy_data)
+            {
+              memcpy (_obj->proxy_data, _ent->preview, _obj->proxy_data_size);
+              _obj->proxy_data[_obj->proxy_data_size] = '\0';
+            }
+          LOG_TRACE ("proxy_data: copied from preview [TF %u 310]\n",
+                     _obj->proxy_data_size);
+          LOG_TRACE_TF (_obj->proxy_data, (int)_obj->proxy_data_size);
+        }
+    }
+    ENCODER {
+      /* DWG: proxy graphics are written as preview in common_entity_data */
+    }
   }
-  FIELD_TF (proxy_data, _obj->proxy_data_size, 310);
 
   DECODER {
     _obj->data_numbits = (obj->hdlpos - bit_position (dat)) & 0xFFFFFFFF;

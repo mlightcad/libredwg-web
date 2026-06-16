@@ -55,24 +55,8 @@ import {
   Dwg_Object_VERTEX_2D_Ptr,
   Dwg_Object_VERTEX_3D_Ptr,
   Dwg_Object_VPORT_Ptr,
-  DwgProxyEntityDataResult,
-  DwgProxyGraphicsDataResult,
   Dwg_TABLE_Cell
 } from './types'
-import {
-  getLibreDwgDebugOptions,
-  hexPreview,
-  isLibreDwgDebugEnabled,
-  libreDwgDebugLog,
-  setLibreDwgDebugOptions,
-  type LibreDwgDebugOptions
-} from './debug'
-
-export {
-  getLibreDwgDebugOptions,
-  setLibreDwgDebugOptions,
-  type LibreDwgDebugOptions
-} from './debug'
 
 export { createModule }
 
@@ -91,20 +75,6 @@ export interface DwgThumbnail {
 
 export class LibreDwg {
   static instance: LibreDwgEx
-
-  /**
-   * Enable debug logging for troubleshooting conversion issues.
-   *
-   * @example
-   * LibreDwg.setDebug({ enabled: true, proxyEntity: true })
-   */
-  static setDebug(options: Partial<LibreDwgDebugOptions>): LibreDwgDebugOptions {
-    return setLibreDwgDebugOptions(options)
-  }
-
-  static getDebug(): Readonly<LibreDwgDebugOptions> {
-    return getLibreDwgDebugOptions()
-  }
 
   private wasmInstance!: MainModule
   private decoder?: TextDecoder
@@ -1235,89 +1205,14 @@ export class LibreDwg {
   dwg_entity_proxy_entity_get_graphics_data(
     ptr: Dwg_Entity_PROXY_ENTITY_Ptr
   ): Uint8Array | null {
-    const result = this.dwg_entity_proxy_entity_get_graphics_data_detail(ptr)
-    return (result.data as Uint8Array | null) ?? null
-  }
-
-  /**
-   * Returns detailed diagnostics for proxy entity graphics data lookup.
-   * Useful when {@link LibreDwg.setDebug} is enabled.
-   */
-  dwg_entity_proxy_entity_get_graphics_data_detail(
-    ptr: Dwg_Entity_PROXY_ENTITY_Ptr
-  ): DwgProxyGraphicsDataResult {
-    const wasm = this.wasmInstance as MainModule & {
-      dwg_entity_proxy_entity_get_graphics_data?: (
-        ptr: number
-      ) => DwgProxyGraphicsDataResult
-    }
+    const wasm = this.wasmInstance
     if (typeof wasm.dwg_entity_proxy_entity_get_graphics_data !== 'function') {
-      const staleWasm: DwgProxyGraphicsDataResult = {
-        success: false,
-        source: 'entity_tio',
-        message:
-          'WASM export dwg_entity_proxy_entity_get_graphics_data is missing. Rebuild wasm (npm run build:wasm && npm run copy).'
-      }
-      libreDwgDebugLog('proxyEntity', staleWasm.message ?? 'stale wasm', staleWasm)
-      return staleWasm
+      return null
     }
-    const result = wasm.dwg_entity_proxy_entity_get_graphics_data(
-      ptr
-    ) as DwgProxyGraphicsDataResult
-    if (isLibreDwgDebugEnabled('proxyEntity')) {
-      libreDwgDebugLog('proxyEntity', 'graphics data via entity_tio', {
-        ent_tio_ptr: ptr,
-        success: result.success,
-        size: result.size,
-        proxy_data_ptr: result.proxy_data_ptr,
-        empty_reason: result.empty_reason,
-        preview: hexPreview(result.data as Uint8Array | null)
-      })
+    const result = wasm.dwg_entity_proxy_entity_get_graphics_data(ptr) as {
+      data?: Uint8Array | null
     }
-    return result
-  }
-
-  /**
-   * Returns graphics data using Dwg_Object pointer (alternative lookup path).
-   */
-  dwg_entity_proxy_entity_get_graphics_data_from_object(
-    objectPtr: Dwg_Object_Ptr
-  ): DwgProxyGraphicsDataResult {
-    const wasm = this.wasmInstance as MainModule & {
-      dwg_entity_proxy_entity_get_graphics_data_from_object?: (
-        ptr: number
-      ) => DwgProxyGraphicsDataResult
-    }
-    if (
-      typeof wasm.dwg_entity_proxy_entity_get_graphics_data_from_object !==
-      'function'
-    ) {
-      const staleWasm: DwgProxyGraphicsDataResult = {
-        success: false,
-        source: 'object',
-        message:
-          'WASM export dwg_entity_proxy_entity_get_graphics_data_from_object is missing. Rebuild wasm (npm run build:wasm && npm run copy).'
-      }
-      libreDwgDebugLog('proxyEntity', staleWasm.message ?? 'stale wasm', staleWasm)
-      return staleWasm
-    }
-    const result = wasm.dwg_entity_proxy_entity_get_graphics_data_from_object(
-      objectPtr
-    ) as DwgProxyGraphicsDataResult
-    if (isLibreDwgDebugEnabled('proxyEntity')) {
-      libreDwgDebugLog('proxyEntity', 'graphics data via object', {
-        object_ptr: objectPtr,
-        entity_tio_from_object: result.entity_tio_from_object,
-        fixedtype: result.fixedtype,
-        type: result.type,
-        success: result.success,
-        size: result.size,
-        proxy_data_ptr: result.proxy_data_ptr,
-        empty_reason: result.empty_reason,
-        preview: hexPreview(result.data as Uint8Array | null)
-      })
-    }
-    return result
+    return (result?.data as Uint8Array | null) ?? null
   }
 
   /**
@@ -1329,46 +1224,14 @@ export class LibreDwg {
   dwg_entity_proxy_entity_get_entity_data(
     ptr: Dwg_Entity_PROXY_ENTITY_Ptr
   ): Uint8Array | null {
-    const result = this.dwg_entity_proxy_entity_get_entity_data_detail(ptr)
-    return (result.data as Uint8Array | null) ?? null
-  }
-
-  /**
-   * Returns detailed diagnostics for proxy entity binary data lookup.
-   */
-  dwg_entity_proxy_entity_get_entity_data_detail(
-    ptr: Dwg_Entity_PROXY_ENTITY_Ptr
-  ): DwgProxyEntityDataResult {
-    const wasm = this.wasmInstance as MainModule & {
-      dwg_entity_proxy_entity_get_entity_data?: (
-        ptr: number
-      ) => DwgProxyEntityDataResult
-    }
+    const wasm = this.wasmInstance
     if (typeof wasm.dwg_entity_proxy_entity_get_entity_data !== 'function') {
-      const staleWasm: DwgProxyEntityDataResult = {
-        success: false,
-        source: 'entity_tio',
-        message:
-          'WASM export dwg_entity_proxy_entity_get_entity_data is missing. Rebuild wasm (npm run build:wasm && npm run copy).'
-      }
-      libreDwgDebugLog('proxyEntity', staleWasm.message ?? 'stale wasm', staleWasm)
-      return staleWasm
+      return null
     }
-    const result = wasm.dwg_entity_proxy_entity_get_entity_data(
-      ptr
-    ) as DwgProxyEntityDataResult
-    if (isLibreDwgDebugEnabled('proxyEntity')) {
-      libreDwgDebugLog('proxyEntity', 'entity data via entity_tio', {
-        ent_tio_ptr: ptr,
-        success: result.success,
-        size: result.size,
-        numbits: result.numbits,
-        data_ptr: result.data_ptr,
-        empty_reason: result.empty_reason,
-        preview: hexPreview(result.data as Uint8Array | null)
-      })
+    const result = wasm.dwg_entity_proxy_entity_get_entity_data(ptr) as {
+      data?: Uint8Array | null
     }
-    return result
+    return (result?.data as Uint8Array | null) ?? null
   }
 
   /**

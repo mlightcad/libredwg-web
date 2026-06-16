@@ -178,101 +178,48 @@ emscripten::val dwg_entity_block_header_get_preview_wrapper(Dwg_Object_Object_Pt
   return result;
 }
 
-static void fill_proxy_graphics_result(emscripten::val &result,
-                                       Dwg_Entity_PROXY_ENTITY *proxy,
-                                       uintptr_t ent_tio_ptr) {
-  result.set("ent_tio_ptr", ent_tio_ptr);
+emscripten::val dwg_entity_proxy_entity_get_graphics_data_wrapper(uintptr_t ent_tio_ptr) {
+  Dwg_Entity_PROXY_ENTITY* proxy =
+      reinterpret_cast<Dwg_Entity_PROXY_ENTITY*>(ent_tio_ptr);
+  emscripten::val result = emscripten::val::object();
   if (!proxy) {
     result.set("success", false);
-    result.set("message", "Null PROXY_ENTITY pointer!");
-    return;
+    result.set("message", "Null pointer passed!");
+    return result;
   }
   result.set("success", true);
-  result.set("proxy_id", proxy->proxy_id);
-  result.set("class_id", proxy->class_id);
-  result.set("proxy_data_ptr", reinterpret_cast<uintptr_t>(proxy->proxy_data));
-  result.set("parent_ptr", reinterpret_cast<uintptr_t>(proxy->parent));
   result.set("size", proxy->proxy_data_size);
-  if (!proxy->proxy_data) {
-    result.set("empty_reason", std::string("proxy_data is null"));
+  if (!proxy->proxy_data || proxy->proxy_data_size <= 0) {
     result.set("data", emscripten::val::null());
-    return;
-  }
-  if (proxy->proxy_data_size <= 0) {
-    result.set("empty_reason", std::string("proxy_data_size is zero"));
-    result.set("data", emscripten::val::null());
-    return;
+    return result;
   }
   result.set("data",
              dwg_ptr_to_unsigned_char_array(proxy->proxy_data,
                                             proxy->proxy_data_size));
+  return result;
 }
 
-emscripten::val dwg_entity_proxy_entity_get_graphics_data_wrapper(uintptr_t ent_tio_ptr) {
-  emscripten::val result = emscripten::val::object();
+emscripten::val dwg_entity_proxy_entity_get_entity_data_wrapper(uintptr_t ent_tio_ptr) {
   Dwg_Entity_PROXY_ENTITY* proxy =
       reinterpret_cast<Dwg_Entity_PROXY_ENTITY*>(ent_tio_ptr);
-  result.set("source", std::string("entity_tio"));
-  fill_proxy_graphics_result(result, proxy, ent_tio_ptr);
-  return result;
-}
-
-emscripten::val dwg_entity_proxy_entity_get_graphics_data_from_object_wrapper(
-    Dwg_Object_Ptr obj_ptr) {
   emscripten::val result = emscripten::val::object();
-  Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
-  result.set("source", std::string("object"));
-  result.set("object_ptr", obj_ptr);
-  if (!obj) {
-    result.set("success", false);
-    result.set("message", "Null object pointer!");
-    return result;
-  }
-  result.set("fixedtype", obj->fixedtype);
-  result.set("type", obj->type);
-  Dwg_Entity_PROXY_ENTITY* proxy = dwg_object_to_PROXY_ENTITY(obj);
-  result.set("entity_tio_from_object", reinterpret_cast<uintptr_t>(proxy));
-  fill_proxy_graphics_result(result, proxy, reinterpret_cast<uintptr_t>(proxy));
-  return result;
-}
-
-static void fill_proxy_entity_data_result(emscripten::val &result,
-                                          Dwg_Entity_PROXY_ENTITY *proxy,
-                                          uintptr_t ent_tio_ptr) {
-  result.set("ent_tio_ptr", ent_tio_ptr);
   if (!proxy) {
     result.set("success", false);
-    result.set("message", "Null PROXY_ENTITY pointer!");
-    return;
+    result.set("message", "Null pointer passed!");
+    return result;
   }
   size_t size = proxy->data_size;
   if (size == 0 && proxy->data_numbits > 0) {
     size = (proxy->data_numbits + 7) / 8;
   }
   result.set("success", true);
-  result.set("data_ptr", reinterpret_cast<uintptr_t>(proxy->data));
-  result.set("data_size", proxy->data_size);
   result.set("size", static_cast<BITCODE_BL>(size));
   result.set("numbits", proxy->data_numbits);
-  if (!proxy->data) {
-    result.set("empty_reason", std::string("data is null"));
+  if (!proxy->data || size == 0) {
     result.set("data", emscripten::val::null());
-    return;
-  }
-  if (size == 0) {
-    result.set("empty_reason", std::string("computed entity data size is zero"));
-    result.set("data", emscripten::val::null());
-    return;
+    return result;
   }
   result.set("data", dwg_ptr_to_unsigned_char_array(proxy->data, size));
-}
-
-emscripten::val dwg_entity_proxy_entity_get_entity_data_wrapper(uintptr_t ent_tio_ptr) {
-  emscripten::val result = emscripten::val::object();
-  Dwg_Entity_PROXY_ENTITY* proxy =
-      reinterpret_cast<Dwg_Entity_PROXY_ENTITY*>(ent_tio_ptr);
-  result.set("source", std::string("entity_tio"));
-  fill_proxy_entity_data_result(result, proxy, ent_tio_ptr);
   return result;
 }
 
@@ -478,7 +425,6 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_entity) {
   DEFINE_FUNC(dwg_entity_polyline_3d_get_vertices);
   DEFINE_FUNC(dwg_entity_block_header_get_preview);
   DEFINE_FUNC(dwg_entity_proxy_entity_get_graphics_data);
-  DEFINE_FUNC(dwg_entity_proxy_entity_get_graphics_data_from_object);
   DEFINE_FUNC(dwg_entity_proxy_entity_get_entity_data);
   DEFINE_FUNC(dwg_entity_insert_get_attribs);
 }

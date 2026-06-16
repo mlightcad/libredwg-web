@@ -327,37 +327,6 @@ export interface Dwg_Field_Value {
   bin?: Uint8Array
 }
 
-export interface DwgProxyGraphicsDataResult {
-  success: boolean
-  message?: string
-  source?: string
-  size?: number
-  data?: Uint8Array | null
-  ent_tio_ptr?: number
-  proxy_data_ptr?: number
-  parent_ptr?: number
-  proxy_id?: number
-  class_id?: number
-  empty_reason?: string
-  object_ptr?: number
-  fixedtype?: number
-  type?: number
-  entity_tio_from_object?: number
-}
-
-export interface DwgProxyEntityDataResult {
-  success: boolean
-  message?: string
-  source?: string
-  size?: number
-  numbits?: number
-  data_size?: number
-  data_ptr?: number
-  data?: Uint8Array | null
-  ent_tio_ptr?: number
-  empty_reason?: string
-}
-
 /**
  * This interface represents string returned by libredwg.
  *

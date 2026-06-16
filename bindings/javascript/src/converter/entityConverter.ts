@@ -73,11 +73,6 @@ import {
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
 import {
-  hexPreview,
-  isLibreDwgDebugEnabled,
-  libreDwgDebugLog
-} from '../debug'
-import {
   Dwg_Color,
   Dwg_Hatch_Edge_Type,
   Dwg_HATCH_Path,
@@ -204,7 +199,7 @@ export class LibreEntityConverter {
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_3D) {
         return this.convertPolyline3d(entity_tio, commonAttrs, object_ptr)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_PROXY_ENTITY) {
-        return this.convertProxyEntity(entity_tio, commonAttrs, object_ptr)
+        return this.convertProxyEntity(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_RAY) {
         return this.convertRay(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SECTIONOBJECT) {
@@ -1589,8 +1584,7 @@ export class LibreEntityConverter {
 
   private convertProxyEntity(
     entity: Dwg_Entity_PROXY_ENTITY_Ptr,
-    commonAttrs: DwgCommonAttributes,
-    objectPtr: Dwg_Object_Ptr
+    commonAttrs: DwgCommonAttributes
   ): DwgProxyEntity {
     const libredwg = this.libredwg
     const proxyEntityClassId = libredwg.dwg_dynapi_entity_value(
@@ -1618,65 +1612,10 @@ export class LibreEntityConverter {
     const numObjIds = libredwg.dwg_dynapi_entity_value(entity, 'num_objids')
       .data as number
 
-    const graphicsFromTio =
-      libredwg.dwg_entity_proxy_entity_get_graphics_data_detail(entity)
-    const graphicsFromObject =
-      libredwg.dwg_entity_proxy_entity_get_graphics_data_from_object(objectPtr)
-    const graphicsResult =
-      graphicsFromTio.data && graphicsFromTio.data.length > 0
-        ? graphicsFromTio
-        : graphicsFromObject
-    const entityResult =
-      libredwg.dwg_entity_proxy_entity_get_entity_data_detail(entity)
-
-    if (isLibreDwgDebugEnabled('proxyEntity')) {
-      const dynapiProxyData = libredwg.dwg_dynapi_entity_value(
-        entity,
-        'proxy_data'
-      )
-      libreDwgDebugLog('proxyEntity', 'convertProxyEntity summary', {
-        handle: commonAttrs.handle,
-        objectPtr,
-        entityTioPtr: entity,
-        proxyEntityClassId,
-        applicationEntityClassId,
-        graphicsDataSize_dynapi: graphicsDataSize,
-        entityDataSize_dynapi_bits: entityDataSize,
-        dynapi_proxy_data: {
-          success: dynapiProxyData.success,
-          dataType: typeof dynapiProxyData.data,
-          data: dynapiProxyData.data,
-          binLength: dynapiProxyData.bin?.length
-        },
-        graphicsFromTio: {
-          success: graphicsFromTio.success,
-          size: graphicsFromTio.size,
-          proxy_data_ptr: graphicsFromTio.proxy_data_ptr,
-          empty_reason: graphicsFromTio.empty_reason,
-          preview: hexPreview(graphicsFromTio.data as Uint8Array | null)
-        },
-        graphicsFromObject: {
-          success: graphicsFromObject.success,
-          size: graphicsFromObject.size,
-          entity_tio_from_object: graphicsFromObject.entity_tio_from_object,
-          proxy_data_ptr: graphicsFromObject.proxy_data_ptr,
-          empty_reason: graphicsFromObject.empty_reason,
-          preview: hexPreview(graphicsFromObject.data as Uint8Array | null)
-        },
-        entityData: {
-          success: entityResult.success,
-          size: entityResult.size,
-          numbits: entityResult.numbits,
-          data_ptr: entityResult.data_ptr,
-          empty_reason: entityResult.empty_reason,
-          preview: hexPreview(entityResult.data as Uint8Array | null)
-        },
-        chosenGraphicsSource: graphicsResult.source
-      })
-    }
-
-    const graphicsBytes = graphicsResult.data as Uint8Array | null
-    const entityBytes = entityResult.data as Uint8Array | null
+    const graphicsBytes =
+      libredwg.dwg_entity_proxy_entity_get_graphics_data(entity)
+    const entityBytes =
+      libredwg.dwg_entity_proxy_entity_get_entity_data(entity)
     const graphicsData = graphicsBytes
       ? uint8ArrayToHexString(graphicsBytes)
       : undefined
