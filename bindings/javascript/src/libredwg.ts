@@ -1197,19 +1197,15 @@ export class LibreDwg {
   }
 
   /**
-   * Returns graphics (proxy) binary data of one Dwg_Entity_PROXY_ENTITY instance.
-   * @group Dwg_Entity_PROXY_ENTITY Methods
-   * @param ptr Pointer to one Dwg_Entity_PROXY_ENTITY instance.
-   * @returns Graphics data bytes, or null when absent.
+   * Returns preview binary data of one entity (common entity preview field).
+   * For PROXY_ENTITY this contains the proxy graphics data.
    */
-  dwg_entity_proxy_entity_get_graphics_data(
-    ptr: Dwg_Entity_PROXY_ENTITY_Ptr
-  ): Uint8Array | null {
+  dwg_entity_get_preview(ptr: Dwg_Object_Ptr): Uint8Array | null {
     const wasm = this.wasmInstance
-    if (typeof wasm.dwg_entity_proxy_entity_get_graphics_data !== 'function') {
+    if (typeof wasm.dwg_entity_get_preview !== 'function') {
       return null
     }
-    const result = wasm.dwg_entity_proxy_entity_get_graphics_data(ptr) as {
+    const result = wasm.dwg_entity_get_preview(ptr) as {
       data?: Uint8Array | null
     }
     return (result?.data as Uint8Array | null) ?? null

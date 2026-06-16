@@ -199,7 +199,7 @@ export class LibreEntityConverter {
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_POLYLINE_3D) {
         return this.convertPolyline3d(entity_tio, commonAttrs, object_ptr)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_PROXY_ENTITY) {
-        return this.convertProxyEntity(entity_tio, commonAttrs)
+        return this.convertProxyEntity(entity_tio, commonAttrs, object_ptr)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_RAY) {
         return this.convertRay(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SECTIONOBJECT) {
@@ -1584,7 +1584,8 @@ export class LibreEntityConverter {
 
   private convertProxyEntity(
     entity: Dwg_Entity_PROXY_ENTITY_Ptr,
-    commonAttrs: DwgCommonAttributes
+    commonAttrs: DwgCommonAttributes,
+    objectPtr: Dwg_Object_Ptr
   ): DwgProxyEntity {
     const libredwg = this.libredwg
     const proxyEntityClassId = libredwg.dwg_dynapi_entity_value(
@@ -1594,10 +1595,6 @@ export class LibreEntityConverter {
     const applicationEntityClassId = libredwg.dwg_dynapi_entity_value(
       entity,
       'class_id'
-    ).data as number
-    const graphicsDataSize = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'proxy_data_size'
     ).data as number
     const entityDataSize = libredwg.dwg_dynapi_entity_value(
       entity,
@@ -1612,8 +1609,8 @@ export class LibreEntityConverter {
     const numObjIds = libredwg.dwg_dynapi_entity_value(entity, 'num_objids')
       .data as number
 
-    const graphicsBytes =
-      libredwg.dwg_entity_proxy_entity_get_graphics_data(entity)
+    const graphicsBytes = libredwg.dwg_entity_get_preview(objectPtr)
+    const graphicsDataSize = graphicsBytes?.length ?? 0
     const entityBytes =
       libredwg.dwg_entity_proxy_entity_get_entity_data(entity)
     const graphicsData = graphicsBytes
