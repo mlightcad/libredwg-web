@@ -23,7 +23,7 @@ import {
   DwgVPortTableEntry,
   HEADER_VARIABLES
 } from '../database'
-import { LibreDwgEx } from '../libredwg'
+import { LibreDwgWasm } from '../libredwg-core'
 import {
   Dwg_Array_Ptr,
   Dwg_Color,
@@ -43,10 +43,10 @@ import { idToString, isModelSpace, isPaperSpace } from './utils'
  * Class used to convert Dwg_Data instance to DwgDatabase instance.
  */
 export class LibreDwgConverter {
-  private libredwg: LibreDwgEx
+  private libredwg: LibreDwgWasm
   private entityConverter: LibreEntityConverter
 
-  constructor(instance: LibreDwgEx) {
+  constructor(instance: LibreDwgWasm) {
     this.libredwg = instance
     this.entityConverter = new LibreEntityConverter(instance)
   }
@@ -951,7 +951,7 @@ export class LibreDwgConverter {
   }
 
   private getCommonTableEntryAttrs(
-    tio: number,
+    tio: Dwg_Object_Object_TIO_Ptr,
     obj: Dwg_Object_Ptr
   ): DwgCommonTableEntry {
     const libredwg = this.libredwg

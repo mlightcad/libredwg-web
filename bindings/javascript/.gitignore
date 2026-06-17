@@ -10,9 +10,10 @@ tmp
 node_modules
 
 # web assembly files
-src/libredwg-web.js
 examples/wasm
+examples/wasm64
 examples/dist
+examples/vendor
 
 # IDEs and editors
 /.idea

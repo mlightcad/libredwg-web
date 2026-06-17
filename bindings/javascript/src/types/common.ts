@@ -1,34 +1,36 @@
 import { DwgPoint2D, DwgPoint2DWithWeight, DwgPoint3D } from '../database'
 import { Dwg_Color_Method } from './enums'
 
-export type Dwg_Array_Ptr = number
-export type Dwg_Data_Ptr = number
-export type Dwg_Object_Ptr = number
-export type Dwg_Object_Ref_Ptr = number
-export type Dwg_Object_Object_Ptr = number
-export type Dwg_Object_Entity_Ptr = number
-export type Dwg_Object_Generic_Ptr = number
-export type Dwg_Object_Object_TIO_Ptr = number
-export type Dwg_Object_Entity_TIO_Ptr = number
+export type WasmPtr = number | bigint
 
-export type Dwg_Object_LAYER_Ptr = number
-export type Dwg_Object_LTYPE_Ptr = number
-export type Dwg_Object_STYLE_Ptr = number
-export type Dwg_Object_DIMSTYLE_Ptr = number
-export type Dwg_Object_VPORT_Ptr = number
-export type Dwg_Object_BLOCK_Ptr = number
-export type Dwg_Object_BLOCK_HEADER_Ptr = number
-export type Dwg_Object_IMAGEDEF_Ptr = number
-export type Dwg_Object_VERTEX_2D_Ptr = number
-export type Dwg_Object_VERTEX_3D_Ptr = number
+export type Dwg_Array_Ptr = WasmPtr
+export type Dwg_Data_Ptr = WasmPtr
+export type Dwg_Object_Ptr = WasmPtr
+export type Dwg_Object_Ref_Ptr = WasmPtr
+export type Dwg_Object_Object_Ptr = WasmPtr
+export type Dwg_Object_Entity_Ptr = WasmPtr
+export type Dwg_Object_Generic_Ptr = WasmPtr
+export type Dwg_Object_Object_TIO_Ptr = WasmPtr
+export type Dwg_Object_Entity_TIO_Ptr = WasmPtr
 
-export type Dwg_Entity_POLYLINE_2D_Ptr = number
-export type Dwg_Entity_POLYLINE_3D_Ptr = number
-export type Dwg_Entity_IMAGE_Ptr = number
-export type Dwg_Entity_LWPOLYLINE_Ptr = number
-export type Dwg_Entity_MTEXT_Ptr = number
-export type Dwg_Entity_TEXT_Ptr = number
-export type Dwg_Entity_PROXY_ENTITY_Ptr = number
+export type Dwg_Object_LAYER_Ptr = WasmPtr
+export type Dwg_Object_LTYPE_Ptr = WasmPtr
+export type Dwg_Object_STYLE_Ptr = WasmPtr
+export type Dwg_Object_DIMSTYLE_Ptr = WasmPtr
+export type Dwg_Object_VPORT_Ptr = WasmPtr
+export type Dwg_Object_BLOCK_Ptr = WasmPtr
+export type Dwg_Object_BLOCK_HEADER_Ptr = WasmPtr
+export type Dwg_Object_IMAGEDEF_Ptr = WasmPtr
+export type Dwg_Object_VERTEX_2D_Ptr = WasmPtr
+export type Dwg_Object_VERTEX_3D_Ptr = WasmPtr
+
+export type Dwg_Entity_POLYLINE_2D_Ptr = WasmPtr
+export type Dwg_Entity_POLYLINE_3D_Ptr = WasmPtr
+export type Dwg_Entity_IMAGE_Ptr = WasmPtr
+export type Dwg_Entity_LWPOLYLINE_Ptr = WasmPtr
+export type Dwg_Entity_MTEXT_Ptr = WasmPtr
+export type Dwg_Entity_TEXT_Ptr = WasmPtr
+export type Dwg_Entity_PROXY_ENTITY_Ptr = WasmPtr
 
 export interface Dwg_Handle {
   code: number

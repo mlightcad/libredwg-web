@@ -71,7 +71,7 @@ import {
   DwgWipeoutEntity,
   DwgXlineEntity
 } from '../database'
-import { LibreDwgEx } from '../libredwg'
+import { LibreDwgWasm } from '../libredwg-core'
 import {
   Dwg_Color,
   Dwg_Entity_PROXY_ENTITY_Ptr,
@@ -95,13 +95,13 @@ type DwgDimensionCommonAttributes = Omit<
 >
 
 export class LibreEntityConverter {
-  libredwg: LibreDwgEx
+  libredwg: LibreDwgWasm
   layers: Map<string, string> = new Map()
   ltypes: Map<string, string> = new Map()
   classes: DwgClassLookup[] = []
   unknownEntityCount: number
 
-  constructor(instance: LibreDwgEx) {
+  constructor(instance: LibreDwgWasm) {
     this.libredwg = instance
     this.unknownEntityCount = 0
   }
@@ -1775,7 +1775,7 @@ export class LibreEntityConverter {
       vertices: vertices,
       numberOfBackLineVertices: numberOfBackLineVertices,
       backLineVertices: backLineVertices,
-      geometrySettingHardId: geometrySettingHardId
+      geometrySettingHardId: idToString(geometrySettingHardId)
     }
   }
 
@@ -2011,10 +2011,12 @@ export class LibreEntityConverter {
         overrideFlag: cell.cell_flag_override,
         virtualEdgeFlag: cell.virtual_edge_flag,
         // fieldObjetId?: string
-        blockTableRecordI: cell.block_handle.absolute_ref,
+        blockTableRecordI: idToString(cell.block_handle.absolute_ref),
         blockScale: cell.block_scale,
         blockAttrNum: cell.attr_defs.length,
-        attrDefineId: cell.attr_defs.map(value => value.attdef.absolute_ref),
+        attrDefineId: cell.attr_defs.map(value =>
+          idToString(value.attdef.absolute_ref)
+        ),
         // attrText?: string
         // textHeight: number
         extendedCellFlags: cell.additional_data_flag

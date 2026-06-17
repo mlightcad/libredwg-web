@@ -57,5 +57,5 @@ export interface DwgSectionEntity extends DwgEntity {
   /**
    * Hard-pointer ID/handle to geometry settings object
    */
-  geometrySettingHardId: bigint
+  geometrySettingHardId: string
 }
