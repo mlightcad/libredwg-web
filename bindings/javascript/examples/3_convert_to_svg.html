@@ -12,12 +12,14 @@
     <button id="download-svg-btn" disabled>Download SVG</button>
     <br><br>
     <div id="svg-container"></div>
-    <script type="module" src="dist/libredwg-web.js" defer></script>
     <script type="module" >
-      import { Dwg_File_Type, LibreDwg } from './dist/libredwg-web.js'
+      import { mountWasmSettings } from './wasm-settings.js'
+      import { createLibreDwg, loadLibredwgModule } from './libredwg-loader.js'
 
-      // load libredwg webassembly module
-      const libredwg = await LibreDwg.create()
+      await mountWasmSettings()
+
+      const { Dwg_File_Type } = await loadLibredwgModule()
+      const libredwg = await createLibreDwg()
 
       document.getElementById('download-svg-btn').addEventListener('click', () => {
         const svg = document.querySelector('#svg-container svg');

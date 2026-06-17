@@ -36,7 +36,7 @@ export default [
   jsLint.configs.recommended,
   ...tsLint.configs.recommended,
   {
-    ignores: ['node_modules', 'dist', 'public', 'src/libredwg-web.js']
+    ignores: ['node_modules', 'dist', 'public']
   },
   eslintConfigPrettier,
   {

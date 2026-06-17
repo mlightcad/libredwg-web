@@ -4,16 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dwg Database JSON Viewer</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsoneditor@10.2.0/dist/jsoneditor.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/jsoneditor@10.2.0/dist/jsoneditor.min.css" rel="stylesheet">
     <style>
       #dwgInfo:empty {
         height: 10px;
       }
-    
+
       #dwgInfo {
         margin-top: 10px;
         margin-bottom: 10px;
+      }
+
+      #viewerControls {
+        display: none;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      #viewerControls.visible {
+        display: flex;
+      }
+
+      #viewerControls label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      #entityPaging {
+        display: none;
+        gap: 8px;
+        align-items: center;
+      }
+
+      #entityPaging.visible {
+        display: inline-flex;
+      }
+
+      #status {
+        color: #555;
+        font-size: 0.9rem;
+      }
+
+      #jsonViewerHost {
+        display: block;
+        max-height: 70vh;
+        overflow: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 8px;
+      }
+
+      andypf-json-viewer {
+        display: block;
       }
     </style>
 </head>
@@ -21,58 +65,290 @@
     <h1>Dwg Database JSON Viewer</h1>
     <input type="file" id="fileInput" accept=".dwg" />
     <div id="dwgInfo"></div>
-    <div id="jsonEditor"></div>
-    <script type="module" src="dist/libredwg-web.js" defer></script>
+    <div id="viewerControls">
+      <label>
+        View
+        <select id="viewMode">
+          <option value="summary">Summary (fast)</option>
+          <option value="section">Section</option>
+          <option value="full">Full tree</option>
+        </select>
+      </label>
+      <label id="sectionPicker" style="display: none;">
+        Section
+        <select id="viewSection">
+          <option value="header">header</option>
+          <option value="tables">tables</option>
+          <option value="objects">objects</option>
+          <option value="classes">classes</option>
+          <option value="entities">entities</option>
+        </select>
+      </label>
+      <span id="entityPaging">
+        <button type="button" id="entityPrev">Prev</button>
+        <span id="entityPageInfo"></span>
+        <button type="button" id="entityNext">Next</button>
+        <label>
+          Page size
+          <select id="entityPageSize">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="250">250</option>
+          </select>
+        </label>
+      </span>
+      <span id="status"></span>
+    </div>
+    <div id="jsonViewerHost">
+      <andypf-json-viewer id="jsonViewer"></andypf-json-viewer>
+    </div>
     <script type="module" >
-      import { Dwg_File_Type, DwgCodePage, LibreDwg } from './dist/libredwg-web.js'
+      import './vendor/andypf-json-viewer.js'
+      import { mountWasmSettings } from './wasm-settings.js'
+      import { createLibreDwg, loadLibredwgModule } from './libredwg-loader.js'
 
-      // load libredwg webassembly module
-      const libredwg = await LibreDwg.create()
+      await mountWasmSettings()
 
-      const printDwgInfo = (version, codepage, stats) => {
-        const infoElement = document.getElementById('dwgInfo')
+      const { Dwg_File_Type, DwgCodePage } = await loadLibredwgModule()
+      const libredwg = await createLibreDwg()
+
+      const LARGE_ENTITY_THRESHOLD = 500
+      const DEFAULT_ENTITY_PAGE_SIZE = 50
+
+      let database = null
+      let entityPage = 0
+      let entityPageSize = DEFAULT_ENTITY_PAGE_SIZE
+
+      const infoElement = document.getElementById('dwgInfo')
+      const controlsElement = document.getElementById('viewerControls')
+      const statusElement = document.getElementById('status')
+      const viewModeSelect = document.getElementById('viewMode')
+      const viewSectionSelect = document.getElementById('viewSection')
+      const sectionPicker = document.getElementById('sectionPicker')
+      const entityPaging = document.getElementById('entityPaging')
+      const entityPageInfo = document.getElementById('entityPageInfo')
+      const entityPageSizeSelect = document.getElementById('entityPageSize')
+      const jsonViewer = document.getElementById('jsonViewer')
+
+      jsonViewer.expanded = 1
+      jsonViewer.indent = 2
+      jsonViewer.theme = 'default-light'
+      jsonViewer.showToolbar = true
+      jsonViewer.showDataTypes = true
+      jsonViewer.showCopy = true
+      jsonViewer.showSize = true
+      jsonViewer.expandIconType = 'arrow'
+
+      const printDwgInfo = (version, codepage, stats, entityCount) => {
         infoElement.innerHTML = ''
-        infoElement.textContent = `Version: ${version.hdr}, Code Page: ${DwgCodePage[codepage]}, Unknown Entities: ${stats.unknownEntityCount}`
+        infoElement.textContent =
+          `Version: ${version.hdr}, Code Page: ${DwgCodePage[codepage]}, ` +
+          `Entities: ${entityCount}, Unknown Entities: ${stats.unknownEntityCount}`
       }
 
-      // create the editor
-      const container = document.getElementById('jsonEditor')
-      const options = {
-        mode: 'view'
+      const setStatus = (message) => {
+        statusElement.textContent = message
       }
-      const editor = new JSONEditor(container, options)
-    
-      // handle file input change event
+
+      const toJsonSafe = (value) => {
+        if (typeof value === 'bigint') {
+          return value.toString(16).toUpperCase()
+        }
+        if (Array.isArray(value)) {
+          return value.map(toJsonSafe)
+        }
+        if (value && typeof value === 'object') {
+          const out = {}
+          for (const [key, item] of Object.entries(value)) {
+            out[key] = toJsonSafe(item)
+          }
+          return out
+        }
+        return value
+      }
+
+      const countTableEntries = (tables) => {
+        const counts = {}
+        for (const [name, table] of Object.entries(tables)) {
+          counts[name] = table?.entries?.length ?? 0
+        }
+        return counts
+      }
+
+      const countObjects = (objects) => {
+        const counts = {}
+        for (const [name, items] of Object.entries(objects)) {
+          counts[name] = Array.isArray(items) ? items.length : 0
+        }
+        return counts
+      }
+
+      const summarizeEntities = (entities) => {
+        const byType = {}
+        for (const entity of entities) {
+          const type = entity?.type ?? 'unknown'
+          byType[type] = (byType[type] ?? 0) + 1
+        }
+        return {
+          total: entities.length,
+          byType
+        }
+      }
+
+      const buildSummary = (db) => ({
+        header: db.header,
+        tables: {
+          entryCounts: countTableEntries(db.tables)
+        },
+        objects: {
+          entryCounts: countObjects(db.objects)
+        },
+        classes: {
+          total: db.classes.length,
+          items: db.classes
+        },
+        entities: summarizeEntities(db.entities),
+        _note:
+          'Summary mode avoids rendering all entities at once. ' +
+          'Use Section > entities with paging, or Full tree to browse everything.'
+      })
+
+      const buildSectionPayload = (db, section) => {
+        if (section === 'entities') {
+          const total = db.entities.length
+          const totalPages = Math.max(1, Math.ceil(total / entityPageSize))
+          if (entityPage >= totalPages) {
+            entityPage = totalPages - 1
+          }
+          const start = entityPage * entityPageSize
+          const end = Math.min(start + entityPageSize, total)
+          entityPageInfo.textContent =
+            `${start + 1}-${end} of ${total} (page ${entityPage + 1}/${totalPages})`
+          document.getElementById('entityPrev').disabled = entityPage <= 0
+          document.getElementById('entityNext').disabled = entityPage >= totalPages - 1
+          return {
+            entities: db.entities.slice(start, end),
+            _paging: { start, end, total, page: entityPage + 1, totalPages }
+          }
+        }
+        return { [section]: db[section] }
+      }
+
+      const buildViewerPayload = () => {
+        const mode = viewModeSelect.value
+        if (!database) {
+          return {}
+        }
+        if (mode === 'summary') {
+          return buildSummary(database)
+        }
+        if (mode === 'section') {
+          return buildSectionPayload(database, viewSectionSelect.value)
+        }
+        return database
+      }
+
+      const updateControlsVisibility = () => {
+        const mode = viewModeSelect.value
+        sectionPicker.style.display = mode === 'section' ? 'inline-flex' : 'none'
+        const showEntityPaging =
+          mode === 'section' && viewSectionSelect.value === 'entities'
+        entityPaging.classList.toggle('visible', showEntityPaging)
+      }
+
+      let renderQueued = false
+      const scheduleRender = () => {
+        if (renderQueued) {
+          return
+        }
+        renderQueued = true
+        requestAnimationFrame(() => {
+          renderQueued = false
+          const started = performance.now()
+          setStatus('Rendering...')
+          jsonViewer.data = toJsonSafe(buildViewerPayload())
+          const elapsed = Math.round(performance.now() - started)
+          setStatus(`Rendered in ${elapsed} ms`)
+        })
+      }
+
+      viewModeSelect.addEventListener('change', () => {
+        updateControlsVisibility()
+        scheduleRender()
+      })
+      viewSectionSelect.addEventListener('change', () => {
+        entityPage = 0
+        updateControlsVisibility()
+        scheduleRender()
+      })
+      entityPageSizeSelect.addEventListener('change', () => {
+        entityPageSize = Number(entityPageSizeSelect.value)
+        entityPage = 0
+        scheduleRender()
+      })
+      document.getElementById('entityPrev').addEventListener('click', () => {
+        entityPage = Math.max(0, entityPage - 1)
+        scheduleRender()
+      })
+      document.getElementById('entityNext').addEventListener('click', () => {
+        entityPage += 1
+        scheduleRender()
+      })
+
       const fileInput = document.getElementById('fileInput')
       fileInput.addEventListener('change', function(event) {
         const file = event.target.files[0]
-        if (file) {
-          // create a FileReader to read the file
-          const reader = new FileReader()
-
-          // define the callback function for when the file is read
-          reader.onload = function(e) {
-            const fileContent = e.target.result
-            try {
-              const dwg = libredwg.dwg_read_data(fileContent, Dwg_File_Type.DWG)
-              const version = libredwg.dwg_get_version_type(dwg)
-              const codepage = libredwg.dwg_get_codepage(dwg)
-              const result = libredwg.convertEx(dwg)
-              printDwgInfo(version, codepage, result.stats)
-              editor.set(result.database)
-              libredwg.dwg_free(dwg)
-            } catch (error) {
-              console.error('Failed to process dwg file: ', error)
-              const infoElement = document.getElementById('dwgInfo')
-              infoElement.textContent = error instanceof Error ? error.message : String(error)
-            }
-          }
-
-          // read the file
-          reader.readAsArrayBuffer(file)
-        } else {
+        if (!file) {
           console.log('No file selected')
+          return
         }
+
+        database = null
+        entityPage = 0
+        controlsElement.classList.remove('visible')
+        setStatus('Reading file...')
+        jsonViewer.data = {}
+
+        const reader = new FileReader()
+        reader.onload = function(e) {
+          const fileContent = e.target.result
+          try {
+            const convertStarted = performance.now()
+            setStatus('Parsing DWG...')
+
+            const dwg = libredwg.dwg_read_data(fileContent, Dwg_File_Type.DWG)
+            const version = libredwg.dwg_get_version_type(dwg)
+            const codepage = libredwg.dwg_get_codepage(dwg)
+
+            setStatus('Converting to database...')
+            const result = libredwg.convertEx(dwg)
+            libredwg.dwg_free(dwg)
+
+            database = result.database
+            const entityCount = database.entities.length
+            const convertElapsed = Math.round(performance.now() - convertStarted)
+
+            printDwgInfo(version, codepage, result.stats, entityCount)
+            controlsElement.classList.add('visible')
+
+            if (entityCount > LARGE_ENTITY_THRESHOLD) {
+              viewModeSelect.value = 'summary'
+            } else {
+              viewModeSelect.value = 'section'
+              viewSectionSelect.value = 'header'
+            }
+            updateControlsVisibility()
+            scheduleRender()
+            setStatus(`Converted in ${convertElapsed} ms`)
+          } catch (error) {
+            console.error('Failed to process dwg file: ', error)
+            infoElement.textContent =
+              error instanceof Error ? error.message : String(error)
+            setStatus('')
+          }
+        }
+        reader.readAsArrayBuffer(file)
       })
     </script>
 </body>

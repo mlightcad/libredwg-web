@@ -1,7 +1,7 @@
-import { createModule } from './dist/libredwg-web.js'
+import { createRawModule } from './libredwg-loader.js'
 
 // load libredwg webassembly module
-export const libredwg = await createModule()
+export const libredwg = await createRawModule()
 
 export const Dwg_Object_Type = Object.freeze({
   DWG_TYPE_UNUSED: 0x00,

@@ -34,21 +34,24 @@ cd bindings/javascript
 # Install npm dependencies to build JavaScript bindings for libredwg
 pnpm install
 
-# Check for dependencies, available tools, and system configurations and prepare the software package for building libredwg on a specific system
-pnpm build:prepare
-
-# Compile and build libredwg
-pnpm build:obj
-
-# Use emscripten to build web assembly for libredwg
-pnpm build:wasm
-
-# Copy web assembly (wasm file and JavaScript glue code file) from build directory to distribution directory of this package
-pnpm copy
-
-# Build web assembly wrapper so that it is easier to use it
-pnpm build
+# One-shot: build wasm32 + wasm64 and both JavaScript bundles
+pnpm build:all
 ```
+
+Script naming: `:32` = wasm32 only, `:64` = wasm64 only, no suffix = both.
+For example, `pnpm build:wasm` runs `build:wasm:32` and `build:wasm:64`.
+
+To build **wasm32 only** step by step:
+
+```bash
+pnpm build:prepare:32
+pnpm build:obj:32
+pnpm build:wasm:32
+pnpm copy:32
+pnpm build:32
+```
+
+Or in one command: `pnpm build:all:32`
 
 In order to reduce the size of wasm file, the following functionalities are not included by default when building web assembly.
 
@@ -56,11 +59,25 @@ In order to reduce the size of wasm file, the following functionalities are not 
 - read/write dxf file
 - import/export json file
 
-If you want those functionalities, just modify command `build:prepare` defined in [package.json](./package.json) and remove the following options.
+If you want those functionalities, just modify command `build:prepare:32` defined in [package.json](./package.json) and remove the following options.
 
 - disable-write
 - disable-json
 - disable-dxf
+
+### Memory64 build (large DWG files, experimental)
+
+Standard wasm32 is limited to 4 GB address space. For very large drawings
+that need more memory while decoding, build the Memory64 variant and use the
+`@mlightcad/libredwg-web/memory64` entry point (requires a browser with
+[WASM Memory64](https://github.com/WebAssembly/memory64) support, e.g. Chrome 133+).
+
+```bash
+# wasm64 only (requires build:prepare:32 / build-wasm to exist first):
+pnpm build:all:64
+```
+
+Both wasm32 and wasm64: `pnpm build:all`
 
 ## Usage
 
@@ -114,6 +131,21 @@ const db = this.libredwg.convert(dwg);
 this.libredwg.dwg_free(db);
 ```
 
+### Memory64 entry (large files)
+
+Same API as above, but loads the 64-bit wasm module from `wasm64/`:
+
+```typescript
+import { Dwg_File_Type, LibreDwg } from '@mlightcad/libredwg-web/memory64'
+
+const libredwg = await LibreDwg.create(
+  './node_modules/@mlightcad/libredwg-web/wasm64/'
+)
+const dwg = libredwg.dwg_read_data(fileContent, Dwg_File_Type.DWG)
+const db = libredwg.convert(dwg)
+libredwg.dwg_free(dwg)
+```
+
 ### Usage with node.js
 
 ```typescript
@@ -146,3 +178,5 @@ One demo app is provided in folder [examples](./examples/). You can run the foll
 ```javascript
 pnpm demo
 ```
+
+Use the **WASM mode** dropdown on the index page (or each example) to switch between 32-bit (`wasm/`) and 64-bit Memory64 (`wasm64/`). The choice is stored in `localStorage` and passed via `?wasm=32` or `?wasm=64` in the URL.

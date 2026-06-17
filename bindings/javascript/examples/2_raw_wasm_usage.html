@@ -50,7 +50,10 @@
     <ul id="entityInfoList"></ul>
     <ul id="vertexList"></ul>
 
-    <script type="module" src="dist/libredwg-web.js" defer></script>
+    <script type="module">
+      import { mountWasmSettings } from './wasm-settings.js'
+      await mountWasmSettings()
+    </script>
     <script type="module" src="utils.js"></script>
     <script type="module" src="main.js"></script>
 </body>

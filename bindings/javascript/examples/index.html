@@ -8,11 +8,21 @@
 <body>
     <h1>Examples</h1>
     <ol>
-      <li><a href="1_dwg_json_viewer.html" target="_blank">Dwg Database Json Viewer</a></li>
-      <li><a href="2_raw_wasm_usage.html" target="_blank">Raw Liredwg-Web WebAssembly API Usage</a></li>
-      <li><a href="3_convert_to_svg.html" target="_blank">Convert Dwg to SVG</a></li>
-      <li><a href="4_extract_dwg_thumbnail.html" target="_blank">Extract Thumbnail Image from Dwg file</a></li>
-      <li><a href="5_convert_to_dxf.html" target="_blank">Convert Dwg to DXF</a></li>
+      <li><a href="1_dwg_json_viewer.html" data-example-link target="_blank">Dwg Database Json Viewer</a></li>
+      <li><a href="2_raw_wasm_usage.html" data-example-link target="_blank">Raw Liredwg-Web WebAssembly API Usage</a></li>
+      <li><a href="3_convert_to_svg.html" data-example-link target="_blank">Convert Dwg to SVG</a></li>
+      <li><a href="4_extract_dwg_thumbnail.html" data-example-link target="_blank">Extract Thumbnail Image from Dwg file</a></li>
+      <li><a href="5_convert_to_dxf.html" data-example-link target="_blank">Convert Dwg to DXF</a></li>
     </ol>
+    <script type="module">
+      import { mountWasmSettings, syncExampleLinks } from './wasm-settings.js'
+
+      await mountWasmSettings({
+        onChange: () => {
+          syncExampleLinks()
+        }
+      })
+      syncExampleLinks()
+    </script>
 </body>
 </html>

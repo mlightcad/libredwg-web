@@ -28,21 +28,34 @@
     "webassembly"
   ],
   "scripts": {
-    "demo": "live-server examples --entry-file=index.html",
+    "demo": "node script/sync-examples.js && live-server examples --entry-file=index.html",
     "doc": "typedoc",
-    "build": "tsc && vite build && cp -rf wasm examples/ && cp -rf dist examples/",
-    "build:prepare": "mkdir -p ../../build-wasm && cd ../../build-wasm && emconfigure ../configure CFLAGS=\"-O2 -sUSE_ZLIB=1 -DNDEBUG\" CC=emcc --enable-release --disable-docs --disable-write --disable-python --disable-bindings --disable-shared --disable-json --enable-partial --enable-experimental",
-    "build:obj": "cd ../../build-wasm && emmake make",
-    "build:wasm": "cd ../../build-wasm && emcc ../bindings/javascript/embind/*.cpp src/*.o -O2 -lembind -std=c++17 -Isrc -I../src -I../include -o libredwg-web.js -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=1GB -s MAXIMUM_MEMORY=4GB -s MALLOC=mimalloc -s EXPORT_ES6=1 -s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" -sEXPORTED_RUNTIME_METHODS=FS,ENV,ccall,cwrap,UTF8ToString,stringToNewUTF8,setValue --emit-tsd libredwg-web.d.ts",
-    "clean": "rm -rf ../../build-wasm ./docs ./dist ./lib",
-    "copy": "cp -f ../../build-wasm/libredwg-web.d.ts ../../build-wasm/libredwg-web.js ../../build-wasm/libredwg-web.wasm wasm/ && cp -f ../../build-wasm/libredwg-web.js src/",
+    "build:prepare:32": "mkdir -p ../../build-wasm && cd ../../build-wasm && emconfigure ../configure CFLAGS=\"-O2 -sUSE_ZLIB=1 -DNDEBUG\" CC=emcc --enable-release --disable-docs --disable-write --disable-python --disable-bindings --disable-shared --disable-json --enable-partial --enable-experimental",
+    "build:prepare:64": "bash script/prepare-wasm64.sh",
+    "build:prepare": "pnpm build:prepare:32 && pnpm build:prepare:64",
+    "build:obj:32": "cd ../../build-wasm && emmake make",
+    "build:obj:64": "cd ../../build-wasm64 && emmake make clean && emmake make CFLAGS=\"-O2 -sUSE_ZLIB=1 -DNDEBUG -sMEMORY64 -Wno-limited-postlink-optimizations -Wno-cast-align\" LDFLAGS=\"-sMEMORY64\"",
+    "build:obj": "pnpm build:obj:32 && pnpm build:obj:64",
+    "build:wasm:32": "cd ../../build-wasm && emcc ../bindings/javascript/embind/*.cpp src/.libs/libredwg.a -O2 -lembind -std=c++17 -Isrc -I../src -I../include -o libredwg-web.js -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=1GB -s MAXIMUM_MEMORY=4GB -s STACK_SIZE=8388608 -s MALLOC=mimalloc -s EXPORT_ES6=1 -s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" -sEXPORTED_RUNTIME_METHODS=FS,ENV,ccall,cwrap,UTF8ToString,stringToNewUTF8,setValue --emit-tsd libredwg-web.d.ts",
+    "build:wasm:64": "cd ../../build-wasm64 && emcc ../bindings/javascript/embind/*.cpp src/.libs/libredwg.a -O2 -lembind -std=c++17 -Isrc -I../src -I../include -o libredwg-web.js -s MEMORY64=1 -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=2GB -s MAXIMUM_MEMORY=16GB -s STACK_SIZE=8388608 -s MALLOC=mimalloc -s EXPORT_ES6=1 -s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" -sEXPORTED_RUNTIME_METHODS=FS,ENV,ccall,cwrap,UTF8ToString,stringToNewUTF8,setValue --emit-tsd libredwg-web.d.ts",
+    "build:wasm": "pnpm build:wasm:32 && pnpm build:wasm:64",
+    "copy:32": "cp -f ../../build-wasm/libredwg-web.d.ts ../../build-wasm/libredwg-web.js ../../build-wasm/libredwg-web.wasm wasm/",
+    "copy:64": "mkdir -p wasm64 && cp -f ../../build-wasm64/libredwg-web.d.ts ../../build-wasm64/libredwg-web.js ../../build-wasm64/libredwg-web.wasm wasm64/",
+    "copy": "pnpm copy:32 && pnpm copy:64",
+    "build:32": "tsc && vite build",
+    "build:64": "tsc -p tsconfig.memory64.json && vite build --mode memory64",
+    "build": "pnpm build:32 && pnpm build:64 && node script/sync-examples.js",
+    "build:all:32": "pnpm build:obj:32 && pnpm build:wasm:32 && pnpm copy:32 && pnpm build:32 && node script/sync-examples.js",
+    "build:all:64": "pnpm build:obj:64 && pnpm build:wasm:64 && pnpm copy:64 && pnpm build:64 && node script/sync-examples.js",
+    "build:all": "pnpm build:all:32 && pnpm build:all:64",
+    "sync:examples": "node script/sync-examples.js",
+    "clean": "rm -rf ../../build-wasm ../../build-wasm64 ./docs ./dist ./lib",
     "format": "prettier --config ./.prettierrc.js --write src/**/*.{ts,js}",
     "install:emsdk": "cd $EMSDK && ./emsdk install latest && ./emsdk activate latest",
-    "link": "node script/create-symlink.js ./wasm/libredwg-web.js ./src/libredwg-web.js",
     "lint": "eslint src/",
     "lint:fix": "eslint --fix --quiet src/",
     "test": "node --test test/node-api.test.mjs",
-    "test:node": "pnpm build && pnpm test",
+    "test:node": "pnpm build:32 && pnpm test",
     "publish:npm": "pnpm publish --access public --no-git-checks"
   },
   "files": [
@@ -50,6 +63,7 @@
     "lib/**/*.js",
     "lib/**/*.ts",
     "wasm",
+    "wasm64",
     "README.md",
     "package.json"
   ],
@@ -57,11 +71,21 @@
   "module": "./dist/libredwg-web.js",
   "types": "./lib/index.d.ts",
   "exports": {
-    "types": "./lib/index.d.ts",
-    "import": "./dist/libredwg-web.js",
-    "require": "./dist/libredwg-web.umd.cjs"
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./dist/libredwg-web.js",
+      "require": "./dist/libredwg-web.umd.cjs"
+    },
+    "./memory64": {
+      "types": "./lib/memory64/index.d.ts",
+      "import": "./dist/memory64/libredwg-web.js",
+      "require": "./dist/memory64/libredwg-web.umd.cjs"
+    },
+    "./wasm/*": "./wasm/*",
+    "./wasm64/*": "./wasm64/*"
   },
   "devDependencies": {
+    "@andypf/json-viewer": "^2.8.0",
     "@eslint/js": "^9.9.1",
     "@typescript-eslint/parser": "^8.4.0",
     "eslint": "^9.9.1",

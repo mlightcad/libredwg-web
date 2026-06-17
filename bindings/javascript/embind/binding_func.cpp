@@ -27,10 +27,19 @@ extern "C" {
 using namespace emscripten;
 
 emscripten::val dwg_read_file_wrapper(const std::string& filename) {
-  Dwg_Data* dwg = new Dwg_Data();
+  Dwg_Data* dwg = (Dwg_Data*)calloc(1, sizeof(Dwg_Data));
+  if (!dwg)
+    {
+      emscripten::val result = emscripten::val::object();
+      result.set("error", DWG_ERR_OUTOFMEM);
+      result.set("data", 0);
+      return result;
+    }
   int error = dwg_read_file(filename.c_str(), dwg);
   for (BITCODE_BL i = 0; i < dwg->num_object_refs; i++)
     {
+      if (!dwg->object_ref[i])
+        continue;
       // scan num_objects for the id (absolute_ref)
       Dwg_Object *restrict obj
           = dwg_resolve_handle (dwg, dwg->object_ref[i]->absolute_ref);
