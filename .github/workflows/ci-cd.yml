@@ -21,6 +21,7 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    environment: release
     defaults:
       run:
         working-directory: ./bindings/javascript
@@ -34,12 +35,17 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          node-version-file: bindings/javascript/package.json
+          node-version: 24
           cache: 'pnpm'
           cache-dependency-path: bindings/javascript/pnpm-lock.yaml
-          registry-url: https://registry.npmjs.org
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@mlightcad'
+
+      - name: Upgrade npm for Trusted Publishing
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -53,11 +59,21 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+      # Authenticates via npm Trusted Publishing (OIDC); no NPM_TOKEN needed.
+      # Configure the package on npmjs.com → Settings → Trusted publishing:
+      #   Provider: GitHub Actions
+      #   Repository: mlightcad/libredwg-web
+      #   Workflow filename: ci-cd.yml
+      #   Environment: release  (must match the job environment below)
       - name: Publish packages to npm
         if: startsWith(github.ref, 'refs/tags/')
-        run: pnpm publish:npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm --version
+          # setup-node writes an empty _authToken line that blocks OIDC fallback
+          if [ -f "$HOME/.npmrc" ]; then
+            sed -i '/_authToken/d' "$HOME/.npmrc"
+          fi
+          pnpm publish:npm
 
       - name: Create GitHub release
         if: startsWith(github.ref, 'refs/tags/')

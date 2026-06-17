@@ -3,7 +3,7 @@
   "description": "A DWG/DXF JavaScript parser based on libredwg",
   "license": "GPL-3.0",
   "private": false,
-  "version": "0.7.3",
+  "version": "0.7.4",
   "author": "MLight Lee <mlight.lee@outlook.com>",
   "type": "module",
   "engines": {
