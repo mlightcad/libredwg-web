@@ -30,8 +30,10 @@ import {
   Dwg_Data_Ptr,
   Dwg_LTYPE_Dash,
   Dwg_Object_Object_Ptr,
+  Dwg_Object_Object_TIO_Ptr,
   Dwg_Object_Ptr,
   Dwg_Object_Ref_Ptr,
+  Dwg_Object_Supertype,
   Dwg_Object_Type
 } from '../types'
 import { LibreEntityConverter } from './entityConverter'
@@ -94,7 +96,7 @@ export class LibreDwgConverter {
     for (let i = 0; i < num_objects; i++) {
       const obj = libredwg.dwg_get_object(data, i)
       if (obj) {
-        const tio = libredwg.dwg_object_to_object_tio(obj)
+        const tio = this.safeObjectTio(obj)
         if (tio) {
           const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
           switch (fixedtype) {
@@ -122,7 +124,7 @@ export class LibreDwgConverter {
     for (let i = 0; i < num_objects; i++) {
       const obj = libredwg.dwg_get_object(data, i)
       if (obj) {
-        const tio = libredwg.dwg_object_to_object_tio(obj)
+        const tio = this.safeObjectTio(obj)
         if (tio) {
           const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
           switch (fixedtype) {
@@ -201,6 +203,22 @@ export class LibreDwgConverter {
   getConversionStats() {
     return {
       unknownEntityCount: this.entityConverter.unknownEntityCount
+    }
+  }
+
+  private safeObjectTio(obj: Dwg_Object_Ptr): Dwg_Object_Object_TIO_Ptr | null {
+    const libredwg = this.libredwg
+    try {
+      if (
+        libredwg.dwg_object_get_supertype(obj) !=
+        Dwg_Object_Supertype.DWG_SUPERTYPE_OBJECT
+      ) {
+        return null
+      }
+      const tio = libredwg.dwg_object_to_object_tio(obj)
+      return tio ? tio : null
+    } catch {
+      return null
     }
   }
 
