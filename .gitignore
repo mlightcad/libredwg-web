@@ -34,6 +34,7 @@ compile_commands.json
 /bindings/gambas/
 /build/
 /build-wasm/
+/build-wasm64/
 /compat_reports/
 /doc/acis/
 /doc/LibreDWG.t2p/
