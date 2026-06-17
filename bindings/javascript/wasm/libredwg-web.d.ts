@@ -224,6 +224,26 @@ declare class FSNode {
     get isDevice(): any;
 }
 interface WasmModule {
+  __Znwm(_0: number): number;
+  __ZdlPvm(_0: number, _1: number): void;
+  _strndup(_0: number, _1: number): number;
+  __ZdaPv(_0: number): void;
+  __ZdaPvm(_0: number, _1: number): void;
+  __ZdlPv(_0: number): void;
+  _emscripten_builtin_malloc(_0: number): number;
+  __Znam(_0: number): number;
+  __ZnamSt11align_val_t(_0: number, _1: number): number;
+  __ZnwmSt11align_val_t(_0: number, _1: number): number;
+  ___libc_calloc(_0: number, _1: number): number;
+  ___libc_free(_0: number): void;
+  ___libc_malloc(_0: number): number;
+  ___libc_realloc(_0: number, _1: number): number;
+  _emscripten_builtin_calloc(_0: number, _1: number): number;
+  _emscripten_builtin_free(_0: number): void;
+  _emscripten_builtin_realloc(_0: number, _1: number): number;
+  _malloc_size(_0: number): number;
+  _malloc_usable_size(_0: number): number;
+  _reallocf(_0: number, _1: number): number;
 }
 
 type EmbindString = ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string;
@@ -389,6 +409,7 @@ interface EmbindModule {
   dwg_get_next_object(_0: number, _1: Dwg_Object_Type, _2: number): number;
   dwg_resolve_jump(_0: number): number;
   dwg_free(_0: number): void;
+  dwg_abandon(_0: number): void;
   dwg_free_object(_0: number): void;
   dwg_new_ref(_0: number): number;
   dwg_dup_handleref(_0: number, _1: number): number;

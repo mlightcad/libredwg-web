@@ -11,6 +11,7 @@ import {
   DwgBoundaryPathEdge,
   DwgBoundaryPathEdgeType,
   DwgCircleEntity,
+  DwgClassLookup,
   DwgDatabase,
   DwgDimensionEntityCommon,
   DwgDimensionTextLineSpacing,
@@ -51,7 +52,6 @@ import {
   DwgPolylineBoundaryPath,
   DwgProxyEntity,
   DwgProxyOriginalDataFormat,
-  DwgClassLookup,
   DwgRadialDiameterDimensionEntity,
   DwgRayEntity,
   DwgSectionEntity,
@@ -74,9 +74,9 @@ import {
 import { LibreDwgEx } from '../libredwg'
 import {
   Dwg_Color,
+  Dwg_Entity_PROXY_ENTITY_Ptr,
   Dwg_Hatch_Edge_Type,
   Dwg_HATCH_Path,
-  Dwg_Entity_PROXY_ENTITY_Ptr,
   Dwg_Object_Entity_Ptr,
   Dwg_Object_Ptr,
   Dwg_Object_Type,

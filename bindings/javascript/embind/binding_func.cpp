@@ -9,6 +9,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "hash.h"
+#ifdef __cplusplus
+}
+#endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 #ifndef DISABLE_DXF
 #include "bits.h"
 #include "out_dxf.h"
@@ -565,7 +572,33 @@ std::string dwg_section_name_wrapper(
  */
 void dwg_free_wrapper(uintptr_t dwg_ptr) {
   Dwg_Data* dwg = reinterpret_cast<Dwg_Data*>(dwg_ptr);
+  if (!dwg)
+    return;
   dwg_free(dwg);
+  delete dwg;
+}
+
+/**
+ * Drop a partially decoded DWG after fatal decode errors (e.g. OUTOFMEM).
+ * Skips walking corrupt object graphs that would trap in wasm.
+ */
+void dwg_abandon_wrapper(uintptr_t dwg_ptr) {
+  Dwg_Data* dwg = reinterpret_cast<Dwg_Data*>(dwg_ptr);
+  if (!dwg)
+    return;
+  dwg->num_objects = 0;
+  dwg->num_object_refs = 0;
+  dwg->num_object_ordered_refs = 0;
+  dwg->object = NULL;
+  dwg->object_ref = NULL;
+  dwg->object_ordered_ref = NULL;
+  if (dwg->object_map)
+    {
+      hash_free (dwg->object_map);
+      dwg->object_map = NULL;
+    }
+  dwg_free (dwg);
+  delete dwg;
 }
 
 /** 
@@ -977,6 +1010,7 @@ EMSCRIPTEN_BINDINGS(libredwg_api) {
   DEFINE_FUNC(dwg_section_name);
   function("dwg_resbuf_value_type", &dwg_resbuf_value_type);
   DEFINE_FUNC(dwg_free);
+  DEFINE_FUNC(dwg_abandon);
   DEFINE_FUNC(dwg_free_object);
   DEFINE_FUNC(dwg_new_ref);
   DEFINE_FUNC(dwg_add_handle);

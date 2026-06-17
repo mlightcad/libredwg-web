@@ -29,6 +29,7 @@ import {
   Dwg_Entity_TEXT_Ptr,
   Dwg_Entity_VERTEX_2D,
   Dwg_Entity_VERTEX_3D,
+  Dwg_Error,
   Dwg_Field_Value,
   Dwg_File_Type,
   Dwg_Handle,
@@ -101,8 +102,14 @@ export class LibreDwg {
           new Uint8Array(fileContent as ArrayBuffer)
         )
         const result = this.wasmInstance.dwg_read_file(fileName)
+        if (result.error & Dwg_Error.OUTOFMEM) {
+          this.wasmInstance.dwg_abandon(result.data)
+          throw new Error(
+            'Failed to decode DWG: out of WASM memory. Rebuild with pnpm build:wasm (INITIAL_MEMORY=1GB) or use a smaller file.'
+          )
+        }
         if (result.error != 0) {
-          console.log('Open dwg file with error code: ', result.error)
+          console.warn('Open dwg file with error code:', result.error)
         }
         return result.data as Dwg_Data_Ptr
       } finally {
@@ -252,7 +259,18 @@ export class LibreDwg {
    * @param data Pointer to Dwg_Data instance.
    */
   dwg_free(data: Dwg_Data_Ptr) {
-    this.wasmInstance.dwg_free(data)
+    if (!data) {
+      return
+    }
+    try {
+      this.wasmInstance.dwg_free(data)
+    } catch {
+      try {
+        this.wasmInstance.dwg_abandon(data)
+      } catch {
+        // best effort; wasm heap may already be corrupt
+      }
+    }
   }
 
   /**
