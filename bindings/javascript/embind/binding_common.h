@@ -4,6 +4,20 @@
 
 using namespace emscripten;
 
+#if defined(__EMSCRIPTEN__)
+static inline bool
+wasm_ptr_in_bounds (const void *ptr, size_t len)
+{
+  if (!ptr || len == 0)
+    return false;
+  const uintptr_t addr = (uintptr_t)ptr;
+  const uintptr_t end = addr + len;
+  const uintptr_t mem_size
+      = (uintptr_t)__builtin_wasm_memory_size (0) * 65536u;
+  return end > addr && end <= mem_size;
+}
+#endif
+
 #define DEFINE_FUNC(funcName)                                                 \
   function(#funcName, &funcName##_wrapper)
 

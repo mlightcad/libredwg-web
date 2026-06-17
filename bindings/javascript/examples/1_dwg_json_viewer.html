@@ -63,6 +63,8 @@
               libredwg.dwg_free(dwg)
             } catch (error) {
               console.error('Failed to process dwg file: ', error)
+              const infoElement = document.getElementById('dwgInfo')
+              infoElement.textContent = error instanceof Error ? error.message : String(error)
             }
           }
 

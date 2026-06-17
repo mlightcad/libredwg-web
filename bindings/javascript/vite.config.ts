@@ -11,7 +11,9 @@ export default defineConfig({
       fileName: 'libredwg-web'
     },
     rollupOptions: {
-      external: ['module']
+      // Keep the emscripten glue as a separate module so Node.js can use
+      // createRequire from node:module instead of Vite's browser stub.
+      external: ['module', 'node:module', '../wasm/libredwg-web.js']
     }
   }
 })

@@ -164,21 +164,19 @@ emscripten::val dwg_ptr_to_object_ref_ptr_array_wrapper(uintptr_t array_ptr, siz
 }
 
 emscripten::val dwg_ptr_to_unsigned_char_array(unsigned char* array, size_t size) {
-  if (array) {
-    emscripten::val result = emscripten::val::global("Uint8Array").new_(size);
-    emscripten::val memoryView = emscripten::val(emscripten::typed_memory_view(size, array));
-    result.call<void>("set", memoryView);
-    return result;
+  if (array && size > 0) {
+    emscripten::val memoryView
+        = emscripten::val (emscripten::typed_memory_view (size, array));
+    return memoryView.call<emscripten::val> ("slice");
   }
   return emscripten::val::null();
 }
 
 emscripten::val dwg_ptr_to_signed_char_array(signed char* array, size_t size) {
-  if (array) {
-    emscripten::val result = emscripten::val::global("Int8Array").new_(size);
-    emscripten::val memoryView = emscripten::val(emscripten::typed_memory_view(size, array));
-    result.call<void>("set", memoryView);
-    return result;
+  if (array && size > 0) {
+    emscripten::val memoryView
+        = emscripten::val (emscripten::typed_memory_view (size, array));
+    return memoryView.call<emscripten::val> ("slice");
   }
   return emscripten::val::null();
 }
@@ -649,14 +647,24 @@ uintptr_t dwg_object_to_object_wrapper(uintptr_t obj_ptr) {
  * Get dwg_obj_obj->tio from dwg_object*. 
 */
 uintptr_t dwg_object_to_object_tio_wrapper(uintptr_t obj_ptr) {
-  int error = 0;
-  dwg_object* obj = reinterpret_cast<dwg_object*>(obj_ptr);
-  dwg_obj_obj* obj_obj = dwg_object_to_object(obj, &error);
-  if (obj_obj != NULL && error == 0)
-    // The address of the first item 'tio.APPID' in union is same as others.
-    return reinterpret_cast<uintptr_t>(obj_obj->tio.APPID);
-  else
+  if (!obj_ptr)
     return 0;
+#if defined(__EMSCRIPTEN__)
+  if (!wasm_ptr_in_bounds ((const void *)obj_ptr, sizeof (Dwg_Object)))
+    return 0;
+#endif
+  dwg_object *obj = reinterpret_cast<dwg_object *>(obj_ptr);
+  if (obj->supertype != DWG_SUPERTYPE_OBJECT)
+    return 0;
+  dwg_obj_obj *obj_obj = obj->tio.object;
+  if (!obj_obj)
+    return 0;
+#if defined(__EMSCRIPTEN__)
+  if (!wasm_ptr_in_bounds (obj_obj, sizeof (dwg_obj_obj)))
+    return 0;
+#endif
+  // The address of the first item 'tio.APPID' in union is same as others.
+  return reinterpret_cast<uintptr_t>(obj_obj->tio.APPID);
 }
 
 /** 
@@ -669,14 +677,24 @@ uintptr_t dwg_object_to_entity_wrapper(uintptr_t obj_ptr) {
 }
 
 uintptr_t dwg_object_to_entity_tio_wrapper(uintptr_t obj_ptr) {
-  int error = 0;
-  dwg_object* obj = reinterpret_cast<dwg_object*>(obj_ptr);
-  dwg_obj_ent* obj_ent = dwg_object_to_entity(obj, &error);
-  if (obj_ent != NULL && error == 0)
-    // The address of the first item 'tio.UNUSED' in union is same as others.
-    return reinterpret_cast<uintptr_t>(obj_ent->tio.UNUSED);
-  else
+  if (!obj_ptr)
     return 0;
+#if defined(__EMSCRIPTEN__)
+  if (!wasm_ptr_in_bounds ((const void *)obj_ptr, sizeof (Dwg_Object)))
+    return 0;
+#endif
+  dwg_object *obj = reinterpret_cast<dwg_object *>(obj_ptr);
+  if (obj->supertype != DWG_SUPERTYPE_ENTITY)
+    return 0;
+  dwg_obj_ent *obj_ent = obj->tio.entity;
+  if (!obj_ent)
+    return 0;
+#if defined(__EMSCRIPTEN__)
+  if (!wasm_ptr_in_bounds (obj_ent, sizeof (dwg_obj_ent)))
+    return 0;
+#endif
+  // The address of the first item 'tio.UNUSED' in union is same as others.
+  return reinterpret_cast<uintptr_t>(obj_ent->tio.UNUSED);
 }
 
 /**

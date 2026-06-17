@@ -3,6 +3,24 @@ export enum Dwg_Object_Supertype {
   DWG_SUPERTYPE_OBJECT = 1
 }
 
+/** Bit flags returned by dwg_read_file (see include/dwg.h DWG_ERROR). */
+export enum Dwg_Error {
+  WRONGCRC = 1,
+  NOTYETSUPPORTED = 1 << 1,
+  UNHANDLEDCLASS = 1 << 2,
+  INVALIDTYPE = 1 << 3,
+  INVALIDHANDLE = 1 << 4,
+  INVALIDEED = 1 << 5,
+  VALUEOUTOFBOUNDS = 1 << 6,
+  CLASSESNOTFOUND = 1 << 7,
+  SECTIONNOTFOUND = 1 << 8,
+  PAGENOTFOUND = 1 << 9,
+  INTERNALERROR = 1 << 10,
+  INVALIDDWG = 1 << 11,
+  IOERROR = 1 << 12,
+  OUTOFMEM = 1 << 13
+}
+
 export enum Dwg_Object_Type {
   DWG_TYPE_UNUSED = 0x00,
   DWG_TYPE_TEXT = 0x01,
