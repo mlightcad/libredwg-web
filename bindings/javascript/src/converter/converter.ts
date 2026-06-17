@@ -30,8 +30,10 @@ import {
   Dwg_Data_Ptr,
   Dwg_LTYPE_Dash,
   Dwg_Object_Object_Ptr,
+  Dwg_Object_Object_TIO_Ptr,
   Dwg_Object_Ptr,
   Dwg_Object_Ref_Ptr,
+  Dwg_Object_Supertype,
   Dwg_Object_Type
 } from '../types'
 import { LibreEntityConverter } from './entityConverter'
@@ -94,7 +96,7 @@ export class LibreDwgConverter {
     for (let i = 0; i < num_objects; i++) {
       const obj = libredwg.dwg_get_object(data, i)
       if (obj) {
-        const tio = libredwg.dwg_object_to_object_tio(obj)
+        const tio = this.safeObjectTio(obj)
         if (tio) {
           const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
           switch (fixedtype) {
@@ -122,7 +124,7 @@ export class LibreDwgConverter {
     for (let i = 0; i < num_objects; i++) {
       const obj = libredwg.dwg_get_object(data, i)
       if (obj) {
-        const tio = libredwg.dwg_object_to_object_tio(obj)
+        const tio = this.safeObjectTio(obj)
         if (tio) {
           const fixedtype = libredwg.dwg_object_get_fixedtype(obj)
           switch (fixedtype) {
@@ -204,6 +206,22 @@ export class LibreDwgConverter {
     }
   }
 
+  private safeObjectTio(obj: Dwg_Object_Ptr): Dwg_Object_Object_TIO_Ptr | null {
+    const libredwg = this.libredwg
+    try {
+      if (
+        libredwg.dwg_object_get_supertype(obj) !=
+        Dwg_Object_Supertype.DWG_SUPERTYPE_OBJECT
+      ) {
+        return null
+      }
+      const tio = libredwg.dwg_object_to_object_tio(obj)
+      return tio ? tio : null
+    } catch {
+      return null
+    }
+  }
+
   private convertHeader(data: Dwg_Data_Ptr, header: DwgHeader) {
     const libredwg = this.libredwg
     HEADER_VARIABLES.forEach(name => {
@@ -225,9 +243,9 @@ export class LibreDwgConverter {
         name == 'DIMTXSTY' ||
         name == 'TEXTSTYLE'
       ) {
-        value = !!value ? libredwg.dwg_ref_get_object_name(value as number) : ''
+        value = value ? libredwg.dwg_ref_get_object_name(value as number) : ''
       } else if (name == 'DRAGVS') {
-        value = !!value ? libredwg.dwg_ref_get_absref(value as number) : 2
+        value = value ? libredwg.dwg_ref_get_absref(value as number) : 2
       }
       // @ts-expect-error header variable name
       header[name] = value
@@ -1068,7 +1086,7 @@ export class LibreDwgConverter {
 
     const named_ucs_ref = libredwg.dwg_dynapi_entity_value(item, 'named_ucs')
       .data as number
-    const namedUcsId = !!named_ucs_ref
+    const namedUcsId = named_ucs_ref
       ? idToString(libredwg.dwg_ref_get_absref(named_ucs_ref))
       : undefined
 
