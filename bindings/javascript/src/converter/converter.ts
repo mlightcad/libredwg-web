@@ -243,9 +243,9 @@ export class LibreDwgConverter {
         name == 'DIMTXSTY' ||
         name == 'TEXTSTYLE'
       ) {
-        value = !!value ? libredwg.dwg_ref_get_object_name(value as number) : ''
+        value = value ? libredwg.dwg_ref_get_object_name(value as number) : ''
       } else if (name == 'DRAGVS') {
-        value = !!value ? libredwg.dwg_ref_get_absref(value as number) : 2
+        value = value ? libredwg.dwg_ref_get_absref(value as number) : 2
       }
       // @ts-expect-error header variable name
       header[name] = value
@@ -1086,7 +1086,7 @@ export class LibreDwgConverter {
 
     const named_ucs_ref = libredwg.dwg_dynapi_entity_value(item, 'named_ucs')
       .data as number
-    const namedUcsId = !!named_ucs_ref
+    const namedUcsId = named_ucs_ref
       ? idToString(libredwg.dwg_ref_get_absref(named_ucs_ref))
       : undefined
 
