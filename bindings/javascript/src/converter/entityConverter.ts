@@ -55,6 +55,7 @@ import {
   DwgRadialDiameterDimensionEntity,
   DwgRayEntity,
   DwgSectionEntity,
+  DwgShapeEntity,
   DwgSolidEntity,
   DwgSplineEdge,
   DwgSplineEntity,
@@ -204,6 +205,8 @@ export class LibreEntityConverter {
         return this.convertRay(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SECTIONOBJECT) {
         return this.convertSection(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SHAPE) {
+        return this.convertShape(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SOLID) {
         return this.convertSolid(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SPLINE) {
@@ -1776,6 +1779,49 @@ export class LibreEntityConverter {
       numberOfBackLineVertices: numberOfBackLineVertices,
       backLineVertices: backLineVertices,
       geometrySettingHardId: geometrySettingHardId
+    }
+  }
+
+  private convertShape(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgShapeEntity {
+    const libredwg = this.libredwg
+    const insertionPoint = libredwg.dwg_dynapi_entity_value(entity, 'ins_pt')
+      .data as DwgPoint3D
+    const size = libredwg.dwg_dynapi_entity_value(entity, 'scale')
+      .data as number
+    const rotation = libredwg.dwg_dynapi_entity_value(entity, 'rotation')
+      .data as number
+    const xScale = libredwg.dwg_dynapi_entity_value(entity, 'width_factor')
+      .data as number
+    const obliqueAngle = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'oblique_angle'
+    ).data as number
+    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
+      .data as number
+    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
+      entity,
+      'extrusion'
+    ).data as DwgPoint3D
+    const shapeNumber = libredwg.dwg_dynapi_entity_value(entity, 'style_id')
+      .data as number
+    const styleName = libredwg.dwg_entity_text_get_style_name(entity)
+
+    return {
+      type: 'SHAPE',
+      subclassMarker: 'AcDbShape',
+      ...commonAttrs,
+      thickness: thickness,
+      insertionPoint: insertionPoint,
+      size: size,
+      shapeNumber: shapeNumber,
+      styleName: styleName,
+      rotation: rotation,
+      xScale: xScale,
+      obliqueAngle: obliqueAngle,
+      extrusionDirection: extrusionDirection
     }
   }
 
