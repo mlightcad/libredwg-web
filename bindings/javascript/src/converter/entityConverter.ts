@@ -2108,37 +2108,35 @@ export class LibreEntityConverter {
     }
   }
 
-  private convertTableCells(cells: Dwg_TABLE_Cell[]) {
-    const converted: DwgTableCell[] = []
-    cells.forEach(cell => {
-      return {
-        text: cell.text_value,
-        attachmentPoint: cell.cell_alignment as DwgAttachmentPoint,
-        textStyle: cell.text_style, // TODO: Set the text style name instead of handle
-        rotation: cell.rotation,
-        cellType: cell.type,
-        flagValue: cell.flags,
-        mergedValue: cell.is_merged_value,
-        autoFit: cell.is_autofit_flag,
-        // borderWidth?: number
-        // borderHeight?: number
-        topBorderVisibility: cell.top_visibility,
-        bottomBorderVisibility: cell.bottom_visibility,
-        leftBorderVisibility: cell.left_visibility,
-        rightBorderVisibility: cell.right_visibility,
-        overrideFlag: cell.cell_flag_override,
-        virtualEdgeFlag: cell.virtual_edge_flag,
-        // fieldObjetId?: string
-        blockTableRecordI: cell.block_handle.absolute_ref,
-        blockScale: cell.block_scale,
-        blockAttrNum: cell.attr_defs.length,
-        attrDefineId: cell.attr_defs.map(value => value.attdef.absolute_ref),
-        // attrText?: string
-        // textHeight: number
-        extendedCellFlags: cell.additional_data_flag
-      }
-    })
-    return converted
+  private convertTableCells(cells: Dwg_TABLE_Cell[]): DwgTableCell[] {
+    return cells.map(cell => ({
+      text: cell.text_value,
+      attachmentPoint: cell.cell_alignment as DwgAttachmentPoint,
+      textStyle: cell.text_style
+        ? String(cell.text_style)
+        : undefined,
+      rotation: cell.rotation,
+      cellType: cell.type,
+      flagValue: cell.flags,
+      mergedValue: cell.is_merged_value,
+      autoFit: cell.is_autofit_flag,
+      topBorderVisibility: !!cell.top_visibility,
+      bottomBorderVisibility: !!cell.bottom_visibility,
+      leftBorderVisibility: !!cell.left_visibility,
+      rightBorderVisibility: !!cell.right_visibility,
+      overrideFlag: cell.cell_flag_override,
+      virtualEdgeFlag: cell.virtual_edge_flag,
+      blockTableRecordId: cell.block_handle
+        ? String(cell.block_handle.absolute_ref ?? '')
+        : undefined,
+      blockScale: cell.block_scale,
+      blockAttrNum: cell.attr_defs?.length ?? 0,
+      attrDefineId: cell.attr_defs?.map(value =>
+        String(value.attdef?.absolute_ref ?? '')
+      ),
+      textHeight: cell.text_height ?? 0,
+      extendedCellFlags: cell.additional_data_flag
+    }))
   }
 
   private convertTextBase(entity: Dwg_Object_Entity_Ptr): DwgTextBase {
