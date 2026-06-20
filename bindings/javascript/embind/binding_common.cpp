@@ -297,7 +297,7 @@ emscripten::val dwg_ptr_to_table_cell_array_wrapper(uintptr_t array_ptr, size_t 
     cell_obj.set("is_autofit_flag", cell.is_autofit_flag);
     cell_obj.set("merged_width_flag", cell.merged_width_flag);
     cell_obj.set("merged_height_flag", cell.merged_height_flag);
-    cell_obj.set("rotation", cell.type);
+    cell_obj.set("rotation", cell.rotation);
     cell_obj.set("text_value", std::string(cell.text_value));
     cell_obj.set("text_style", reinterpret_cast<uintptr_t>(cell.text_style));
     cell_obj.set("block_handle", object_ref_to_js_object(cell.block_handle));
@@ -325,8 +325,8 @@ emscripten::val dwg_ptr_to_table_cell_array_wrapper(uintptr_t array_ptr, size_t 
     cell_obj.set("num_attr_defs", cell.num_attr_defs);
 
     emscripten::val attr_defs_obj = emscripten::val::array();
-    for (int i = 0; i < size; ++i) {
-      auto attr_def = cell.attr_defs[i];
+    for (int j = 0; j < cell.num_attr_defs; ++j) {
+      auto attr_def = cell.attr_defs[j];
       emscripten::val attr_def_obj = emscripten::val::object();
       attr_def_obj.set("attdef", object_ref_to_js_object(attr_def.attdef));
       attr_def_obj.set("text", std::string(attr_def.text));
