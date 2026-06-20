@@ -41,6 +41,13 @@ import {
   DwgMLineVertex,
   DwgMTextDrawingDirection,
   DwgMTextEntity,
+  DwgMultiLeaderBlockAttribute,
+  DwgMultiLeaderBlockContent,
+  DwgMultiLeaderBreak,
+  DwgMultiLeaderEntity,
+  DwgMultiLeaderIndexedHandle,
+  DwgMultiLeaderLeaderLine,
+  DwgMultiLeaderLeaderSection,
   DwgOle2FrameEntity,
   DwgOleFrameEntity,
   DwgOrdinateDimensionEntity,
@@ -83,6 +90,7 @@ import {
   Dwg_Object_Type,
   Dwg_TABLE_Cell
 } from '../types'
+import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor'
 import { idToString, uint8ArrayToHexString } from './utils'
 
 type DwgCommonAttributes = Omit<DwgEntity, 'type'>
@@ -187,6 +195,8 @@ export class LibreEntityConverter {
         return this.convertLWPolyline(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_MLINE) {
         return this.convertMLine(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_MULTILEADER) {
+        return this.convertMultiLeader(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_MTEXT) {
         return this.convertMText(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_OLE2FRAME) {
@@ -235,16 +245,11 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): Dwg3dFaceEntity {
     const libredwg = this.libredwg
-    const corner1 = libredwg.dwg_dynapi_entity_value(entity, 'corner1')
-      .data as DwgPoint3D
-    const corner2 = libredwg.dwg_dynapi_entity_value(entity, 'corner2')
-      .data as DwgPoint3D
-    const corner3 = libredwg.dwg_dynapi_entity_value(entity, 'corner3')
-      .data as DwgPoint3D
-    const corner4 = libredwg.dwg_dynapi_entity_value(entity, 'corner4')
-      .data as DwgPoint3D
-    const flag = libredwg.dwg_dynapi_entity_value(entity, 'invis_flags')
-      .data as number
+    const corner1 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'corner1')
+    const corner2 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'corner2')
+    const corner3 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'corner3')
+    const corner4 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'corner4')
+    const flag = libredwg.dwg_dynapi_entity_data<number>(entity, 'invis_flags')
 
     return {
       type: '3DFACE',
@@ -262,20 +267,12 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgArcEntity {
     const libredwg = this.libredwg
-    const center = libredwg.dwg_dynapi_entity_value(entity, 'center')
-      .data as DwgPoint3D
-    const radius = libredwg.dwg_dynapi_entity_value(entity, 'radius')
-      .data as number
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
-    const startAngle = libredwg.dwg_dynapi_entity_value(entity, 'start_angle')
-      .data as number
-    const endAngle = libredwg.dwg_dynapi_entity_value(entity, 'end_angle')
-      .data as number
+    const center = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'center')
+    const radius = libredwg.dwg_dynapi_entity_data<number>(entity, 'radius')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const startAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'start_angle')
+    const endAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'end_angle')
 
     return {
       type: 'ARC',
@@ -294,41 +291,13 @@ export class LibreEntityConverter {
     subclassName: string
   ): DwgEmbeddedMText {
     const libredwg = this.libredwg
-    const attachmentPoint = libredwg.dwg_dynapi_subclass_value(
-      entity,
-      subclassName,
-      'attachment'
-    ).data as number
-    const insertionPoint = libredwg.dwg_dynapi_subclass_value(
-      entity,
-      subclassName,
-      'ins_pt'
-    ).data as DwgPoint3D
-    const direction = libredwg.dwg_dynapi_subclass_value(
-      entity,
-      subclassName,
-      'x_axis_dir'
-    ).data as DwgPoint3D
-    const rectHeight = libredwg.dwg_dynapi_subclass_value(
-      entity,
-      subclassName,
-      'rect_height'
-    ).data as number
-    const rectWidth = libredwg.dwg_dynapi_subclass_value(
-      entity,
-      subclassName,
-      'rect_width'
-    ).data as number
-    const extentsHeight = libredwg.dwg_dynapi_subclass_value(
-      entity,
-      subclassName,
-      'extents_height'
-    ).data as number
-    const extentsWidth = libredwg.dwg_dynapi_subclass_value(
-      entity,
-      subclassName,
-      'extents_width'
-    ).data as number
+    const attachmentPoint = libredwg.dwg_dynapi_subclass_data<number>(entity, subclassName, 'attachment')
+    const insertionPoint = libredwg.dwg_dynapi_subclass_data<DwgPoint3D>(entity, subclassName, 'ins_pt')
+    const direction = libredwg.dwg_dynapi_subclass_data<DwgPoint3D>(entity, subclassName, 'x_axis_dir')
+    const rectHeight = libredwg.dwg_dynapi_subclass_data<number>(entity, subclassName, 'rect_height')
+    const rectWidth = libredwg.dwg_dynapi_subclass_data<number>(entity, subclassName, 'rect_width')
+    const extentsHeight = libredwg.dwg_dynapi_subclass_data<number>(entity, subclassName, 'extents_height')
+    const extentsWidth = libredwg.dwg_dynapi_subclass_data<number>(entity, subclassName, 'extents_width')
     // const columnType = libredwg.dwg_dynapi_subclass_value(entity, subclassName, 'column_type')
     //   .data as number
     // const columnWidth = libredwg.dwg_dynapi_subclass_value(entity, subclassName, 'column_width')
@@ -387,37 +356,20 @@ export class LibreEntityConverter {
     // Because the field name of text string in Dwg_Entity_ATTDEF is 'default_value'
     // instead of 'text_value'. So we need to get its value again using the correct
     // field name.
-    const textValue = libredwg.dwg_dynapi_entity_value(entity, 'default_value')
-      .data as string
+    const textValue = libredwg.dwg_dynapi_entity_data<string>(entity, 'default_value')
     const text = this.convertTextBase(entity)
     text.text = textValue
 
-    const prompt = libredwg.dwg_dynapi_entity_value(entity, 'prompt')
-      .data as string
-    const tag = libredwg.dwg_dynapi_entity_value(entity, 'tag').data as string
-    const flags = libredwg.dwg_dynapi_entity_value(entity, 'flags')
-      .data as number
-    const fieldLength = libredwg.dwg_dynapi_entity_value(entity, 'field_length')
-      .data as number
-    const lockPositionFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'lock_position_flag'
-    ).data as number
-    const duplicateRecordCloningFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'keep_duplicate_records'
-    ).data as number
-    const isReallyLocked = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'is_really_locked'
-    ).data as number
+    const prompt = libredwg.dwg_dynapi_entity_data<string>(entity, 'prompt')
+    const tag = libredwg.dwg_dynapi_entity_data<string>(entity, 'tag')
+    const flags = libredwg.dwg_dynapi_entity_data<number>(entity, 'flags')
+    const fieldLength = libredwg.dwg_dynapi_entity_data<number>(entity, 'field_length')
+    const lockPositionFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'lock_position_flag')
+    const duplicateRecordCloningFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'keep_duplicate_records')
+    const isReallyLocked = libredwg.dwg_dynapi_entity_data<number>(entity, 'is_really_locked')
     // TODO: double check whether 'mtext_type' is 'mtextFlag'
-    const mtextFlag = libredwg.dwg_dynapi_entity_value(entity, 'mtext_type')
-      .data as number
-    const alignmentPoint = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'alignment_pt'
-    ).data as DwgPoint2D
+    const mtextFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'mtext_type')
+    const alignmentPoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'alignment_pt')
 
     return {
       type: 'ATTDEF',
@@ -445,30 +397,15 @@ export class LibreEntityConverter {
     const libredwg = this.libredwg
 
     const text = this.convertTextBase(entity)
-    const tag = libredwg.dwg_dynapi_entity_value(entity, 'tag').data as string
-    const flags = libredwg.dwg_dynapi_entity_value(entity, 'flags')
-      .data as number
-    const fieldLength = libredwg.dwg_dynapi_entity_value(entity, 'field_length')
-      .data as number
-    const lockPositionFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'lock_position_flag'
-    ).data as number
-    const duplicateRecordCloningFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'keep_duplicate_records'
-    ).data as number
+    const tag = libredwg.dwg_dynapi_entity_data<string>(entity, 'tag')
+    const flags = libredwg.dwg_dynapi_entity_data<number>(entity, 'flags')
+    const fieldLength = libredwg.dwg_dynapi_entity_data<number>(entity, 'field_length')
+    const lockPositionFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'lock_position_flag')
+    const duplicateRecordCloningFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'keep_duplicate_records')
     // TODO: double check whether 'mtext_type' is 'mtextFlag'
-    const mtextFlag = libredwg.dwg_dynapi_entity_value(entity, 'mtext_type')
-      .data as number
-    const isReallyLocked = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'is_really_locked'
-    ).data as number
-    const alignmentPoint = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'alignment_pt'
-    ).data as DwgPoint2D
+    const mtextFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'mtext_type')
+    const isReallyLocked = libredwg.dwg_dynapi_entity_data<number>(entity, 'is_really_locked')
+    const alignmentPoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'alignment_pt')
 
     return {
       type: 'ATTRIB',
@@ -495,16 +432,10 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgCircleEntity {
     const libredwg = this.libredwg
-    const center = libredwg.dwg_dynapi_entity_value(entity, 'center')
-      .data as DwgPoint3D
-    const radius = libredwg.dwg_dynapi_entity_value(entity, 'radius')
-      .data as number
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const center = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'center')
+    const radius = libredwg.dwg_dynapi_entity_data<number>(entity, 'radius')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     return {
       type: 'CIRCLE',
@@ -523,26 +454,11 @@ export class LibreEntityConverter {
     const libredwg = this.libredwg
     const dimensionCommonAttrs = this.getDimensionCommonAttrs(entity)
     // TODO: Not sure whether 'clone_ins_pt' is same as 'insertionPoint'
-    const insertionPoint = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'clone_ins_pt'
-    ).data as DwgPoint2D
-    const subDefinitionPoint1 = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'xline1_pt'
-    ).data as DwgPoint3D
-    const subDefinitionPoint2 = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'xline2_pt'
-    ).data as DwgPoint3D
-    const rotationAngle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'ins_rotation'
-    ).data as number | undefined
-    const obliqueAngle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'oblique_angle'
-    ).data as number
+    const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'clone_ins_pt')
+    const subDefinitionPoint1 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline1_pt')
+    const subDefinitionPoint2 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline2_pt')
+    const rotationAngle = libredwg.dwg_dynapi_entity_data<number | undefined>(entity, 'ins_rotation')
+    const obliqueAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'oblique_angle')
 
     return {
       subclassMarker: 'AcDbAlignedDimension',
@@ -562,18 +478,10 @@ export class LibreEntityConverter {
   ): DwgAngularDimensionEntity {
     const libredwg = this.libredwg
     const dimensionCommonAttrs = this.getDimensionCommonAttrs(entity)
-    const subDefinitionPoint1 = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'xline1_pt'
-    ).data as DwgPoint3D
-    const subDefinitionPoint2 = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'xline2_pt'
-    ).data as DwgPoint3D
-    const centerPoint = libredwg.dwg_dynapi_entity_value(entity, 'center_pt')
-      .data as DwgPoint3D
-    const arcPoint = libredwg.dwg_dynapi_entity_value(entity, 'xline2end_pt')
-      .data as DwgPoint3D
+    const subDefinitionPoint1 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline1_pt')
+    const subDefinitionPoint2 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline2_pt')
+    const centerPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'center_pt')
+    const arcPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline2end_pt')
 
     return {
       subclassMarker: 'AcDb3PointAngularDimension',
@@ -593,10 +501,8 @@ export class LibreEntityConverter {
     const libredwg = this.libredwg
     const dimensionCommonAttrs = this.getDimensionCommonAttrs(entity)
     // TODO: Not sure whether 'first_arc_pt' is same as 'centerPoint'
-    const centerPoint = libredwg.dwg_dynapi_entity_value(entity, 'first_arc_pt')
-      .data as DwgPoint3D
-    const leaderLength = libredwg.dwg_dynapi_entity_value(entity, 'leader_len')
-      .data as number
+    const centerPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'first_arc_pt')
+    const leaderLength = libredwg.dwg_dynapi_entity_data<number>(entity, 'leader_len')
 
     return {
       subclassMarker: 'AcDbDiametricDimension',
@@ -614,15 +520,9 @@ export class LibreEntityConverter {
     const libredwg = this.libredwg
     const dimensionCommonAttrs = this.getDimensionCommonAttrs(entity)
     // TODO: Not sure whether 'feature_location_pt' is same as 'subDefinitionPoint1'
-    const subDefinitionPoint1 = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'feature_location_pt'
-    ).data as DwgPoint3D
+    const subDefinitionPoint1 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'feature_location_pt')
     // TODO: Not sure whether 'leader_endpt' is same as 'subDefinitionPoint2'
-    const subDefinitionPoint2 = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'leader_endpt'
-    ).data as DwgPoint3D
+    const subDefinitionPoint2 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'leader_endpt')
 
     return {
       subclassMarker: 'AcDbOrdinateDimension',
@@ -640,10 +540,8 @@ export class LibreEntityConverter {
     const libredwg = this.libredwg
     const dimensionCommonAttrs = this.getDimensionCommonAttrs(entity)
     // TODO: Not sure whether 'first_arc_pt' is same as 'centerPoint'
-    const centerPoint = libredwg.dwg_dynapi_entity_value(entity, 'first_arc_pt')
-      .data as DwgPoint3D
-    const leaderLength = libredwg.dwg_dynapi_entity_value(entity, 'leader_len')
-      .data as number
+    const centerPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'first_arc_pt')
+    const leaderLength = libredwg.dwg_dynapi_entity_data<number>(entity, 'leader_len')
 
     return {
       subclassMarker: 'AcDbRadialDimension',
@@ -659,22 +557,12 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgEllipseEntity {
     const libredwg = this.libredwg
-    const center = libredwg.dwg_dynapi_entity_value(entity, 'center')
-      .data as DwgPoint3D
-    const majorAxisEndPoint = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'sm_axis'
-    ).data as DwgPoint3D
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
-    const axisRatio = libredwg.dwg_dynapi_entity_value(entity, 'axis_ratio')
-      .data as number
-    const startAngle = libredwg.dwg_dynapi_entity_value(entity, 'start_angle')
-      .data as number
-    const endAngle = libredwg.dwg_dynapi_entity_value(entity, 'end_angle')
-      .data as number
+    const center = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'center')
+    const majorAxisEndPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'sm_axis')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const axisRatio = libredwg.dwg_dynapi_entity_data<number>(entity, 'axis_ratio')
+    const startAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'start_angle')
+    const endAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'end_angle')
 
     return {
       type: 'ELLIPSE',
@@ -693,60 +581,29 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgHatchEntity  {
     const libredwg = this.libredwg
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
-    const patternName = libredwg.dwg_dynapi_entity_value(entity, 'name')
-      .data as string
-    const isSolidFill = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'is_solid_fill'
-    ).data as number
-    const isAssociative = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'is_associative'
-    ).data as number
-    const numberOfBoundaryPaths = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_paths'
-    ).data as number
-    const paths_ptr = libredwg.dwg_dynapi_entity_value(entity, 'paths')
-      .data as number
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const patternName = libredwg.dwg_dynapi_entity_data<string>(entity, 'name')
+    const isSolidFill = libredwg.dwg_dynapi_entity_data<number>(entity, 'is_solid_fill')
+    const isAssociative = libredwg.dwg_dynapi_entity_data<number>(entity, 'is_associative')
+    const numberOfBoundaryPaths = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_paths')
+    const paths_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'paths')
     const boundaryPaths = libredwg.dwg_ptr_to_hatch_path_array(
       paths_ptr,
       numberOfBoundaryPaths
     )
-    const patternStyle = libredwg.dwg_dynapi_entity_value(entity, 'style')
-      .data as number
-    const patternType = libredwg.dwg_dynapi_entity_value(entity, 'pattern_type')
-      .data as number
-    const patternAngle = libredwg.dwg_dynapi_entity_value(entity, 'angle')
-      .data as number
-    const patternScale = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'scale_spacing'
-    ).data as number
-    const numberOfDefinitionLines = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_deflines'
-    ).data as number
-    const definitionLines_ptr = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'deflines'
-    ).data as number
+    const patternStyle = libredwg.dwg_dynapi_entity_data<number>(entity, 'style')
+    const patternType = libredwg.dwg_dynapi_entity_data<number>(entity, 'pattern_type')
+    const patternAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'angle')
+    const patternScale = libredwg.dwg_dynapi_entity_data<number>(entity, 'scale_spacing')
+    const numberOfDefinitionLines = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_deflines')
+    const definitionLines_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'deflines')
     const definitionLines = libredwg.dwg_ptr_to_hatch_defline_array(
       definitionLines_ptr,
       numberOfDefinitionLines
     )
-    const pixelSize = libredwg.dwg_dynapi_entity_value(entity, 'pixel_size')
-      .data as number
-    const numberOfSeedPoints = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_seeds'
-    ).data as number
-    const seedPoints_ptr = libredwg.dwg_dynapi_entity_value(entity, 'seeds')
-      .data as number
+    const pixelSize = libredwg.dwg_dynapi_entity_data<number>(entity, 'pixel_size')
+    const numberOfSeedPoints = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_seeds')
+    const seedPoints_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'seeds')
     const seedPoints = libredwg.dwg_ptr_to_point2d_array(
       seedPoints_ptr,
       numberOfSeedPoints
@@ -787,23 +644,16 @@ export class LibreEntityConverter {
       // gradientFlag?: DwgHatchGradientFlag
     }
 
-    const gradientFlag = libredwg.dwg_dynapi_entity_value(entity, 'is_gradient_fill')
-      .data as number
+    const gradientFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'is_gradient_fill')
     if (gradientFlag > 0) {
-      const gradientName = libredwg.dwg_dynapi_entity_value(entity, 'gradient_name')
-        .data as string
-      const gradientRotation = libredwg.dwg_dynapi_entity_value(entity, 'gradient_angle')
-        .data as number
-      const gradientDefinition = libredwg.dwg_dynapi_entity_value(entity, 'gradient_shift')
-        .data as number
-      const colorTint = libredwg.dwg_dynapi_entity_value(entity, 'gradient_tint')
-        .data as number
-      const gradientColorFlag = libredwg.dwg_dynapi_entity_value(entity, 'single_color_gradient')
-        .data as number
+      const gradientName = libredwg.dwg_dynapi_entity_data<string>(entity, 'gradient_name')
+      const gradientRotation = libredwg.dwg_dynapi_entity_data<number>(entity, 'gradient_angle')
+      const gradientDefinition = libredwg.dwg_dynapi_entity_data<number>(entity, 'gradient_shift')
+      const colorTint = libredwg.dwg_dynapi_entity_data<number>(entity, 'gradient_tint')
+      const gradientColorFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'single_color_gradient')
       // const numberOfColors = libredwg.dwg_dynapi_entity_value(entity, 'num_colors')
       //   .data as number
-      const gradientColors_ptr = libredwg.dwg_dynapi_entity_value(entity, 'colors')
-        .data as number
+      const gradientColors_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'colors')
       const gradientColors = libredwg.dwg_ptr_to_hatch_gradient_color_array(gradientColors_ptr, (gradientColorFlag == 1) ? 1 : 2)
 
       return {
@@ -907,52 +757,29 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgImageEntity {
     const libredwg = this.libredwg
-    const version = libredwg.dwg_dynapi_entity_value(entity, 'class_version')
-      .data as number
-    const position = libredwg.dwg_dynapi_entity_value(entity, 'pt0')
-      .data as DwgPoint3D
-    const uPixel = libredwg.dwg_dynapi_entity_value(entity, 'uvec')
-      .data as DwgPoint3D
-    const vPixel = libredwg.dwg_dynapi_entity_value(entity, 'vvec')
-      .data as DwgPoint3D
-    const imageSize = libredwg.dwg_dynapi_entity_value(entity, 'image_size')
-      .data as DwgPoint2D
-    const flags = libredwg.dwg_dynapi_entity_value(entity, 'display_props')
-      .data as number
-    const clipping = libredwg.dwg_dynapi_entity_value(entity, 'clipping')
-      .data as number
-    const brightness = libredwg.dwg_dynapi_entity_value(entity, 'brightness')
-      .data as number
-    const contrast = libredwg.dwg_dynapi_entity_value(entity, 'contrast')
-      .data as number
-    const fade = libredwg.dwg_dynapi_entity_value(entity, 'fade').data as number
-    const clipMode = libredwg.dwg_dynapi_entity_value(entity, 'clip_mode')
-      .data as number
-    const clippingBoundaryType = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'clip_boundary_type'
-    ).data as number
-    const countBoundaryPoints = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_clip_verts'
-    ).data as number
-    const clip_verts = libredwg.dwg_dynapi_entity_value(entity, 'clip_verts')
-      .data as number
+    const version = libredwg.dwg_dynapi_entity_data<number>(entity, 'class_version')
+    const position = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt0')
+    const uPixel = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'uvec')
+    const vPixel = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'vvec')
+    const imageSize = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'image_size')
+    const flags = libredwg.dwg_dynapi_entity_data<number>(entity, 'display_props')
+    const clipping = libredwg.dwg_dynapi_entity_data<number>(entity, 'clipping')
+    const brightness = libredwg.dwg_dynapi_entity_data<number>(entity, 'brightness')
+    const contrast = libredwg.dwg_dynapi_entity_data<number>(entity, 'contrast')
+    const fade = libredwg.dwg_dynapi_entity_data<number>(entity, 'fade')
+    const clipMode = libredwg.dwg_dynapi_entity_data<number>(entity, 'clip_mode')
+    const clippingBoundaryType = libredwg.dwg_dynapi_entity_data<number>(entity, 'clip_boundary_type')
+    const countBoundaryPoints = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_clip_verts')
+    const clip_verts = libredwg.dwg_dynapi_entity_data<number>(entity, 'clip_verts')
     const clippingBoundaryPath = libredwg.dwg_ptr_to_point3d_array(
       clip_verts,
       countBoundaryPoints
     )
 
-    const imagedef_ref = libredwg.dwg_dynapi_entity_value(entity, 'imagedef')
-      .data as number
-    const imageDefHandle = idToString(libredwg.dwg_ref_get_absref(imagedef_ref))
-    const imagedefreactor_ref = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'imagedefreactor'
-    ).data as number
-    const imageDefReactorHandle = idToString(
-      libredwg.dwg_ref_get_absref(imagedefreactor_ref)
-    )
+    const imagedef_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'imagedef')
+    const imageDefHandle = (libredwg.dwg_ref_get_id(imagedef_ref) ?? '')
+    const imagedefreactor_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'imagedefreactor')
+    const imageDefReactorHandle = (libredwg.dwg_ref_get_id(imagedefreactor_ref) ?? '')
 
     return {
       type: 'IMAGE',
@@ -985,10 +812,7 @@ export class LibreEntityConverter {
 
     // Get block name
     let name = ''
-    const block_header_ref = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'block_header'
-    ).data as number
+    const block_header_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'block_header')
     if (block_header_ref) {
       const block_header_obj = libredwg.dwg_ref_get_object(block_header_ref)
       if (block_header_obj) {
@@ -1002,30 +826,17 @@ export class LibreEntityConverter {
     }
     if (!name) {
       /* pre-R2.0 */
-      name = libredwg.dwg_dynapi_entity_value(entity, 'block_name')
-        .data as string
+      name = libredwg.dwg_dynapi_entity_data<string>(entity, 'block_name')
     }
 
-    const insertionPoint = libredwg.dwg_dynapi_entity_value(entity, 'ins_pt')
-      .data as DwgPoint3D
-    const scale = libredwg.dwg_dynapi_entity_value(entity, 'scale')
-      .data as DwgPoint3D | null
-    const rotation = libredwg.dwg_dynapi_entity_value(entity, 'rotation')
-      .data as number
-    const columnCount = libredwg.dwg_dynapi_entity_value(entity, 'num_cols')
-      .data as number
-    const rowCount = libredwg.dwg_dynapi_entity_value(entity, 'num_rows')
-      .data as number
-    const columnSpacing = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'col_spacing'
-    ).data as number
-    const rowSpacing = libredwg.dwg_dynapi_entity_value(entity, 'row_spacing')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
+    const scale = libredwg.dwg_dynapi_entity_data<DwgPoint3D | null>(entity, 'scale')
+    const rotation = libredwg.dwg_dynapi_entity_data<number>(entity, 'rotation')
+    const columnCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cols')
+    const rowCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_rows')
+    const columnSpacing = libredwg.dwg_dynapi_entity_data<number>(entity, 'col_spacing')
+    const rowSpacing = libredwg.dwg_dynapi_entity_data<number>(entity, 'row_spacing')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     const attrib_ptr_array = libredwg.dwg_entity_insert_get_attribs(entity)
     const attribs: DwgAttribEntity[] = []
@@ -1067,56 +878,24 @@ export class LibreEntityConverter {
   ): DwgLeaderEntity {
     const libredwg = this.libredwg
     const styleName = libredwg.dwg_entity_mtext_get_style_name(entity)
-    const isArrowheadEnabled = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'arrowhead_type'
-    ).data as number
-    const isSpline = libredwg.dwg_dynapi_entity_value(entity, 'path_type')
-      .data as number
-    const leaderCreationFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'annot_type'
-    ).data as number
-    const isHooklineSameDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'hookline_dir'
-    ).data as number
-    const isHooklineExists = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'hookline_on'
-    ).data as number
-    const textHeight = libredwg.dwg_dynapi_entity_value(entity, 'box_height')
-      .data as number
-    const textWidth = libredwg.dwg_dynapi_entity_value(entity, 'box_width')
-      .data as number
-    const numberOfVertices = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_points'
-    ).data as number
-    const vertices_ptr = libredwg.dwg_dynapi_entity_value(entity, 'points')
-      .data as number
+    const isArrowheadEnabled = libredwg.dwg_dynapi_entity_data<number>(entity, 'arrowhead_type')
+    const isSpline = libredwg.dwg_dynapi_entity_data<number>(entity, 'path_type')
+    const leaderCreationFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'annot_type')
+    const isHooklineSameDirection = libredwg.dwg_dynapi_entity_data<number>(entity, 'hookline_dir')
+    const isHooklineExists = libredwg.dwg_dynapi_entity_data<number>(entity, 'hookline_on')
+    const textHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'box_height')
+    const textWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'box_width')
+    const numberOfVertices = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_points')
+    const vertices_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'points')
     const vertices =
       numberOfVertices > 0
         ? libredwg.dwg_ptr_to_point3d_array(vertices_ptr, numberOfVertices)
         : []
-    const byBlockColor = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'byblock_color'
-    ).data as number
-    const normal = libredwg.dwg_dynapi_entity_value(entity, 'extrusion')
-      .data as DwgPoint3D
-    const horizontalDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'x_direction'
-    ).data as DwgPoint3D
-    const offsetFromBlock = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'inspt_offset'
-    ).data as DwgPoint3D
-    const offsetFromAnnotation = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'endptproj'
-    ).data as DwgPoint3D
+    const byBlockColor = libredwg.dwg_dynapi_entity_data<number>(entity, 'byblock_color')
+    const normal = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const horizontalDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'x_direction')
+    const offsetFromBlock = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'inspt_offset')
+    const offsetFromAnnotation = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'endptproj')
 
     return {
       type: 'LEADER',
@@ -1144,16 +923,10 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgLineEntity {
     const libredwg = this.libredwg
-    const startPoint = libredwg.dwg_dynapi_entity_value(entity, 'start')
-      .data as DwgPoint3D
-    const endPoint = libredwg.dwg_dynapi_entity_value(entity, 'end')
-      .data as DwgPoint3D
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const startPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'start')
+    const endPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'end')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     return {
       type: 'LINE',
@@ -1170,34 +943,19 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgLWPolylineEntity {
     const libredwg = this.libredwg
-    const numberOfVertices = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_points'
-    ).data as number
-    const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
-    const constantWidth = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'const_width'
-    ).data as number
-    const elevation = libredwg.dwg_dynapi_entity_value(entity, 'elevation')
-      .data as number
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const numberOfVertices = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_points')
+    const flag = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag')
+    const constantWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'const_width')
+    const elevation = libredwg.dwg_dynapi_entity_data<number>(entity, 'elevation')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     const vertices: DwgLWPolylineVertex[] = []
-    const num_points = libredwg.dwg_dynapi_entity_value(entity, 'num_points')
-      .data as number
-    const points_ptr = libredwg.dwg_dynapi_entity_value(entity, 'points')
-      .data as number
+    const num_points = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_points')
+    const points_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'points')
     const points = libredwg.dwg_ptr_to_point2d_array(points_ptr, num_points)
-    const num_bulges = libredwg.dwg_dynapi_entity_value(entity, 'num_bulges')
-      .data as number
-    const bulges_ptr = libredwg.dwg_dynapi_entity_value(entity, 'bulges')
-      .data as number
+    const num_bulges = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_bulges')
+    const bulges_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'bulges')
     const bulges = libredwg.dwg_ptr_to_double_array(bulges_ptr, num_bulges)
     points.forEach((point, index) => {
       vertices.push({
@@ -1226,28 +984,14 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgMLineEntity {
     const libredwg = this.libredwg
-    const scale = libredwg.dwg_dynapi_entity_value(entity, 'scale')
-      .data as number
-    const flags = libredwg.dwg_dynapi_entity_value(entity, 'flags')
-      .data as number
-    const justification = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'justification'
-    ).data as number
-    const startPoint = libredwg.dwg_dynapi_entity_value(entity, 'base_point')
-      .data as DwgPoint3D
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
-    const numberOfLines = libredwg.dwg_dynapi_entity_value(entity, 'num_lines')
-      .data as number
-    const numberOfVertices = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_verts'
-    ).data as number
-    const verts_ptr = libredwg.dwg_dynapi_entity_value(entity, 'verts')
-      .data as number
+    const scale = libredwg.dwg_dynapi_entity_data<number>(entity, 'scale')
+    const flags = libredwg.dwg_dynapi_entity_data<number>(entity, 'flags')
+    const justification = libredwg.dwg_dynapi_entity_data<number>(entity, 'justification')
+    const startPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'base_point')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const numberOfLines = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_lines')
+    const numberOfVertices = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_verts')
+    const verts_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'verts')
     const verts = libredwg.dwg_ptr_to_mline_vertex_array(
       verts_ptr,
       numberOfVertices
@@ -1286,29 +1030,557 @@ export class LibreEntityConverter {
     }
   }
 
+  private convertMultiLeader(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgMultiLeaderEntity {
+    const libredwg = this.libredwg
+    const entityVal = <T>(field: string) => libredwg.dwg_dynapi_entity_data<T>(entity, field)
+    const subclassVal = <T>(ptr: number, subclass: string, field: string) => libredwg.dwg_dynapi_subclass_data<T>(ptr, subclass, field)
+    const refToId = (ref: number) => libredwg.dwg_ref_get_id(ref)
+    const asBool = (value: number) => value > 0
+    const mleaderColor = (color: Dwg_Color | undefined) =>
+      color != null ? dwgColorToMLeaderRawColor(color) : undefined
+
+    const version = entityVal<number>('class_version')
+    const leaderStyleId = refToId(entityVal<number>('mleaderstyle'))
+    const propertyOverrideFlag = entityVal<number>('flags')
+    const leaderLineType = entityVal<number>('type')
+    const leaderLineColor = mleaderColor(entityVal<Dwg_Color>('line_color'))
+    const leaderLineTypeId = refToId(entityVal<number>('line_ltype'))
+    const leaderLineWeight = entityVal<number>('line_linewt')
+    const landingEnabled = asBool(entityVal<number>('has_landing'))
+    const doglegEnabled = asBool(entityVal<number>('has_dogleg'))
+    const doglegLength = entityVal<number>('landing_dist')
+    const arrowheadId = refToId(entityVal<number>('arrow_handle'))
+    const arrowheadSize = entityVal<number>('arrow_size')
+    const contentType = entityVal<number>('style_content')
+    const textStyleId = refToId(entityVal<number>('text_style'))
+    const textLeftAttachmentType = entityVal<number>('text_left')
+    const textRightAttachmentType = entityVal<number>('text_right')
+    const textAngleType = entityVal<number>('text_angletype')
+    const textAlignmentType = entityVal<number>('text_alignment')
+    const textColor = mleaderColor(entityVal<Dwg_Color>('text_color'))
+    const textFrameEnabled = asBool(entityVal<number>('has_text_frame'))
+    const blockContentId = refToId(entityVal<number>('block_style'))
+    const blockContentColor = mleaderColor(entityVal<Dwg_Color>('block_color'))
+    const blockContentScale = entityVal<DwgPoint3D>('block_scale')
+    const blockContentRotation = entityVal<number>('block_rotation')
+    const blockContentConnectionType = entityVal<number>('style_attachment')
+    const annotativeScaleEnabled = asBool(entityVal<number>('is_annotative'))
+    const textDirectionNegative = asBool(entityVal<number>('is_neg_textdir'))
+    const textAlignInIPE = entityVal<number>('ipe_alignment')
+    let textAttachmentPoint = entityVal<number>('justification')
+    const textAttachmentDirection = entityVal<number>('attach_dir')
+    const bottomTextAttachmentDirection = entityVal<number>('attach_bottom')
+    const topTextAttachmentDirection = entityVal<number>('attach_top')
+    const contentScale = entityVal<number>('scale_factor')
+
+    const numArrowheads = entityVal<number>('num_arrowheads')
+    const arrowheadsPtr = entityVal<number>('arrowheads')
+    const arrowHeadSize = libredwg.dwg_dynapi_subclass_size('LEADER_ArrowHead')
+    const arrowheadOverrides: DwgMultiLeaderIndexedHandle[] = []
+    for (let i = 0; i < numArrowheads; i++) {
+      const arrowheadPtr = arrowheadsPtr + i * arrowHeadSize
+      arrowheadOverrides.push({
+        index: subclassVal<number>(arrowheadPtr, 'LEADER_ArrowHead', 'is_default'),
+        handle: refToId(
+          subclassVal<number>(arrowheadPtr, 'LEADER_ArrowHead', 'arrowhead')
+        ) ?? ''
+      })
+    }
+
+    const numBlocklabels = entityVal<number>('num_blocklabels')
+    const blocklabelsPtr = entityVal<number>('blocklabels')
+    const blockLabelSize = libredwg.dwg_dynapi_subclass_size('LEADER_BlockLabel')
+    const blockAttributes: DwgMultiLeaderBlockAttribute[] = []
+    for (let i = 0; i < numBlocklabels; i++) {
+      const blocklabelPtr = blocklabelsPtr + i * blockLabelSize
+      blockAttributes.push({
+        id: refToId(
+          subclassVal<number>(blocklabelPtr, 'LEADER_BlockLabel', 'attdef')
+        ),
+        index: subclassVal<number>(
+          blocklabelPtr,
+          'LEADER_BlockLabel',
+          'ui_index'
+        ),
+        width: subclassVal<number>(blocklabelPtr, 'LEADER_BlockLabel', 'width'),
+        text: subclassVal<string>(
+          blocklabelPtr,
+          'LEADER_BlockLabel',
+          'label_text'
+        )
+      })
+    }
+
+    const ctxPtr =
+      entity + libredwg.dwg_dynapi_entity_field_offset(entity, 'ctx')
+    const contentPtr =
+      ctxPtr +
+      libredwg.dwg_dynapi_subclass_field_offset(
+        'MLEADER_AnnotContext',
+        'content'
+      )
+    const contentScaleFactor = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'scale_factor'
+    )
+    const contentBasePosition = subclassVal<DwgPoint3D>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'content_base'
+    )
+    const landingGap = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'landing_gap'
+    )
+    const textAttachment = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'attach_dir'
+    )
+    const contextTextHeight = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'text_height'
+    )
+    const contextArrowSize = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'arrow_size'
+    )
+    const contextTextLeft = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'text_left'
+    )
+    const contextTextRight = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'text_right'
+    )
+    const contextTextAngleType = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'text_angletype'
+    )
+    const contextTextAlignment = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'text_alignment'
+    )
+    const hasMText = asBool(
+      subclassVal<number>(ctxPtr, 'MLEADER_AnnotContext', 'has_content_txt')
+    )
+    const hasBlock = asBool(
+      subclassVal<number>(ctxPtr, 'MLEADER_AnnotContext', 'has_content_blk')
+    )
+    const planeOrigin = subclassVal<DwgPoint3D>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'base'
+    )
+    const planeXAxisDirection = subclassVal<DwgPoint3D>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'base_dir'
+    )
+    const planeYAxisDirection = subclassVal<DwgPoint3D>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'base_vert'
+    )
+    const planeNormalReversed = asBool(
+      subclassVal<number>(ctxPtr, 'MLEADER_AnnotContext', 'is_normal_reversed')
+    )
+
+    let textFlowDirection: number | undefined
+    let normal: DwgPoint3D | undefined
+    let textRotation: number | undefined
+    let textWidth: number | undefined
+    let textLineSpacingFactor: number | undefined
+    let textLineSpacingStyle: number | undefined
+    let textAnchor: DwgPoint3D | undefined
+    let textDirection: DwgPoint3D | undefined
+    let textBackgroundColor: number | undefined
+    let textBackgroundScaleFactor: number | undefined
+    let textBackgroundTransparency: number | undefined
+    let textBackgroundColorOn: boolean | undefined
+    let textFillOn: boolean | undefined
+    let textColumnType: number | undefined
+    let textUseAutoHeight: boolean | undefined
+    let textColumnWidth: number | undefined
+    let textColumnGutterWidth: number | undefined
+    let textColumnFlowReversed: boolean | undefined
+    let textColumnHeight: number | undefined
+    let textUseWordBreak: boolean | undefined
+    let textContent: string | undefined
+
+    if (hasMText) {
+      const textAlignment = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'alignment'
+      )
+      if (textAlignment != null && textAlignment !== 0) {
+        textAttachmentPoint = textAlignment
+      }
+      normal = subclassVal<DwgPoint3D>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'normal'
+      )
+      textAnchor = subclassVal<DwgPoint3D>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'location'
+      )
+      textRotation = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'rotation'
+      )
+      textDirection = subclassVal<DwgPoint3D>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'direction'
+      )
+      textWidth = subclassVal<number>(contentPtr, 'MLEADER_Content_MText', 'width')
+      textLineSpacingFactor = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'line_spacing_factor'
+      )
+      textLineSpacingStyle = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'line_spacing_style'
+      )
+      textFlowDirection = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'flow'
+      )
+      textBackgroundColor = mleaderColor(
+        subclassVal<Dwg_Color>(
+          contentPtr,
+          'MLEADER_Content_MText',
+          'bg_color'
+        )
+      )
+      textBackgroundScaleFactor = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'bg_scale'
+      )
+      textBackgroundTransparency = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'bg_transparency'
+      )
+      textFillOn = asBool(
+        subclassVal<number>(contentPtr, 'MLEADER_Content_MText', 'is_bg_fill')
+      )
+      textBackgroundColorOn = asBool(
+        subclassVal<number>(
+          contentPtr,
+          'MLEADER_Content_MText',
+          'is_bg_mask_fill'
+        )
+      )
+      textColumnType = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'col_type'
+      )
+      textUseAutoHeight = asBool(
+        subclassVal<number>(
+          contentPtr,
+          'MLEADER_Content_MText',
+          'is_height_auto'
+        )
+      )
+      textColumnWidth = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'col_width'
+      )
+      textColumnGutterWidth = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'col_gutter'
+      )
+      textColumnFlowReversed = asBool(
+        subclassVal<number>(
+          contentPtr,
+          'MLEADER_Content_MText',
+          'is_col_flow_reversed'
+        )
+      )
+      const numColSizes = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'num_col_sizes'
+      )
+      const colSizesPtr = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'col_sizes'
+      )
+      if (numColSizes > 0) {
+        textColumnHeight = libredwg.dwg_ptr_to_double_array(
+          colSizesPtr,
+          numColSizes
+        )[0]
+      }
+      textUseWordBreak = asBool(
+        subclassVal<number>(contentPtr, 'MLEADER_Content_MText', 'word_break')
+      )
+      textContent = subclassVal<string>(
+        contentPtr,
+        'MLEADER_Content_MText',
+        'default_text'
+      )
+    }
+
+    let blockContent: DwgMultiLeaderBlockContent | undefined
+    if (hasBlock) {
+      const transformPtr = subclassVal<number>(
+        contentPtr,
+        'MLEADER_Content_Block',
+        'transform'
+      )
+      blockContent = {
+        blockContentId: refToId(
+          subclassVal<number>(contentPtr, 'MLEADER_Content_Block', 'block_table')
+        ),
+        normal: subclassVal<DwgPoint3D>(
+          contentPtr,
+          'MLEADER_Content_Block',
+          'normal'
+        ),
+        position: subclassVal<DwgPoint3D>(
+          contentPtr,
+          'MLEADER_Content_Block',
+          'location'
+        ),
+        scale: subclassVal<DwgPoint3D>(
+          contentPtr,
+          'MLEADER_Content_Block',
+          'scale'
+        ),
+        rotation: subclassVal<number>(
+          contentPtr,
+          'MLEADER_Content_Block',
+          'rotation'
+        ),
+        color: mleaderColor(
+          subclassVal<Dwg_Color>(
+            contentPtr,
+            'MLEADER_Content_Block',
+            'color'
+          )
+        ),
+        transformationMatrix: transformPtr
+          ? libredwg.dwg_ptr_to_double_array(transformPtr, 16)
+          : undefined
+      }
+    }
+
+    const numLeaders = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'num_leaders'
+    )
+    const leadersPtr = subclassVal<number>(
+      ctxPtr,
+      'MLEADER_AnnotContext',
+      'leaders'
+    )
+    const leaderNodeSize = libredwg.dwg_dynapi_subclass_size('LEADER_Node')
+    const leaderLineSize = libredwg.dwg_dynapi_subclass_size('LEADER_Line')
+    const leaderBreakSize = libredwg.dwg_dynapi_subclass_size('LEADER_Break')
+    const leaderSections: DwgMultiLeaderLeaderSection[] = []
+    for (let i = 0; i < numLeaders; i++) {
+      const nodePtr = leadersPtr + i * leaderNodeSize
+      const lastLeaderLinePointSet = asBool(
+        subclassVal<number>(nodePtr, 'LEADER_Node', 'has_lastleaderlinepoint')
+      )
+      const doglegVectorSet = asBool(
+        subclassVal<number>(nodePtr, 'LEADER_Node', 'has_dogleg')
+      )
+      const numBreaks = subclassVal<number>(nodePtr, 'LEADER_Node', 'num_breaks')
+      const breaksPtr = subclassVal<number>(nodePtr, 'LEADER_Node', 'breaks')
+      const nodeBreaks: DwgMultiLeaderBreak[] = []
+      for (let j = 0; j < numBreaks; j++) {
+        const breakPtr = breaksPtr + j * leaderBreakSize
+        nodeBreaks.push({
+          start: subclassVal<DwgPoint3D>(breakPtr, 'LEADER_Break', 'start'),
+          end: subclassVal<DwgPoint3D>(breakPtr, 'LEADER_Break', 'end')
+        })
+      }
+
+      const numLines = subclassVal<number>(nodePtr, 'LEADER_Node', 'num_lines')
+      const linesPtr = subclassVal<number>(nodePtr, 'LEADER_Node', 'lines')
+      const leaderLines: DwgMultiLeaderLeaderLine[] = []
+      for (let j = 0; j < numLines; j++) {
+        const linePtr = linesPtr + j * leaderLineSize
+        const numPoints = subclassVal<number>(
+          linePtr,
+          'LEADER_Line',
+          'num_points'
+        )
+        const pointsPtr = subclassVal<number>(linePtr, 'LEADER_Line', 'points')
+        const vertices =
+          numPoints > 0
+            ? libredwg.dwg_ptr_to_point3d_array(pointsPtr, numPoints)
+            : []
+        const lineNumBreaks = subclassVal<number>(
+          linePtr,
+          'LEADER_Line',
+          'num_breaks'
+        )
+        const lineBreaksPtr = subclassVal<number>(
+          linePtr,
+          'LEADER_Line',
+          'breaks'
+        )
+        const lineBreaks: DwgMultiLeaderBreak[] = []
+        for (let k = 0; k < lineNumBreaks; k++) {
+          const breakPtr = lineBreaksPtr + k * leaderBreakSize
+          lineBreaks.push({
+            start: subclassVal<DwgPoint3D>(breakPtr, 'LEADER_Break', 'start'),
+            end: subclassVal<DwgPoint3D>(breakPtr, 'LEADER_Break', 'end')
+          })
+        }
+        leaderLines.push({
+          vertices,
+          leaderLineIndex: subclassVal<number>(
+            linePtr,
+            'LEADER_Line',
+            'line_index'
+          ),
+          breaks: lineBreaks.length > 0 ? lineBreaks : undefined
+        })
+      }
+
+      leaderSections.push({
+        lastLeaderLinePoint: lastLeaderLinePointSet
+          ? subclassVal<DwgPoint3D>(
+              nodePtr,
+              'LEADER_Node',
+              'lastleaderlinepoint'
+            )
+          : undefined,
+        lastLeaderLinePointSet,
+        doglegVector: doglegVectorSet
+          ? subclassVal<DwgPoint3D>(nodePtr, 'LEADER_Node', 'dogleg_vector')
+          : undefined,
+        doglegVectorSet,
+        doglegLength: subclassVal<number>(nodePtr, 'LEADER_Node', 'dogleg_length'),
+        breaks: nodeBreaks.length > 0 ? nodeBreaks : undefined,
+        leaderBranchIndex: subclassVal<number>(
+          nodePtr,
+          'LEADER_Node',
+          'branch_index'
+        ),
+        leaderLines
+      })
+    }
+
+    return {
+      type: 'MULTILEADER',
+      ...commonAttrs,
+      subclassMarker: 'AcDbMLeader',
+      version,
+      leaderStyleId,
+      propertyOverrideFlag,
+      leaderLineType,
+      leaderLineColor,
+      leaderLineTypeId,
+      leaderLineWeight,
+      landingEnabled,
+      doglegEnabled,
+      doglegLength,
+      arrowheadId,
+      arrowheadSize: arrowheadSize || contextArrowSize,
+      contentType,
+      textStyleId,
+      textLeftAttachmentType: textLeftAttachmentType || contextTextLeft,
+      textRightAttachmentType: textRightAttachmentType || contextTextRight,
+      textAngleType: textAngleType || contextTextAngleType,
+      textAlignmentType: textAlignmentType || contextTextAlignment,
+      textColor,
+      textFrameEnabled,
+      landingGap,
+      textAttachment,
+      textFlowDirection,
+      blockContentId,
+      blockContentColor,
+      blockContentScale,
+      blockContentRotation,
+      blockContentConnectionType,
+      annotativeScaleEnabled,
+      arrowheadOverrides:
+        arrowheadOverrides.length > 0 ? arrowheadOverrides : undefined,
+      blockAttributes: blockAttributes.length > 0 ? blockAttributes : undefined,
+      textDirectionNegative,
+      textAlignInIPE,
+      textAttachmentPoint,
+      textAttachmentDirection,
+      bottomTextAttachmentDirection,
+      topTextAttachmentDirection,
+      contentScale: contentScale || contentScaleFactor,
+      contentBasePosition,
+      normal,
+      textHeight: contextTextHeight,
+      textRotation,
+      textWidth,
+      textLineSpacingFactor,
+      textLineSpacingStyle,
+      textAnchor,
+      textDirection,
+      textBackgroundColor,
+      textBackgroundScaleFactor,
+      textBackgroundTransparency,
+      textBackgroundColorOn,
+      textFillOn,
+      textColumnType,
+      textUseAutoHeight,
+      textColumnWidth,
+      textColumnGutterWidth,
+      textColumnFlowReversed,
+      textColumnHeight,
+      textUseWordBreak,
+      textContent,
+      hasMText,
+      hasBlock,
+      blockContent,
+      planeOrigin,
+      planeXAxisDirection,
+      planeYAxisDirection,
+      planeNormalReversed,
+      leaderSections: leaderSections.length > 0 ? leaderSections : undefined
+    }
+  }
+
   private convertOle2Frame(
     entity: Dwg_Object_Entity_Ptr,
     commonAttrs: DwgCommonAttributes
   ): DwgOle2FrameEntity {
     const libredwg = this.libredwg
-    const oleVersion = libredwg.dwg_dynapi_entity_value(entity, 'oleversion')
-      .data as number
-    const oleClient = libredwg.dwg_dynapi_entity_value(entity, 'oleclient')
-      .data as string
-    const dataSize = libredwg.dwg_dynapi_entity_value(entity, 'data_size')
-      .data as number
-    const leftUpPoint = libredwg.dwg_dynapi_entity_value(entity, 'pt1')
-      .data as DwgPoint3D
-    const rightDownPoint = libredwg.dwg_dynapi_entity_value(entity, 'pt2')
-      .data as DwgPoint3D
-    const lockAspect = libredwg.dwg_dynapi_entity_value(entity, 'lock_aspect')
-      .data as number
-    const oleObjectType = libredwg.dwg_dynapi_entity_value(entity, 'type')
-      .data as number
-    const tileModeDescriptor = libredwg.dwg_dynapi_entity_value(entity, 'mode')
-      .data as number
-    const binaryData = libredwg.dwg_dynapi_entity_value(entity, 'data')
-      .data as string
+    const oleVersion = libredwg.dwg_dynapi_entity_data<number>(entity, 'oleversion')
+    const oleClient = libredwg.dwg_dynapi_entity_data<string>(entity, 'oleclient')
+    const dataSize = libredwg.dwg_dynapi_entity_data<number>(entity, 'data_size')
+    const leftUpPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt1')
+    const rightDownPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt2')
+    const lockAspect = libredwg.dwg_dynapi_entity_data<number>(entity, 'lock_aspect')
+    const oleObjectType = libredwg.dwg_dynapi_entity_data<number>(entity, 'type')
+    const tileModeDescriptor = libredwg.dwg_dynapi_entity_data<number>(entity, 'mode')
+    const binaryData = libredwg.dwg_dynapi_entity_data<string>(entity, 'data')
     return {
       type: 'OLE2FRAME',
       ...commonAttrs,
@@ -1329,12 +1601,10 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgOleFrameEntity {
     const libredwg = this.libredwg
-    const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
-    const mode = libredwg.dwg_dynapi_entity_value(entity, 'mode').data as number
-    const dataSize = libredwg.dwg_dynapi_entity_value(entity, 'data_size')
-      .data as number
-    const binaryData = libredwg.dwg_dynapi_entity_value(entity, 'data')
-      .data as string
+    const flag = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag')
+    const mode = libredwg.dwg_dynapi_entity_data<number>(entity, 'mode')
+    const dataSize = libredwg.dwg_dynapi_entity_data<number>(entity, 'data_size')
+    const binaryData = libredwg.dwg_dynapi_entity_data<string>(entity, 'data')
     return {
       type: 'OLEFRAME',
       ...commonAttrs,
@@ -1350,85 +1620,32 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgMTextEntity {
     const libredwg = this.libredwg
-    const insertionPoint = libredwg.dwg_dynapi_entity_value(entity, 'ins_pt')
-      .data as DwgPoint3D
-    const textHeight = libredwg.dwg_dynapi_entity_value(entity, 'text_height')
-      .data as number
-    const rectHeight = libredwg.dwg_dynapi_entity_value(entity, 'rect_height')
-      .data as number
-    const rectWidth = libredwg.dwg_dynapi_entity_value(entity, 'rect_width')
-      .data as number
-    const extentsWidth = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extents_width'
-    ).data as number
-    const extentsHeight = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extents_height'
-    ).data as number
-    const attachmentPoint = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'attachment'
-    ).data as number
-    const drawingDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'flow_dir'
-    ).data as number
-    const text = libredwg.dwg_dynapi_entity_value(entity, 'text').data as string
+    const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
+    const textHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'text_height')
+    const rectHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'rect_height')
+    const rectWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'rect_width')
+    const extentsWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'extents_width')
+    const extentsHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'extents_height')
+    const attachmentPoint = libredwg.dwg_dynapi_entity_data<number>(entity, 'attachment')
+    const drawingDirection = libredwg.dwg_dynapi_entity_data<number>(entity, 'flow_dir')
+    const text = libredwg.dwg_dynapi_entity_data<string>(entity, 'text')
     const styleName = libredwg.dwg_entity_mtext_get_style_name(entity)
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
-    const direction = libredwg.dwg_dynapi_entity_value(entity, 'x_axis_dir')
-      .data as DwgPoint3D
-    const lineSpacingStyle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'linespace_style'
-    ).data as number
-    const lineSpacing = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'linespace_factor'
-    ).data as number
-    const backgroundFill = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'bg_fill_flag'
-    ).data as number
-    const fillBoxScale = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'bg_fill_scale'
-    ).data as number
-    const backgroundFillColor = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'bg_fill_color'
-    ).data as Dwg_Color
-    const backgroundFillTransparency = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'bg_fill_trans'
-    ).data as number
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const direction = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'x_axis_dir')
+    const lineSpacingStyle = libredwg.dwg_dynapi_entity_data<number>(entity, 'linespace_style')
+    const lineSpacing = libredwg.dwg_dynapi_entity_data<number>(entity, 'linespace_factor')
+    const backgroundFill = libredwg.dwg_dynapi_entity_data<number>(entity, 'bg_fill_flag')
+    const fillBoxScale = libredwg.dwg_dynapi_entity_data<number>(entity, 'bg_fill_scale')
+    const backgroundFillColor = libredwg.dwg_dynapi_entity_data<Dwg_Color>(entity, 'bg_fill_color')
+    const backgroundFillTransparency = libredwg.dwg_dynapi_entity_data<number>(entity, 'bg_fill_trans')
 
-    const columnType = libredwg.dwg_dynapi_entity_value(entity, 'column_type')
-      .data as number
-    const columnFlowReversed = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'flow_reversed'
-    ).data as number
-    const columnAutoHeight = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'auto_height'
-    ).data as number
-    const columnWidth = libredwg.dwg_dynapi_entity_value(entity, 'column_width')
-      .data as number
-    const columnGutter = libredwg.dwg_dynapi_entity_value(entity, 'gutter')
-      .data as number
-    const columnHeightCount = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_column_heights'
-    ).data as number
-    const columnHeights_ptr = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'column_heights'
-    ).data as number
+    const columnType = libredwg.dwg_dynapi_entity_data<number>(entity, 'column_type')
+    const columnFlowReversed = libredwg.dwg_dynapi_entity_data<number>(entity, 'flow_reversed')
+    const columnAutoHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'auto_height')
+    const columnWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'column_width')
+    const columnGutter = libredwg.dwg_dynapi_entity_data<number>(entity, 'gutter')
+    const columnHeightCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_column_heights')
+    const columnHeights_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'column_heights')
     const columnHeights = libredwg.dwg_ptr_to_double_array(
       columnHeights_ptr,
       columnHeightCount
@@ -1473,17 +1690,12 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgPointEntity {
     const libredwg = this.libredwg
-    const x = libredwg.dwg_dynapi_entity_value(entity, 'x').data as number
-    const y = libredwg.dwg_dynapi_entity_value(entity, 'y').data as number
-    const z = libredwg.dwg_dynapi_entity_value(entity, 'z').data as number
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
-    const angle = libredwg.dwg_dynapi_entity_value(entity, 'x_ang')
-      .data as number
+    const x = libredwg.dwg_dynapi_entity_data<number>(entity, 'x')
+    const y = libredwg.dwg_dynapi_entity_data<number>(entity, 'y')
+    const z = libredwg.dwg_dynapi_entity_data<number>(entity, 'z')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const angle = libredwg.dwg_dynapi_entity_data<number>(entity, 'x_ang')
 
     return {
       type: 'POINT',
@@ -1501,21 +1713,13 @@ export class LibreEntityConverter {
     object: Dwg_Object_Ptr
   ): DwgPolyline2dEntity {
     const libredwg = this.libredwg
-    const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
-    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type')
-      .data as number
-    const startWidth = libredwg.dwg_dynapi_entity_value(entity, 'start_width')
-      .data as number
-    const endWidth = libredwg.dwg_dynapi_entity_value(entity, 'end_width')
-      .data as number
-    const elevation = libredwg.dwg_dynapi_entity_value(entity, 'elevation')
-      .data as number
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const flag = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag')
+    const smoothType = libredwg.dwg_dynapi_entity_data<number>(entity, 'curve_type')
+    const startWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'start_width')
+    const endWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'end_width')
+    const elevation = libredwg.dwg_dynapi_entity_data<number>(entity, 'elevation')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     const vertices = libredwg.dwg_entity_polyline_2d_get_vertices(object)
     return {
@@ -1553,17 +1757,11 @@ export class LibreEntityConverter {
     object: Dwg_Object_Ptr
   ): DwgPolyline3dEntity {
     const libredwg = this.libredwg
-    const flag = libredwg.dwg_dynapi_entity_value(entity, 'flag').data as number
-    const smoothType = libredwg.dwg_dynapi_entity_value(entity, 'curve_type')
-      .data as number
-    const startWidth = libredwg.dwg_dynapi_entity_value(entity, 'start_width')
-      .data as number
-    const endWidth = libredwg.dwg_dynapi_entity_value(entity, 'end_width')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const flag = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag')
+    const smoothType = libredwg.dwg_dynapi_entity_data<number>(entity, 'curve_type')
+    const startWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'start_width')
+    const endWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'end_width')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     const vertices = libredwg.dwg_entity_polyline_3d_get_vertices(object)
     return {
@@ -1591,26 +1789,12 @@ export class LibreEntityConverter {
     objectPtr: Dwg_Object_Ptr
   ): DwgProxyEntity {
     const libredwg = this.libredwg
-    const proxyEntityClassId = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'proxy_id'
-    ).data as number
-    const applicationEntityClassId = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'class_id'
-    ).data as number
-    const entityDataSize = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'data_numbits'
-    ).data as number
-    const objectDrawingFormat = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'version'
-    ).data as number
-    const fromDxf = libredwg.dwg_dynapi_entity_value(entity, 'from_dxf')
-      .data as number
-    const numObjIds = libredwg.dwg_dynapi_entity_value(entity, 'num_objids')
-      .data as number
+    const proxyEntityClassId = libredwg.dwg_dynapi_entity_data<number>(entity, 'proxy_id')
+    const applicationEntityClassId = libredwg.dwg_dynapi_entity_data<number>(entity, 'class_id')
+    const entityDataSize = libredwg.dwg_dynapi_entity_data<number>(entity, 'data_numbits')
+    const objectDrawingFormat = libredwg.dwg_dynapi_entity_data<number>(entity, 'version')
+    const fromDxf = libredwg.dwg_dynapi_entity_data<number>(entity, 'from_dxf')
+    const numObjIds = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_objids')
 
     const graphicsBytes = libredwg.dwg_entity_get_preview(objectPtr)
     const graphicsDataSize = graphicsBytes?.length ?? 0
@@ -1625,8 +1809,7 @@ export class LibreEntityConverter {
 
     let linkedObjectIds: string[] | undefined
     if (numObjIds > 0) {
-      const objidsPtr = libredwg.dwg_dynapi_entity_value(entity, 'objids')
-        .data as number
+      const objidsPtr = libredwg.dwg_dynapi_entity_data<number>(entity, 'objids')
       if (objidsPtr) {
         const objids = libredwg.dwg_ptr_to_object_ref_array(
           objidsPtr,
@@ -1691,10 +1874,8 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgRayEntity {
     const libredwg = this.libredwg
-    const firstPoint = libredwg.dwg_dynapi_entity_value(entity, 'point')
-      .data as DwgPoint3D
-    const unitDirection = libredwg.dwg_dynapi_entity_value(entity, 'vector')
-      .data as DwgPoint3D
+    const firstPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'point')
+    const unitDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'vector')
     return {
       type: 'RAY',
       ...commonAttrs,
@@ -1708,47 +1889,22 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgSectionEntity {
     const libredwg = this.libredwg
-    const state = libredwg.dwg_dynapi_entity_value(entity, 'state')
-      .data as number
-    const flags = libredwg.dwg_dynapi_entity_value(entity, 'flag')
-      .data as number
-    const name = libredwg.dwg_dynapi_entity_value(entity, 'name').data as string
-    const verticalDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'vert_dir'
-    ).data as DwgPoint3D
-    const topHeight = libredwg.dwg_dynapi_entity_value(entity, 'top_height')
-      .data as number
-    const bottomHeight = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'bottom_height'
-    ).data as number
-    const indicatorTransparency = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'indicator_alpha'
-    ).data as number
-    const indicatorColor = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'indicator_color'
-    ).data as Dwg_Color
-    const numberOfVertices = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_verts'
-    ).data as number
-    const vertices_ptr = libredwg.dwg_dynapi_entity_value(entity, 'verts')
-      .data as number
+    const state = libredwg.dwg_dynapi_entity_data<number>(entity, 'state')
+    const flags = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag')
+    const name = libredwg.dwg_dynapi_entity_data<string>(entity, 'name')
+    const verticalDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'vert_dir')
+    const topHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'top_height')
+    const bottomHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'bottom_height')
+    const indicatorTransparency = libredwg.dwg_dynapi_entity_data<number>(entity, 'indicator_alpha')
+    const indicatorColor = libredwg.dwg_dynapi_entity_data<Dwg_Color>(entity, 'indicator_color')
+    const numberOfVertices = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_verts')
+    const vertices_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'verts')
     const vertices =
       numberOfVertices > 0
         ? libredwg.dwg_ptr_to_point3d_array(vertices_ptr, numberOfVertices)
         : []
-    const numberOfBackLineVertices = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_blverts'
-    ).data as number
-    const backLineVertices_ptr = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'blverts'
-    ).data as number
+    const numberOfBackLineVertices = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_blverts')
+    const backLineVertices_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'blverts')
     const backLineVertices =
       numberOfBackLineVertices > 0
         ? libredwg.dwg_ptr_to_point3d_array(
@@ -1756,13 +1912,9 @@ export class LibreEntityConverter {
             numberOfBackLineVertices
           )
         : []
-    const geometrySettingHandle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'geometrySettingHardId'
-    ).data as number
-    const geometrySettingHardId = libredwg.dwg_ref_get_handle_absolute_ref(
-      geometrySettingHandle
-    )
+    const geometrySettingHandle = libredwg.dwg_dynapi_entity_data<number>(entity, 'geometrySettingHardId')
+    const geometrySettingHardId =
+      libredwg.dwg_ref_get_handle_absolute_ref(geometrySettingHandle) ?? 0n
     return {
       type: 'SECTION',
       ...commonAttrs,
@@ -1787,26 +1939,14 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgShapeEntity {
     const libredwg = this.libredwg
-    const insertionPoint = libredwg.dwg_dynapi_entity_value(entity, 'ins_pt')
-      .data as DwgPoint3D
-    const size = libredwg.dwg_dynapi_entity_value(entity, 'scale')
-      .data as number
-    const rotation = libredwg.dwg_dynapi_entity_value(entity, 'rotation')
-      .data as number
-    const xScale = libredwg.dwg_dynapi_entity_value(entity, 'width_factor')
-      .data as number
-    const obliqueAngle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'oblique_angle'
-    ).data as number
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
-    const shapeNumber = libredwg.dwg_dynapi_entity_value(entity, 'style_id')
-      .data as number
+    const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
+    const size = libredwg.dwg_dynapi_entity_data<number>(entity, 'scale')
+    const rotation = libredwg.dwg_dynapi_entity_data<number>(entity, 'rotation')
+    const xScale = libredwg.dwg_dynapi_entity_data<number>(entity, 'width_factor')
+    const obliqueAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'oblique_angle')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const shapeNumber = libredwg.dwg_dynapi_entity_data<number>(entity, 'style_id')
     const styleName = libredwg.dwg_entity_text_get_style_name(entity)
 
     return {
@@ -1830,20 +1970,12 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgSolidEntity {
     const libredwg = this.libredwg
-    const corner1 = libredwg.dwg_dynapi_entity_value(entity, 'corner1')
-      .data as DwgPoint2D
-    const corner2 = libredwg.dwg_dynapi_entity_value(entity, 'corner2')
-      .data as DwgPoint2D
-    const corner3 = libredwg.dwg_dynapi_entity_value(entity, 'corner3')
-      .data as DwgPoint2D
-    const corner4 = libredwg.dwg_dynapi_entity_value(entity, 'corner4')
-      .data as DwgPoint2D
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const corner1 = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'corner1')
+    const corner2 = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'corner2')
+    const corner3 = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'corner3')
+    const corner4 = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'corner4')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     return {
       type: 'SOLID',
@@ -1862,56 +1994,36 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgSplineEntity {
     const libredwg = this.libredwg
-    const flag = libredwg.dwg_dynapi_entity_value(entity, 'splineflags')
-      .data as number
-    const degree = libredwg.dwg_dynapi_entity_value(entity, 'degree')
-      .data as number
+    const flag = libredwg.dwg_dynapi_entity_data<number>(entity, 'splineflags')
+    const degree = libredwg.dwg_dynapi_entity_data<number>(entity, 'degree')
 
     // Convert knots
-    const knotTolerance = libredwg.dwg_dynapi_entity_value(entity, 'knot_tol')
-      .data as number
-    const numberOfKnots = libredwg.dwg_dynapi_entity_value(entity, 'num_knots')
-      .data as number
-    const knots_ptr = libredwg.dwg_dynapi_entity_value(entity, 'knots')
-      .data as number
+    const knotTolerance = libredwg.dwg_dynapi_entity_data<number>(entity, 'knot_tol')
+    const numberOfKnots = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_knots')
+    const knots_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'knots')
     const knots = libredwg.dwg_ptr_to_double_array(knots_ptr, numberOfKnots)
 
     // Convert fit points
-    const fitTolerance = libredwg.dwg_dynapi_entity_value(entity, 'fit_tol')
-      .data as number
-    const numberOfFitPoints = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_fit_pts'
-    ).data as number
-    const fit_pts_ptr = libredwg.dwg_dynapi_entity_value(entity, 'fit_pts')
-      .data as number
+    const fitTolerance = libredwg.dwg_dynapi_entity_data<number>(entity, 'fit_tol')
+    const numberOfFitPoints = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_fit_pts')
+    const fit_pts_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'fit_pts')
     const fitPoints = libredwg.dwg_ptr_to_point3d_array(
       fit_pts_ptr,
       numberOfFitPoints
     )
 
     // Convert control points
-    const weighted = libredwg.dwg_dynapi_entity_value(entity, 'weighted')
-      .data as number
-    const controlTolerance = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'ctrl_tol'
-    ).data as number
-    const numberOfControlPoints = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_ctrl_pts'
-    ).data as number
-    const ctrl_pts_ptr = libredwg.dwg_dynapi_entity_value(entity, 'ctrl_pts')
-      .data as number
+    const weighted = libredwg.dwg_dynapi_entity_data<number>(entity, 'weighted')
+    const controlTolerance = libredwg.dwg_dynapi_entity_data<number>(entity, 'ctrl_tol')
+    const numberOfControlPoints = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_ctrl_pts')
+    const ctrl_pts_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'ctrl_pts')
     const controlPoints = libredwg.dwg_ptr_to_point4d_array(
       ctrl_pts_ptr,
       numberOfControlPoints
     )
 
-    const startTangent = libredwg.dwg_dynapi_entity_value(entity, 'beg_tan_vec')
-      .data as DwgPoint3D
-    const endTangent = libredwg.dwg_dynapi_entity_value(entity, 'end_tan_vec')
-      .data as DwgPoint3D
+    const startTangent = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'beg_tan_vec')
+    const endTangent = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'end_tan_vec')
 
     return {
       type: 'SPLINE',
@@ -1945,72 +2057,32 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgTableEntity {
     const libredwg = this.libredwg
-    const name = libredwg.dwg_dynapi_subclass_value(entity, 'ldata', 'name')
-      .data as string
-    const startPoint = libredwg.dwg_dynapi_entity_value(entity, 'ins_pt')
-      .data as DwgPoint3D
-    const directionVector = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'horiz_direction'
-    ).data as DwgPoint3D
-    const tableValue = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'flag_for_table_value'
-    ).data as number
-    const rowCount = libredwg.dwg_dynapi_entity_value(entity, 'num_rows')
-      .data as number
-    const columnCount = libredwg.dwg_dynapi_entity_value(entity, 'num_cols')
-      .data as number
-    const row_heights_ptr = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'row_heights'
-    ).data as number
+    const name = libredwg.dwg_dynapi_subclass_data<string>(entity, 'ldata', 'name')
+    const startPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
+    const directionVector = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'horiz_direction')
+    const tableValue = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag_for_table_value')
+    const rowCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_rows')
+    const columnCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cols')
+    const row_heights_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'row_heights')
     const rowHeightArr = libredwg.dwg_ptr_to_double_array(
       row_heights_ptr,
       rowCount
     )
-    const col_widths_ptr = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'col_widths'
-    ).data as number
+    const col_widths_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'col_widths')
     const columnWidthArr = libredwg.dwg_ptr_to_double_array(
       col_widths_ptr,
       columnCount
     )
-    const table_style_ref = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'tablestyle'
-    ).data as number
-    const tableStyleId = idToString(
-      libredwg.dwg_ref_get_absref(table_style_ref)
-    )
-    const block_header_ref = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'block_header'
-    ).data as number
-    const blockRecordHandle = idToString(
-      libredwg.dwg_ref_get_absref(block_header_ref)
-    )
-    const overrideFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'table_flag_override'
-    ).data as number
-    const borderColorOverrideFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'border_color_overrides_flag'
-    ).data as number
-    const borderLineWeightOverrideFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'border_lineweight_overrides_flag'
-    ).data as number
-    const borderVisibilityOverrideFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'border_visibility_overrides_flag'
-    ).data as number
-    const num_cells = libredwg.dwg_dynapi_entity_value(entity, 'num_cells')
-      .data as number
-    const cells_ptr = libredwg.dwg_dynapi_entity_value(entity, 'cells')
-      .data as number
+    const table_style_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'tablestyle')
+    const tableStyleId = (libredwg.dwg_ref_get_id(table_style_ref) ?? '')
+    const block_header_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'block_header')
+    const blockRecordHandle = (libredwg.dwg_ref_get_id(block_header_ref) ?? '')
+    const overrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'table_flag_override')
+    const borderColorOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_color_overrides_flag')
+    const borderLineWeightOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_lineweight_overrides_flag')
+    const borderVisibilityOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_visibility_overrides_flag')
+    const num_cells = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cells')
+    const cells_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'cells')
     const cells = libredwg.dwg_ptr_to_table_cell_array(cells_ptr, num_cells)
 
     return {
@@ -2071,37 +2143,19 @@ export class LibreEntityConverter {
 
   private convertTextBase(entity: Dwg_Object_Entity_Ptr): DwgTextBase {
     const libredwg = this.libredwg
-    const text = libredwg.dwg_dynapi_entity_value(entity, 'text_value')
-      .data as string
-    const thickness = libredwg.dwg_dynapi_entity_value(entity, 'thickness')
-      .data as number
-    const startPoint = libredwg.dwg_dynapi_entity_value(entity, 'ins_pt')
-      .data as DwgPoint2D
-    const endPoint = libredwg.dwg_dynapi_entity_value(entity, 'alignment_pt')
-      .data as DwgPoint2D
-    const rotation = libredwg.dwg_dynapi_entity_value(entity, 'rotation')
-      .data as number
-    const textHeight = libredwg.dwg_dynapi_entity_value(entity, 'height')
-      .data as number
-    const xScale = libredwg.dwg_dynapi_entity_value(entity, 'width_factor')
-      .data as number
-    const obliqueAngle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'oblique_angle'
-    ).data as number
+    const text = libredwg.dwg_dynapi_entity_data<string>(entity, 'text_value')
+    const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
+    const startPoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'ins_pt')
+    const endPoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'alignment_pt')
+    const rotation = libredwg.dwg_dynapi_entity_data<number>(entity, 'rotation')
+    const textHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'height')
+    const xScale = libredwg.dwg_dynapi_entity_data<number>(entity, 'width_factor')
+    const obliqueAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'oblique_angle')
     const styleName = libredwg.dwg_entity_text_get_style_name(entity)
-    const generationFlag = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'generation'
-    ).data as number
-    const halign = libredwg.dwg_dynapi_entity_value(entity, 'horiz_alignment')
-      .data as number
-    const valign = libredwg.dwg_dynapi_entity_value(entity, 'vert_alignment')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const generationFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'generation')
+    const halign = libredwg.dwg_dynapi_entity_data<number>(entity, 'horiz_alignment')
+    const valign = libredwg.dwg_dynapi_entity_data<number>(entity, 'vert_alignment')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     return {
       text: text,
@@ -2136,18 +2190,10 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgToleranceEntity {
     const libredwg = this.libredwg
-    const insertionPoint = libredwg.dwg_dynapi_entity_value(entity, 'ins_pt')
-      .data as DwgPoint3D
-    const text = libredwg.dwg_dynapi_entity_value(entity, 'text_value')
-      .data as string
-    const xAxisDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'x_direction'
-    ).data as DwgPoint3D
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
+    const text = libredwg.dwg_dynapi_entity_data<string>(entity, 'text_value')
+    const xAxisDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'x_direction')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
     const dimStyleName = libredwg.dwg_entity_get_dimstyle_name(entity)
 
     return {
@@ -2166,117 +2212,57 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgViewportEntity {
     const libredwg = this.libredwg
-    const viewportCenter = libredwg.dwg_dynapi_entity_value(entity, 'center')
-      .data as DwgPoint3D
-    const width = libredwg.dwg_dynapi_entity_value(entity, 'width')
-      .data as number
-    const height = libredwg.dwg_dynapi_entity_value(entity, 'height')
-      .data as number
-    const status = libredwg.dwg_dynapi_entity_value(entity, 'on_off')
-      .data as number
-    const displayCenter = libredwg.dwg_dynapi_entity_value(entity, 'VIEWCTR')
-      .data as DwgPoint2D
-    const snapBase = libredwg.dwg_dynapi_entity_value(entity, 'SNAPBASE')
-      .data as DwgPoint2D
-    const snapSpacing = libredwg.dwg_dynapi_entity_value(entity, 'SNAPUNIT')
-      .data as DwgPoint2D
-    const gridSpacing = libredwg.dwg_dynapi_entity_value(entity, 'GRIDUNIT')
-      .data as DwgPoint2D
-    const viewDirection = libredwg.dwg_dynapi_entity_value(entity, 'VIEWDIR')
-      .data as DwgPoint3D
-    const targetPoint = libredwg.dwg_dynapi_entity_value(entity, 'view_target')
-      .data as DwgPoint3D
-    const perspectiveLensLength = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'lens_length'
-    ).data as number
-    const frontClipZ = libredwg.dwg_dynapi_entity_value(entity, 'front_clip_z')
-      .data as number
-    const backClipZ = libredwg.dwg_dynapi_entity_value(entity, 'back_clip_z')
-      .data as number
+    const viewportCenter = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'center')
+    const width = libredwg.dwg_dynapi_entity_data<number>(entity, 'width')
+    const height = libredwg.dwg_dynapi_entity_data<number>(entity, 'height')
+    const status = libredwg.dwg_dynapi_entity_data<number>(entity, 'on_off')
+    const displayCenter = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'VIEWCTR')
+    const snapBase = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'SNAPBASE')
+    const snapSpacing = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'SNAPUNIT')
+    const gridSpacing = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'GRIDUNIT')
+    const viewDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'VIEWDIR')
+    const targetPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'view_target')
+    const perspectiveLensLength = libredwg.dwg_dynapi_entity_data<number>(entity, 'lens_length')
+    const frontClipZ = libredwg.dwg_dynapi_entity_data<number>(entity, 'front_clip_z')
+    const backClipZ = libredwg.dwg_dynapi_entity_data<number>(entity, 'back_clip_z')
     // TODO: I am not sure whether view size in libredwg represents view height
-    const viewHeight = libredwg.dwg_dynapi_entity_value(entity, 'VIEWSIZE')
-      .data as number
-    const snapAngle = libredwg.dwg_dynapi_entity_value(entity, 'SNAPANG')
-      .data as number
-    const viewTwistAngle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'twist_angle'
-    ).data as number
-    const circleZoomPercent = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'circle_zoom'
-    ).data as number
+    const viewHeight = libredwg.dwg_dynapi_entity_data<number>(entity, 'VIEWSIZE')
+    const snapAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'SNAPANG')
+    const viewTwistAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'twist_angle')
+    const circleZoomPercent = libredwg.dwg_dynapi_entity_data<number>(entity, 'circle_zoom')
     // TODO: convert frozenLayerIds and clippingBoundaryId
-    const statusBitFlags = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'status_flag'
-    ).data as number
-    const sheetName = libredwg.dwg_dynapi_entity_value(entity, 'style_sheet')
-      .data as string
-    const renderMode = libredwg.dwg_dynapi_entity_value(entity, 'render_mode')
-      .data as number
+    const statusBitFlags = libredwg.dwg_dynapi_entity_data<number>(entity, 'status_flag')
+    const sheetName = libredwg.dwg_dynapi_entity_data<string>(entity, 'style_sheet')
+    const renderMode = libredwg.dwg_dynapi_entity_data<number>(entity, 'render_mode')
     // TODO: Not sure whether UCSVP in libredwg represents ucsPerViewport
-    const ucsPerViewport = libredwg.dwg_dynapi_entity_value(entity, 'UCSVP')
-      .data as number
-    const ucsOrigin = libredwg.dwg_dynapi_entity_value(entity, 'ucsorg')
-      .data as DwgPoint3D
-    const ucsXAxis = libredwg.dwg_dynapi_entity_value(entity, 'ucsxdir')
-      .data as DwgPoint3D
-    const ucsYAxis = libredwg.dwg_dynapi_entity_value(entity, 'ucsydir')
-      .data as DwgPoint3D
-    const named_ucs_ref = libredwg.dwg_dynapi_entity_value(entity, 'named_ucs')
-      .data as number
-    const ucsId = libredwg.dwg_ref_get_absref(named_ucs_ref)
-    const base_ucs_ref = libredwg.dwg_dynapi_entity_value(entity, 'base_ucs')
-      .data as number
-    const ucsBaseId = libredwg.dwg_ref_get_absref(base_ucs_ref)
+    const ucsPerViewport = libredwg.dwg_dynapi_entity_data<number>(entity, 'UCSVP')
+    const ucsOrigin = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ucsorg')
+    const ucsXAxis = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ucsxdir')
+    const ucsYAxis = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ucsydir')
+    const named_ucs_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'named_ucs')
+    const ucsId = libredwg.dwg_ref_get_id(named_ucs_ref)
+    const base_ucs_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'base_ucs')
+    const ucsBaseId = libredwg.dwg_ref_get_id(base_ucs_ref)
     // TODO: Not sure whether UCSORTHOVIEW represents orthographicType
-    const orthographicType = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'UCSORTHOVIEW'
-    ).data as number
-    const elevation = libredwg.dwg_dynapi_entity_value(entity, 'ucs_elevation')
-      .data as number
-    const shadePlotMode = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'shadeplot_mode'
-    ).data as number
-    const isDefaultLighting = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'use_default_lights'
-    ).data as number
-    const defaultLightingType = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'default_lighting_type'
-    ).data as number
-    const brightness = libredwg.dwg_dynapi_entity_value(entity, 'brightness')
-      .data as number
-    const contrast = libredwg.dwg_dynapi_entity_value(entity, 'contrast')
-      .data as number
+    const orthographicType = libredwg.dwg_dynapi_entity_data<number>(entity, 'UCSORTHOVIEW')
+    const elevation = libredwg.dwg_dynapi_entity_data<number>(entity, 'ucs_elevation')
+    const shadePlotMode = libredwg.dwg_dynapi_entity_data<number>(entity, 'shadeplot_mode')
+    const isDefaultLighting = libredwg.dwg_dynapi_entity_data<number>(entity, 'use_default_lights')
+    const defaultLightingType = libredwg.dwg_dynapi_entity_data<number>(entity, 'default_lighting_type')
+    const brightness = libredwg.dwg_dynapi_entity_data<number>(entity, 'brightness')
+    const contrast = libredwg.dwg_dynapi_entity_data<number>(entity, 'contrast')
 
-    const majorGridFrequency = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'grid_major'
-    ).data as number
-    const background_ref = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'background'
-    ).data as number
-    const backgroundId = libredwg.dwg_ref_get_absref(background_ref)
-    const shadeplot_ref = libredwg.dwg_dynapi_entity_value(entity, 'shadeplot')
-      .data as number
-    const shadePlotId = libredwg.dwg_ref_get_absref(shadeplot_ref)
-    const visualstyle_ref = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'visualstyle'
-    ).data as number
-    const visualStyleId = libredwg.dwg_ref_get_absref(visualstyle_ref)
+    const majorGridFrequency = libredwg.dwg_dynapi_entity_data<number>(entity, 'grid_major')
+    const background_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'background')
+    const backgroundId = libredwg.dwg_ref_get_id(background_ref)
+    const shadeplot_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'shadeplot')
+    const shadePlotId = libredwg.dwg_ref_get_id(shadeplot_ref)
+    const visualstyle_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'visualstyle')
+    const visualStyleId = libredwg.dwg_ref_get_id(visualstyle_ref)
 
     // TODO: convert ambientLightColor
-    const sun_ref = libredwg.dwg_dynapi_entity_value(entity, 'sun')
-      .data as number
-    const sunId = libredwg.dwg_ref_get_absref(sun_ref)
+    const sun_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'sun')
+    const sunId = libredwg.dwg_ref_get_id(sun_ref)
 
     return {
       type: 'VIEWPORT',
@@ -2306,20 +2292,20 @@ export class LibreEntityConverter {
       ucsOrigin: ucsOrigin,
       ucsXAxis: ucsXAxis,
       ucsYAxis: ucsYAxis,
-      ucsId: idToString(ucsId),
-      ucsBaseId: idToString(ucsBaseId),
+      ucsId: ucsId ?? '',
+      ucsBaseId: ucsBaseId ?? '',
       orthographicType: orthographicType,
       elevation: elevation,
       shadePlotMode: shadePlotMode,
       majorGridFrequency: majorGridFrequency,
-      backgroundId: idToString(backgroundId),
-      shadePlotId: idToString(shadePlotId),
-      visualStyleId: idToString(visualStyleId),
+      backgroundId: backgroundId ?? '',
+      shadePlotId: shadePlotId ?? '',
+      visualStyleId: visualStyleId ?? '',
       isDefaultLighting: !!isDefaultLighting,
       defaultLightingType: defaultLightingType,
       brightness: brightness,
       contrast: contrast,
-      sunId: idToString(sunId)
+      sunId: sunId ?? ''
     }
   }
 
@@ -2328,51 +2314,30 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgWipeoutEntity {
     const libredwg = this.libredwg
-    const version = libredwg.dwg_dynapi_entity_value(entity, 'class_version')
-      .data as number
-    const position = libredwg.dwg_dynapi_entity_value(entity, 'pt0')
-      .data as DwgPoint3D
-    const uPixel = libredwg.dwg_dynapi_entity_value(entity, 'uvec')
-      .data as DwgPoint3D
-    const vPixel = libredwg.dwg_dynapi_entity_value(entity, 'vvec')
-      .data as DwgPoint3D
-    const imageSize = libredwg.dwg_dynapi_entity_value(entity, 'image_size')
-      .data as DwgPoint2D
-    const flags = libredwg.dwg_dynapi_entity_value(entity, 'display_props')
-      .data as number
-    const clipping = libredwg.dwg_dynapi_entity_value(entity, 'clipping')
-      .data as number
-    const brightness = libredwg.dwg_dynapi_entity_value(entity, 'brightness')
-      .data as number
-    const contrast = libredwg.dwg_dynapi_entity_value(entity, 'contrast')
-      .data as number
-    const fade = libredwg.dwg_dynapi_entity_value(entity, 'fade').data as number
-    const clipMode = libredwg.dwg_dynapi_entity_value(entity, 'clip_mode')
-      .data as number
-    const clippingBoundaryType = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'clip_boundary_type'
-    ).data as number
-    const countBoundaryPoints = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'num_clip_verts'
-    ).data as number
-    const clip_verts = libredwg.dwg_dynapi_entity_value(entity, 'clip_verts')
-      .data as number
+    const version = libredwg.dwg_dynapi_entity_data<number>(entity, 'class_version')
+    const position = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt0')
+    const uPixel = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'uvec')
+    const vPixel = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'vvec')
+    const imageSize = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'image_size')
+    const flags = libredwg.dwg_dynapi_entity_data<number>(entity, 'display_props')
+    const clipping = libredwg.dwg_dynapi_entity_data<number>(entity, 'clipping')
+    const brightness = libredwg.dwg_dynapi_entity_data<number>(entity, 'brightness')
+    const contrast = libredwg.dwg_dynapi_entity_data<number>(entity, 'contrast')
+    const fade = libredwg.dwg_dynapi_entity_data<number>(entity, 'fade')
+    const clipMode = libredwg.dwg_dynapi_entity_data<number>(entity, 'clip_mode')
+    const clippingBoundaryType = libredwg.dwg_dynapi_entity_data<number>(entity, 'clip_boundary_type')
+    const countBoundaryPoints = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_clip_verts')
+    const clip_verts = libredwg.dwg_dynapi_entity_data<number>(entity, 'clip_verts')
     const clippingBoundaryPath = libredwg.dwg_ptr_to_point2d_array(
       clip_verts,
       countBoundaryPoints
     )
 
-    const imagedef_ref = libredwg.dwg_dynapi_entity_value(entity, 'imagedef')
-      .data as number
-    const imageDefHandle = libredwg.dwg_ref_get_absref(imagedef_ref)
-    const imagedefreactor_ref = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'imagedefreactor'
-    ).data as number
+    const imagedef_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'imagedef')
+    const imageDefHandle = libredwg.dwg_ref_get_absref(imagedef_ref) ?? 0
+    const imagedefreactor_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'imagedefreactor')
     const imageDefReactorHandle =
-      libredwg.dwg_ref_get_absref(imagedefreactor_ref)
+      libredwg.dwg_ref_get_absref(imagedefreactor_ref) ?? 0
 
     return {
       type: 'WIPEOUT',
@@ -2402,10 +2367,8 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgXlineEntity {
     const libredwg = this.libredwg
-    const firstPoint = libredwg.dwg_dynapi_entity_value(entity, 'point')
-      .data as DwgPoint3D
-    const unitDirection = libredwg.dwg_dynapi_entity_value(entity, 'vector')
-      .data as DwgPoint3D
+    const firstPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'point')
+    const unitDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'vector')
     return {
       type: 'XLINE',
       ...commonAttrs,
@@ -2418,44 +2381,20 @@ export class LibreEntityConverter {
     entity: Dwg_Object_Entity_Ptr
   ): DwgDimensionCommonAttributes {
     const libredwg = this.libredwg
-    const version = libredwg.dwg_dynapi_entity_value(entity, 'class_version')
-      .data as number
+    const version = libredwg.dwg_dynapi_entity_data<number>(entity, 'class_version')
     const name = libredwg.dwg_entity_get_block_name(entity, 'block')
-    const definitionPoint = libredwg.dwg_dynapi_entity_value(entity, 'def_pt')
-      .data as DwgPoint3D
-    const textPoint = libredwg.dwg_dynapi_entity_value(entity, 'text_midpt')
-      .data as DwgPoint2D
-    const attachmentPoint = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'attachmentPoint'
-    ).data as number
-    const dimensionType = libredwg.dwg_dynapi_entity_value(entity, 'flag')
-      .data as number
-    const textLineSpacingStyle = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'lspace_factor'
-    ).data as number
-    const textLineSpacingFactor = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'lspace_factor'
-    ).data as number
-    const measurement = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'act_measurement'
-    ).data as number
-    const text = libredwg.dwg_dynapi_entity_value(entity, 'user_text')
-      .data as string
-    const textRotation = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'text_rotation'
-    ).data as number
+    const definitionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'def_pt')
+    const textPoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'text_midpt')
+    const attachmentPoint = libredwg.dwg_dynapi_entity_data<number>(entity, 'attachmentPoint')
+    const dimensionType = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag')
+    const textLineSpacingStyle = libredwg.dwg_dynapi_entity_data<number>(entity, 'lspace_factor')
+    const textLineSpacingFactor = libredwg.dwg_dynapi_entity_data<number>(entity, 'lspace_factor')
+    const measurement = libredwg.dwg_dynapi_entity_data<number>(entity, 'act_measurement')
+    const text = libredwg.dwg_dynapi_entity_data<string>(entity, 'user_text')
+    const textRotation = libredwg.dwg_dynapi_entity_data<number>(entity, 'text_rotation')
     // TODO: Not sure whether 'ins_rotation' is 'ocsRotation'.
-    const ocsRotation = libredwg.dwg_dynapi_entity_value(entity, 'ins_rotation')
-      .data as number
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      entity,
-      'extrusion'
-    ).data as DwgPoint3D
+    const ocsRotation = libredwg.dwg_dynapi_entity_data<number>(entity, 'ins_rotation')
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
     const styleName = libredwg.dwg_entity_get_dimstyle_name(entity)
 
     return {

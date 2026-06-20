@@ -1052,8 +1052,10 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_object_entity) {
  * Returns the absolute handle reference (field 'absolute_ref') of Dwg_Object_Ref*
  */
 BITCODE_BL dwg_ref_get_absref_wrapper(Dwg_Object_Ref_Ptr ref_ptr) {
+  if (!ref_ptr)
+    return 0;
   Dwg_Object_Ref* ref = reinterpret_cast<Dwg_Object_Ref*>(ref_ptr);
-  return (ref == 0) ? 0 : ref->absolute_ref;
+  return ref->absolute_ref;
 }
 
 /**
