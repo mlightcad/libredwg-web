@@ -903,6 +903,8 @@ bool dwg_ent_set_INT32_wrapper(
  * Get handle value from Dwg_Object* 
  */
 BITCODE_RLL dwg_obj_get_handle_value_wrapper(uintptr_t obj_ptr) {
+  if (!obj_ptr)
+    return 0;
   Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
   return obj->handle.value;
 }
@@ -911,6 +913,8 @@ BITCODE_RLL dwg_obj_get_handle_value_wrapper(uintptr_t obj_ptr) {
  * Get handle value from Dwg_Object_Ref* 
  */
 BITCODE_RLL dwg_ref_get_handle_value_wrapper(uintptr_t obj_ref_ptr) {
+  if (!obj_ref_ptr)
+    return 0;
   Dwg_Object_Ref* obj_ref = reinterpret_cast<Dwg_Object_Ref*>(obj_ref_ptr);
   return obj_ref->handleref.value;
 }
@@ -919,6 +923,8 @@ BITCODE_RLL dwg_ref_get_handle_value_wrapper(uintptr_t obj_ref_ptr) {
  * Get absolute_ref value from Dwg_Object_Ref* 
  */
 BITCODE_RLL dwg_ref_get_handle_absolute_ref_wrapper(uintptr_t obj_ref_ptr) {
+  if (!obj_ref_ptr)
+    return 0;
   Dwg_Object_Ref* obj_ref = reinterpret_cast<Dwg_Object_Ref*>(obj_ref_ptr);
   return obj_ref->absolute_ref;
 }

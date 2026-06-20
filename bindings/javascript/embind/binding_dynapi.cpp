@@ -84,7 +84,9 @@ emscripten::val get_obj_value(const Dwg_Data *dwg, T _obj, const Dwg_DYNAPI_fiel
   result.set("success", true); 
   if (f->is_string || strEQc(f->type, "TF")) {
     // UTF8 String
-    const bool is_tu = dwg ? IS_FROM_TU_DWG (dwg) : false;
+    // Subclass reads (e.g. MLEADER_Content_MText.default_text) pass dwg=NULL.
+    // BITCODE_T ("T") fields are UTF-16 in DWG; without dwg we must still decode as TU.
+    const bool is_tu = dwg ? IS_FROM_TU_DWG (dwg) : strEQc (f->type, "T");
     if (is_tu && strNE (f->type, "TF")) { /* not TF */
         BITCODE_TU wstr = *(BITCODE_TU*)((char*)_obj + f->offset);
         char *utf8 = bit_convert_TU(wstr);
@@ -385,6 +387,30 @@ std::string dwg_dynapi_handle_name_wrapper(
   return std::string(dwg_dynapi_handle_name(dwg, hdl, alloced));
 }
 
+int dwg_dynapi_subclass_size_wrapper(const std::string& name) {
+  return dwg_dynapi_fields_size(name.c_str());
+}
+
+int dwg_dynapi_entity_field_offset_wrapper(
+  uintptr_t entity_ptr,
+  const std::string& fieldname) {
+  void* _obj = reinterpret_cast<void*>(entity_ptr);
+  const Dwg_Object* obj = dwg_obj_generic_to_object(_obj, NULL);
+  if (!obj)
+    return -1;
+  const Dwg_DYNAPI_field *f
+      = dwg_dynapi_entity_field(obj->name, fieldname.c_str());
+  return f ? (int)f->offset : -1;
+}
+
+int dwg_dynapi_subclass_field_offset_wrapper(
+  const std::string& subclass,
+  const std::string& fieldname) {
+  const Dwg_DYNAPI_field *f
+      = dwg_dynapi_subclass_field(subclass.c_str(), fieldname.c_str());
+  return f ? (int)f->offset : -1;
+}
+
 EMSCRIPTEN_BINDINGS(libredwg_dynapi) {
   DEFINE_FUNC(is_dwg_entity);
   DEFINE_FUNC(is_dwg_object);
@@ -396,4 +422,7 @@ EMSCRIPTEN_BINDINGS(libredwg_dynapi) {
   DEFINE_FUNC(dwg_dynapi_entity_set_value);
   DEFINE_FUNC(dwg_dynapi_common_set_value);
   DEFINE_FUNC(dwg_dynapi_handle_name);
+  DEFINE_FUNC(dwg_dynapi_subclass_size);
+  DEFINE_FUNC(dwg_dynapi_entity_field_offset);
+  DEFINE_FUNC(dwg_dynapi_subclass_field_offset);
 }

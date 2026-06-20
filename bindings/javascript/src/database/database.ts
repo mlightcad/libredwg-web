@@ -5,6 +5,7 @@ import {
   DwgDictionaryObject,
   DwgImageDefObject,
   DwgLayoutObject,
+  DwgMLeaderStyleObject,
   DwgSpatialFilterObject
 } from './objects'
 import {
@@ -32,6 +33,7 @@ export interface DwgDatabase {
     DICTIONARY: DwgDictionaryObject[]
     IMAGEDEF: DwgImageDefObject[]
     LAYOUT: DwgLayoutObject[]
+    MLEADERSTYLE: DwgMLeaderStyleObject[]
     SPATIAL_FILTER: DwgSpatialFilterObject[]
   }
   header: DwgHeader

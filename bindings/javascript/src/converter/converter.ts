@@ -15,6 +15,7 @@ import {
   DwgLayoutObject,
   DwgLineTypeElement,
   DwgLTypeTableEntry,
+  DwgMLeaderStyleObject,
   DwgPoint2D,
   DwgPoint3D,
   DwgSpatialFilterObject,
@@ -36,6 +37,7 @@ import {
   Dwg_Object_Supertype,
   Dwg_Object_Type
 } from '../types'
+import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor'
 import { LibreEntityConverter } from './entityConverter'
 import { idToString, isModelSpace, isPaperSpace } from './utils'
 
@@ -81,6 +83,7 @@ export class LibreDwgConverter {
         DICTIONARY: [],
         IMAGEDEF: [],
         LAYOUT: [],
+        MLEADERSTYLE: [],
         SPATIAL_FILTER: []
       },
       header: {},
@@ -169,6 +172,9 @@ export class LibreDwgConverter {
             case Dwg_Object_Type.DWG_TYPE_LAYOUT:
               db.objects.LAYOUT.push(this.convertLayout(tio, obj))
               break
+            case Dwg_Object_Type.DWG_TYPE_MLEADERSTYLE:
+              db.objects.MLEADERSTYLE.push(this.convertMLeaderStyle(tio, obj))
+              break
             case Dwg_Object_Type.DWG_TYPE_SPATIAL_FILTER:
               db.objects.SPATIAL_FILTER.push(
                 this.convertSpatialFilter(tio, obj)
@@ -229,9 +235,7 @@ export class LibreDwgConverter {
       if (name == 'DIMBLK' || name == 'DIMBLK1' || name == 'DIMBLK2') {
         var_name = var_name + '_T'
       }
-      let value = libredwg.dwg_dynapi_header_value(data, var_name).data as
-        | number
-        | string
+      let value = libredwg.dwg_dynapi_header_data<number | string>(data, var_name)
 
       // Get object name if the 'value' is one Dwg_Object_Ref instance.
       // TODO: handle 'CMLSTYLE' correctly
@@ -245,7 +249,7 @@ export class LibreDwgConverter {
       ) {
         value = value ? libredwg.dwg_ref_get_object_name(value as number) : ''
       } else if (name == 'DRAGVS') {
-        value = value ? libredwg.dwg_ref_get_absref(value as number) : 2
+        value = value ? (libredwg.dwg_ref_get_absref(value as number) ?? 2) : 2
       }
       // @ts-expect-error header variable name
       header[name] = value
@@ -273,8 +277,8 @@ export class LibreDwgConverter {
 
   private convertAppId(item: Dwg_Object_Object_Ptr): DwgAppIdEntry {
     const libredwg = this.libredwg
-    const name = libredwg.dwg_dynapi_entity_value(item, 'name').data as string
-    const flag = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
+    const name = libredwg.dwg_dynapi_entity_data<string>(item, 'name')
+    const flag = libredwg.dwg_dynapi_entity_data<number>(item, 'flag')
 
     return {
       name: name,
@@ -297,25 +301,16 @@ export class LibreDwgConverter {
     }
 
     // The number of entities
-    const num_owned = libredwg.dwg_dynapi_entity_value(item, 'num_owned')
-      .data as number
+    const num_owned = libredwg.dwg_dynapi_entity_data<number>(item, 'num_owned')
 
-    const flags = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
-    const description = libredwg.dwg_dynapi_entity_value(item, 'description')
-      .data as string
-    const basePoint = libredwg.dwg_dynapi_entity_value(item, 'base_pt')
-      .data as DwgPoint3D
-    const insertionUnits = libredwg.dwg_dynapi_entity_value(
-      item,
-      'insert_units'
-    ).data as number
-    const explodability = libredwg.dwg_dynapi_entity_value(item, 'explodable')
-      .data as number
-    const scalability = libredwg.dwg_dynapi_entity_value(item, 'block_scaling')
-      .data as number
-    const layout_ptr = libredwg.dwg_dynapi_entity_value(item, 'layout')
-      .data as number
-    const layout = idToString(libredwg.dwg_ref_get_absref(layout_ptr))
+    const flags = libredwg.dwg_dynapi_entity_data<number>(item, 'flag')
+    const description = libredwg.dwg_dynapi_entity_data<string>(item, 'description')
+    const basePoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'base_pt')
+    const insertionUnits = libredwg.dwg_dynapi_entity_data<number>(item, 'insert_units')
+    const explodability = libredwg.dwg_dynapi_entity_data<number>(item, 'explodable')
+    const scalability = libredwg.dwg_dynapi_entity_data<number>(item, 'block_scaling')
+    const layout_ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'layout')
+    const layout = (libredwg.dwg_ref_get_id(layout_ptr) ?? '')
 
     let bmpPreview = ''
     const uint8ArrayToHexString = (bytes: Uint8Array): string => {
@@ -337,8 +332,7 @@ export class LibreDwgConverter {
     let entities = this.convertEntities(obj, commonAttrs.handle)
     if (!entities || entities.length == 0) {
       entities = []
-      const entities_ptr = libredwg.dwg_dynapi_entity_value(item, 'entities')
-        .data as number
+      const entities_ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'entities')
       if (entities_ptr) {
         const object_ref_ptr_array = libredwg.dwg_ptr_to_object_ref_ptr_array(
           entities_ptr,
@@ -397,168 +391,88 @@ export class LibreDwgConverter {
   ): DwgDimStyleTableEntry {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonTableEntryAttrs(item, obj)
-    const DIMTOL = libredwg.dwg_dynapi_entity_value(item, 'DIMTOL')
-      .data as number
-    const DIMLIM = libredwg.dwg_dynapi_entity_value(item, 'DIMLIM')
-      .data as number
-    const DIMTIH = libredwg.dwg_dynapi_entity_value(item, 'DIMTIH')
-      .data as number
-    const DIMTOH = libredwg.dwg_dynapi_entity_value(item, 'DIMTOH')
-      .data as number
-    const DIMSE1 = libredwg.dwg_dynapi_entity_value(item, 'DIMSE1')
-      .data as number
-    const DIMSE2 = libredwg.dwg_dynapi_entity_value(item, 'DIMSE2')
-      .data as number
-    const DIMALT = libredwg.dwg_dynapi_entity_value(item, 'DIMALT')
-      .data as number
-    const DIMTOFL = libredwg.dwg_dynapi_entity_value(item, 'DIMTOFL')
-      .data as number
-    const DIMSAH = libredwg.dwg_dynapi_entity_value(item, 'DIMSAH')
-      .data as number
-    const DIMTIX = libredwg.dwg_dynapi_entity_value(item, 'DIMTIX')
-      .data as number
-    const DIMSOXD = libredwg.dwg_dynapi_entity_value(item, 'DIMSOXD')
-      .data as number
-    const DIMALTD = libredwg.dwg_dynapi_entity_value(item, 'DIMALTD')
-      .data as number
-    const DIMZIN = libredwg.dwg_dynapi_entity_value(item, 'DIMZIN')
-      .data as number
-    const DIMSD1 = libredwg.dwg_dynapi_entity_value(item, 'DIMSD1')
-      .data as number
-    const DIMSD2 = libredwg.dwg_dynapi_entity_value(item, 'DIMSD2')
-      .data as number
-    const DIMTOLJ = libredwg.dwg_dynapi_entity_value(item, 'DIMTOLJ')
-      .data as number
-    const DIMJUST = libredwg.dwg_dynapi_entity_value(item, 'DIMJUST')
-      .data as number
-    const DIMFIT = libredwg.dwg_dynapi_entity_value(item, 'DIMFIT')
-      .data as number
-    const DIMUPT = libredwg.dwg_dynapi_entity_value(item, 'DIMUPT')
-      .data as number
-    const DIMTZIN = libredwg.dwg_dynapi_entity_value(item, 'DIMTZIN')
-      .data as number
-    const DIMALTZ = libredwg.dwg_dynapi_entity_value(item, 'DIMALTZ')
-      .data as number
-    const DIMALTTZ = libredwg.dwg_dynapi_entity_value(item, 'DIMALTTZ')
-      .data as number
-    const DIMTAD = libredwg.dwg_dynapi_entity_value(item, 'DIMTAD')
-      .data as number
-    const DIMUNIT = libredwg.dwg_dynapi_entity_value(item, 'DIMUNIT')
-      .data as number
-    const DIMAUNIT = libredwg.dwg_dynapi_entity_value(item, 'DIMAUNIT')
-      .data as number
-    const DIMDEC = libredwg.dwg_dynapi_entity_value(item, 'DIMDEC')
-      .data as number
-    const DIMTDEC = libredwg.dwg_dynapi_entity_value(item, 'DIMTDEC')
-      .data as number
-    const DIMALTU = libredwg.dwg_dynapi_entity_value(item, 'DIMALTU')
-      .data as number
-    const DIMALTTD = libredwg.dwg_dynapi_entity_value(item, 'DIMALTTD')
-      .data as number
-    const DIMSCALE = libredwg.dwg_dynapi_entity_value(item, 'DIMSCALE')
-      .data as number
-    const DIMASZ = libredwg.dwg_dynapi_entity_value(item, 'DIMASZ')
-      .data as number
-    const DIMEXO = libredwg.dwg_dynapi_entity_value(item, 'DIMEXO')
-      .data as number
-    const DIMDLI = libredwg.dwg_dynapi_entity_value(item, 'DIMDLI')
-      .data as number
-    const DIMEXE = libredwg.dwg_dynapi_entity_value(item, 'DIMEXE')
-      .data as number
-    const DIMRND = libredwg.dwg_dynapi_entity_value(item, 'DIMRND')
-      .data as number
-    const DIMDLE = libredwg.dwg_dynapi_entity_value(item, 'DIMDLE')
-      .data as number
-    const DIMTP = libredwg.dwg_dynapi_entity_value(item, 'DIMTP').data as number
-    const DIMTM = libredwg.dwg_dynapi_entity_value(item, 'DIMTM').data as number
-    const DIMFXL = libredwg.dwg_dynapi_entity_value(item, 'DIMFXL')
-      .data as number
-    const DIMJOGANG = libredwg.dwg_dynapi_entity_value(item, 'DIMJOGANG')
-      .data as number
-    const DIMTFILL = libredwg.dwg_dynapi_entity_value(item, 'DIMTFILL')
-      .data as number
-    const DIMTFILLCLR = libredwg.dwg_dynapi_entity_value(item, 'DIMTFILLCLR')
-      .data as number
-    const DIMAZIN = libredwg.dwg_dynapi_entity_value(item, 'DIMAZIN')
-      .data as number
-    const DIMARCSYM = libredwg.dwg_dynapi_entity_value(item, 'DIMARCSYM')
-      .data as number
-    const DIMTXT = libredwg.dwg_dynapi_entity_value(item, 'DIMTXT')
-      .data as number
-    const DIMCEN = libredwg.dwg_dynapi_entity_value(item, 'DIMCEN')
-      .data as number
-    const DIMTSZ = libredwg.dwg_dynapi_entity_value(item, 'DIMTSZ')
-      .data as number
-    const DIMALTF = libredwg.dwg_dynapi_entity_value(item, 'DIMALTF')
-      .data as number
-    const DIMLFAC = libredwg.dwg_dynapi_entity_value(item, 'DIMLFAC')
-      .data as number
-    const DIMTVP = libredwg.dwg_dynapi_entity_value(item, 'DIMTVP')
-      .data as number
-    const DIMTFAC = libredwg.dwg_dynapi_entity_value(item, 'DIMTFAC')
-      .data as number
-    const DIMGAP = libredwg.dwg_dynapi_entity_value(item, 'DIMGAP')
-      .data as number
-    const DIMPOST = libredwg.dwg_dynapi_entity_value(item, 'DIMPOST')
-      .data as string
-    const DIMAPOST = libredwg.dwg_dynapi_entity_value(item, 'DIMAPOST')
-      .data as string
-    const DIMBLK_T = libredwg.dwg_dynapi_entity_value(item, 'DIMBLK_T')
-      .data as string
-    const DIMBLK1_T = libredwg.dwg_dynapi_entity_value(item, 'DIMBLK1_T')
-      .data as string
-    const DIMBLK2_T = libredwg.dwg_dynapi_entity_value(item, 'DIMBLK2_T')
-      .data as string
-    const DIMALTRND = libredwg.dwg_dynapi_entity_value(item, 'DIMALTRND')
-      .data as number
-    const DIMCLRD_N = libredwg.dwg_dynapi_entity_value(item, 'DIMCLRD_N')
-      .data as number
-    const DIMCLRE_N = libredwg.dwg_dynapi_entity_value(item, 'DIMCLRE_N')
-      .data as number
-    const DIMCLRT_N = libredwg.dwg_dynapi_entity_value(item, 'DIMCLRT_N')
-      .data as number
-    const DIMCLRD = libredwg.dwg_dynapi_entity_value(item, 'DIMCLRD')
-      .data as number
-    const DIMCLRE = libredwg.dwg_dynapi_entity_value(item, 'DIMCLRE')
-      .data as number
-    const DIMCLRT = libredwg.dwg_dynapi_entity_value(item, 'DIMCLRT')
-      .data as number
-    const DIMADEC = libredwg.dwg_dynapi_entity_value(item, 'DIMADEC')
-      .data as number
-    const DIMFRAC = libredwg.dwg_dynapi_entity_value(item, 'DIMFRAC')
-      .data as number
-    const DIMLUNIT = libredwg.dwg_dynapi_entity_value(item, 'DIMLUNIT')
-      .data as number
-    const DIMDSEP = libredwg.dwg_dynapi_entity_value(item, 'DIMDSEP')
-      .data as number
-    const DIMTMOVE = libredwg.dwg_dynapi_entity_value(item, 'DIMTMOVE')
-      .data as number
-    const DIMATFIT = libredwg.dwg_dynapi_entity_value(item, 'DIMATFIT')
-      .data as number
-    const DIMFXLON = libredwg.dwg_dynapi_entity_value(item, 'DIMFXLON')
-      .data as number
-    const DIMTXTDIRECTION = libredwg.dwg_dynapi_entity_value(
-      item,
-      'DIMTXTDIRECTION'
-    ).data as number
-    const DIMALTMZF = libredwg.dwg_dynapi_entity_value(item, 'DIMALTMZF')
-      .data as number
-    const DIMALTMZS = libredwg.dwg_dynapi_entity_value(item, 'DIMALTMZS')
-      .data as string
-    const DIMMZF = libredwg.dwg_dynapi_entity_value(item, 'DIMMZF')
-      .data as number
-    const DIMMZS = libredwg.dwg_dynapi_entity_value(item, 'DIMMZS')
-      .data as string
-    const DIMLWD = libredwg.dwg_dynapi_entity_value(item, 'DIMLWD')
-      .data as number
-    const DIMLWE = libredwg.dwg_dynapi_entity_value(item, 'DIMLWE')
-      .data as number
-    const DIMTXSTY_Ptr = libredwg.dwg_dynapi_entity_value(item, 'DIMTXSTY')
-      .data as number
-    const DIMTXSTY = libredwg.dwg_ref_get_absref(DIMTXSTY_Ptr)
-    const DIMLDRBLK_Ptr = libredwg.dwg_dynapi_entity_value(item, 'DIMLDRBLK')
-      .data as number
-    const DIMLDRBLK = libredwg.dwg_ref_get_absref(DIMLDRBLK_Ptr)
+    const DIMTOL = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTOL')
+    const DIMLIM = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMLIM')
+    const DIMTIH = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTIH')
+    const DIMTOH = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTOH')
+    const DIMSE1 = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMSE1')
+    const DIMSE2 = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMSE2')
+    const DIMALT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALT')
+    const DIMTOFL = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTOFL')
+    const DIMSAH = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMSAH')
+    const DIMTIX = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTIX')
+    const DIMSOXD = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMSOXD')
+    const DIMALTD = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTD')
+    const DIMZIN = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMZIN')
+    const DIMSD1 = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMSD1')
+    const DIMSD2 = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMSD2')
+    const DIMTOLJ = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTOLJ')
+    const DIMJUST = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMJUST')
+    const DIMFIT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMFIT')
+    const DIMUPT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMUPT')
+    const DIMTZIN = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTZIN')
+    const DIMALTZ = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTZ')
+    const DIMALTTZ = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTTZ')
+    const DIMTAD = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTAD')
+    const DIMUNIT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMUNIT')
+    const DIMAUNIT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMAUNIT')
+    const DIMDEC = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMDEC')
+    const DIMTDEC = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTDEC')
+    const DIMALTU = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTU')
+    const DIMALTTD = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTTD')
+    const DIMSCALE = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMSCALE')
+    const DIMASZ = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMASZ')
+    const DIMEXO = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMEXO')
+    const DIMDLI = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMDLI')
+    const DIMEXE = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMEXE')
+    const DIMRND = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMRND')
+    const DIMDLE = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMDLE')
+    const DIMTP = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTP')
+    const DIMTM = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTM')
+    const DIMFXL = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMFXL')
+    const DIMJOGANG = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMJOGANG')
+    const DIMTFILL = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTFILL')
+    const DIMTFILLCLR = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTFILLCLR')
+    const DIMAZIN = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMAZIN')
+    const DIMARCSYM = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMARCSYM')
+    const DIMTXT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTXT')
+    const DIMCEN = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMCEN')
+    const DIMTSZ = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTSZ')
+    const DIMALTF = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTF')
+    const DIMLFAC = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMLFAC')
+    const DIMTVP = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTVP')
+    const DIMTFAC = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTFAC')
+    const DIMGAP = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMGAP')
+    const DIMPOST = libredwg.dwg_dynapi_entity_data<string>(item, 'DIMPOST')
+    const DIMAPOST = libredwg.dwg_dynapi_entity_data<string>(item, 'DIMAPOST')
+    const DIMBLK_T = libredwg.dwg_dynapi_entity_data<string>(item, 'DIMBLK_T')
+    const DIMBLK1_T = libredwg.dwg_dynapi_entity_data<string>(item, 'DIMBLK1_T')
+    const DIMBLK2_T = libredwg.dwg_dynapi_entity_data<string>(item, 'DIMBLK2_T')
+    const DIMALTRND = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTRND')
+    const DIMCLRD_N = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMCLRD_N')
+    const DIMCLRE_N = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMCLRE_N')
+    const DIMCLRT_N = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMCLRT_N')
+    const DIMCLRD = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMCLRD')
+    const DIMCLRE = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMCLRE')
+    const DIMCLRT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMCLRT')
+    const DIMADEC = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMADEC')
+    const DIMFRAC = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMFRAC')
+    const DIMLUNIT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMLUNIT')
+    const DIMDSEP = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMDSEP')
+    const DIMTMOVE = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTMOVE')
+    const DIMATFIT = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMATFIT')
+    const DIMFXLON = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMFXLON')
+    const DIMTXTDIRECTION = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTXTDIRECTION')
+    const DIMALTMZF = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMALTMZF')
+    const DIMALTMZS = libredwg.dwg_dynapi_entity_data<string>(item, 'DIMALTMZS')
+    const DIMMZF = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMMZF')
+    const DIMMZS = libredwg.dwg_dynapi_entity_data<string>(item, 'DIMMZS')
+    const DIMLWD = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMLWD')
+    const DIMLWE = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMLWE')
+    const DIMTXSTY_Ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMTXSTY')
+    const DIMTXSTY = libredwg.dwg_ref_get_absref(DIMTXSTY_Ptr) ?? undefined
+    const DIMLDRBLK_Ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'DIMLDRBLK')
+    const DIMLDRBLK = libredwg.dwg_ref_get_absref(DIMLDRBLK_Ptr) ?? undefined
 
     return {
       ...commonAttrs,
@@ -652,22 +566,15 @@ export class LibreDwgConverter {
   ): DwgLayerTableEntry {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonTableEntryAttrs(item, obj)
-    const flag = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
-    const frozen = libredwg.dwg_dynapi_entity_value(item, 'frozen')
-      .data as number
-    const off = libredwg.dwg_dynapi_entity_value(item, 'off').data as number
-    const frozenInNew = libredwg.dwg_dynapi_entity_value(item, 'frozen_in_new')
-      .data as number
-    const locked = libredwg.dwg_dynapi_entity_value(item, 'plotflockedlag')
-      .data as number
-    const plotFlag = libredwg.dwg_dynapi_entity_value(item, 'plotflag')
-      .data as number
-    const linewt = libredwg.dwg_dynapi_entity_value(item, 'linewt')
-      .data as number
-    const color = libredwg.dwg_dynapi_entity_value(item, 'color')
-      .data as Dwg_Color
-    const ltypeRef = libredwg.dwg_dynapi_entity_value(item, 'ltype')
-      .data as number
+    const flag = libredwg.dwg_dynapi_entity_data<number>(item, 'flag')
+    const frozen = libredwg.dwg_dynapi_entity_data<number>(item, 'frozen')
+    const off = libredwg.dwg_dynapi_entity_data<number>(item, 'off')
+    const frozenInNew = libredwg.dwg_dynapi_entity_data<number>(item, 'frozen_in_new')
+    const locked = libredwg.dwg_dynapi_entity_data<number>(item, 'plotflockedlag')
+    const plotFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'plotflag')
+    const linewt = libredwg.dwg_dynapi_entity_data<number>(item, 'linewt')
+    const color = libredwg.dwg_dynapi_entity_data<Dwg_Color>(item, 'color')
+    const ltypeRef = libredwg.dwg_dynapi_entity_data<number>(item, 'ltype')
     let ltypeName = 'Continuous'
     if (ltypeRef) {
       try {
@@ -721,15 +628,11 @@ export class LibreDwgConverter {
   ): DwgLTypeTableEntry {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonTableEntryAttrs(item, obj)
-    const flag = libredwg.dwg_dynapi_entity_value(item, 'flag').data as number
-    const description = libredwg.dwg_dynapi_entity_value(item, 'description')
-      .data as string
-    const numDashes = libredwg.dwg_dynapi_entity_value(item, 'numdashes')
-      .data as number
-    const patternLen = libredwg.dwg_dynapi_entity_value(item, 'pattern_len')
-      .data as number
-    const dashes = libredwg.dwg_dynapi_entity_value(item, 'dashes')
-      .data as Dwg_Array_Ptr
+    const flag = libredwg.dwg_dynapi_entity_data<number>(item, 'flag')
+    const description = libredwg.dwg_dynapi_entity_data<string>(item, 'description')
+    const numDashes = libredwg.dwg_dynapi_entity_data<number>(item, 'numdashes')
+    const patternLen = libredwg.dwg_dynapi_entity_data<number>(item, 'pattern_len')
+    const dashes = libredwg.dwg_dynapi_entity_data<Dwg_Array_Ptr>(item, 'dashes')
     const dashArray = dashes
       ? libredwg.dwg_ptr_to_ltype_dash_array(dashes, numDashes)
       : []
@@ -768,22 +671,13 @@ export class LibreDwgConverter {
   ): DwgStyleTableEntry {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonTableEntryAttrs(item, obj)
-    const standardFlag = libredwg.dwg_dynapi_entity_value(item, 'flag')
-      .data as number
-    const widthFactor = libredwg.dwg_dynapi_entity_value(item, 'width_factor')
-      .data as number
-    const obliqueAngle = libredwg.dwg_dynapi_entity_value(item, 'oblique_angle')
-      .data as number
-    const textGenerationFlag = libredwg.dwg_dynapi_entity_value(
-      item,
-      'generation'
-    ).data as number
-    const lastHeight = libredwg.dwg_dynapi_entity_value(item, 'last_height')
-      .data as number
-    const font = libredwg.dwg_dynapi_entity_value(item, 'font_file')
-      .data as string
-    const bigFont = libredwg.dwg_dynapi_entity_value(item, 'bigfont_file')
-      .data as string
+    const standardFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'flag')
+    const widthFactor = libredwg.dwg_dynapi_entity_data<number>(item, 'width_factor')
+    const obliqueAngle = libredwg.dwg_dynapi_entity_data<number>(item, 'oblique_angle')
+    const textGenerationFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'generation')
+    const lastHeight = libredwg.dwg_dynapi_entity_data<number>(item, 'last_height')
+    const font = libredwg.dwg_dynapi_entity_data<string>(item, 'font_file')
+    const bigFont = libredwg.dwg_dynapi_entity_data<string>(item, 'bigfont_file')
 
     return {
       ...commonAttrs,
@@ -804,93 +698,49 @@ export class LibreDwgConverter {
   ): DwgVPortTableEntry {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonTableEntryAttrs(item, obj)
-    const standardFlag = libredwg.dwg_dynapi_entity_value(item, 'flag')
-      .data as number
-    const viewHeight = libredwg.dwg_dynapi_entity_value(item, 'VIEWSIZE')
-      .data as number
-    const aspectRatio = libredwg.dwg_dynapi_entity_value(item, 'aspect_ratio')
-      .data as number
-    const center = libredwg.dwg_dynapi_entity_value(item, 'VIEWCTR')
-      .data as DwgPoint2D
-    const viewTarget = libredwg.dwg_dynapi_entity_value(item, 'view_target')
-      .data as DwgPoint3D
-    const viewDirectionFromTarget = libredwg.dwg_dynapi_entity_value(
-      item,
-      'VIEWDIR'
-    ).data as DwgPoint3D
-    const viewTwistAngle = libredwg.dwg_dynapi_entity_value(item, 'view_twist')
-      .data as number
-    const lensLength = libredwg.dwg_dynapi_entity_value(item, 'lens_length')
-      .data as number
-    const frontClippingPlane = libredwg.dwg_dynapi_entity_value(
-      item,
-      'front_clip_z'
-    ).data as number
-    const backClippingPlane = libredwg.dwg_dynapi_entity_value(
-      item,
-      'back_clip_z'
-    ).data as number
-    const viewMode = libredwg.dwg_dynapi_entity_value(item, 'VIEWMODE')
-      .data as number
-    const renderMode = libredwg.dwg_dynapi_entity_value(item, 'render_mode')
-      .data as number
+    const standardFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'flag')
+    const viewHeight = libredwg.dwg_dynapi_entity_data<number>(item, 'VIEWSIZE')
+    const aspectRatio = libredwg.dwg_dynapi_entity_data<number>(item, 'aspect_ratio')
+    const center = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'VIEWCTR')
+    const viewTarget = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'view_target')
+    const viewDirectionFromTarget = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'VIEWDIR')
+    const viewTwistAngle = libredwg.dwg_dynapi_entity_data<number>(item, 'view_twist')
+    const lensLength = libredwg.dwg_dynapi_entity_data<number>(item, 'lens_length')
+    const frontClippingPlane = libredwg.dwg_dynapi_entity_data<number>(item, 'front_clip_z')
+    const backClippingPlane = libredwg.dwg_dynapi_entity_data<number>(item, 'back_clip_z')
+    const viewMode = libredwg.dwg_dynapi_entity_data<number>(item, 'VIEWMODE')
+    const renderMode = libredwg.dwg_dynapi_entity_data<number>(item, 'render_mode')
     const isDefaultLightingOn =
-      (libredwg.dwg_dynapi_entity_value(item, 'use_default_lights')
-        .data as number) != 0
-    const defaultLightningType = libredwg.dwg_dynapi_entity_value(
-      item,
-      'default_lightning_type'
-    ).data as number
-    const brightness = libredwg.dwg_dynapi_entity_value(item, 'brightness')
-      .data as number
-    const contrast = libredwg.dwg_dynapi_entity_value(item, 'contrast')
-      .data as number
-    const ambient_color = libredwg.dwg_dynapi_entity_value(
-      item,
-      'ambient_color'
-    ).data as Dwg_Color
+      libredwg.dwg_dynapi_entity_data<number>(item, 'use_default_lights') != 0
+    const defaultLightningType = libredwg.dwg_dynapi_entity_data<number>(item, 'default_lightning_type')
+    const brightness = libredwg.dwg_dynapi_entity_data<number>(item, 'brightness')
+    const contrast = libredwg.dwg_dynapi_entity_data<number>(item, 'contrast')
+    const ambient_color = libredwg.dwg_dynapi_entity_data<Dwg_Color>(item, 'ambient_color')
 
     // ViewportTableRecord
-    const lowerLeftCorner = libredwg.dwg_dynapi_entity_value(item, 'lower_left')
-      .data as DwgPoint2D
-    const upperRightCorner = libredwg.dwg_dynapi_entity_value(
-      item,
-      'upper_right'
-    ).data as DwgPoint2D
+    const lowerLeftCorner = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'lower_left')
+    const upperRightCorner = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'upper_right')
     // TODO: Not sure whether 'circleSides' is equal to 'circle_zoom'
-    const circleSides = libredwg.dwg_dynapi_entity_value(item, 'circle_zoom')
-      .data as number
-    const ucsIconSetting = libredwg.dwg_dynapi_entity_value(item, 'UCSICON')
-      .data as number
+    const circleSides = libredwg.dwg_dynapi_entity_data<number>(item, 'circle_zoom')
+    const ucsIconSetting = libredwg.dwg_dynapi_entity_data<number>(item, 'UCSICON')
     // TODO: Not sure whether 'gridSpacing' is equal to 'GRIDUNIT'
-    const gridSpacing = libredwg.dwg_dynapi_entity_value(item, 'GRIDUNIT')
-      .data as DwgPoint2D
-    const snapRotationAngle = libredwg.dwg_dynapi_entity_value(item, 'SNAPANG')
-      .data as number
-    const snapBasePoint = libredwg.dwg_dynapi_entity_value(item, 'SNAPBASE')
-      .data as DwgPoint2D
+    const gridSpacing = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'GRIDUNIT')
+    const snapRotationAngle = libredwg.dwg_dynapi_entity_data<number>(item, 'SNAPANG')
+    const snapBasePoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'SNAPBASE')
     // TODO: Not sure whether 'snapSpacing' is equal to 'SNAPUNIT'
-    const snapSpacing = libredwg.dwg_dynapi_entity_value(item, 'SNAPUNIT')
-      .data as DwgPoint2D
-    const ucsOrigin = libredwg.dwg_dynapi_entity_value(item, 'ucsorg')
-      .data as DwgPoint3D
-    const ucsXAxis = libredwg.dwg_dynapi_entity_value(item, 'ucsxdir')
-      .data as DwgPoint3D
-    const ucsYAxis = libredwg.dwg_dynapi_entity_value(item, 'ucsydir')
-      .data as DwgPoint3D
-    const elevation = libredwg.dwg_dynapi_entity_value(item, 'ucs_elevation')
-      .data as number
-    const majorGridLines = libredwg.dwg_dynapi_entity_value(item, 'grid_major')
-      .data as number
-    const background = libredwg.dwg_dynapi_entity_value(item, 'background')
-      .data as Dwg_Object_Ref_Ptr
+    const snapSpacing = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'SNAPUNIT')
+    const ucsOrigin = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'ucsorg')
+    const ucsXAxis = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'ucsxdir')
+    const ucsYAxis = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'ucsydir')
+    const elevation = libredwg.dwg_dynapi_entity_data<number>(item, 'ucs_elevation')
+    const majorGridLines = libredwg.dwg_dynapi_entity_data<number>(item, 'grid_major')
+    const background = libredwg.dwg_dynapi_entity_data<Dwg_Object_Ref_Ptr>(item, 'background')
     const backgroundObjectId = background
-      ? idToString(libredwg.dwg_ref_get_absref(background))
+      ? (libredwg.dwg_ref_get_id(background) ?? '')
       : undefined
-    const visualstyle = libredwg.dwg_dynapi_entity_value(item, 'visualstyle')
-      .data as Dwg_Object_Ref_Ptr
+    const visualstyle = libredwg.dwg_dynapi_entity_data<Dwg_Object_Ref_Ptr>(item, 'visualstyle')
     const visualStyleObjectId = visualstyle
-      ? idToString(libredwg.dwg_ref_get_absref(visualstyle))
+      ? (libredwg.dwg_ref_get_id(visualstyle) ?? '')
       : undefined
 
     // BITCODE_B UCSFOLLOW;
@@ -962,7 +812,7 @@ export class LibreDwgConverter {
     return {
       handle: idToString(handle.value),
       ownerHandle: idToString(ownerhandle.absolute_ref),
-      name: libredwg.dwg_dynapi_entity_value(tio, 'name').data as string
+      name: libredwg.dwg_dynapi_entity_data<string>(tio, 'name')
     }
   }
 
@@ -973,16 +823,10 @@ export class LibreDwgConverter {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonObjectAttrs(obj)
 
-    const isHardOwner = libredwg.dwg_dynapi_entity_value(item, 'is_hardowner')
-      .data as number
-    const cloningFlag = libredwg.dwg_dynapi_entity_value(item, 'cloning')
-      .data as number
-    const numitems = libredwg.dwg_dynapi_entity_value(item, 'numitems')
-      .data as number
-    const itemhandles_ptr = libredwg.dwg_dynapi_entity_value(
-      item,
-      'itemhandles'
-    ).data as number
+    const isHardOwner = libredwg.dwg_dynapi_entity_data<number>(item, 'is_hardowner')
+    const cloningFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'cloning')
+    const numitems = libredwg.dwg_dynapi_entity_data<number>(item, 'numitems')
+    const itemhandles_ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'itemhandles')
     const itemhandles = libredwg.dwg_ptr_to_object_ref_array(
       itemhandles_ptr,
       numitems
@@ -1009,17 +853,12 @@ export class LibreDwgConverter {
   ): DwgImageDefObject {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonObjectAttrs(obj)
-    // const classVersion = libredwg.dwg_dynapi_entity_value(item, 'class_version').data as number
-    const size = libredwg.dwg_dynapi_entity_value(item, 'image_size')
-      .data as DwgPoint2D
-    const fileName = libredwg.dwg_dynapi_entity_value(item, 'file_path')
-      .data as string
-    const isLoaded = libredwg.dwg_dynapi_entity_value(item, 'is_loaded')
-      .data as number
-    const sizeOfOnePixel = libredwg.dwg_dynapi_entity_value(item, 'pixel_size')
-      .data as DwgPoint2D
-    const resolutionUnits = libredwg.dwg_dynapi_entity_value(item, 'resunits')
-      .data as number
+    // const classVersion = libredwg.dwg_dynapi_entity_data<number>(item, 'class_version')
+    const size = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'image_size')
+    const fileName = libredwg.dwg_dynapi_entity_data<string>(item, 'file_path')
+    const isLoaded = libredwg.dwg_dynapi_entity_data<number>(item, 'is_loaded')
+    const sizeOfOnePixel = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'pixel_size')
+    const resolutionUnits = libredwg.dwg_dynapi_entity_data<number>(item, 'resunits')
 
     return {
       ...commonAttrs,
@@ -1039,55 +878,29 @@ export class LibreDwgConverter {
     const commonAttrs = this.getCommonObjectAttrs(obj)
 
     // AcDbLayout
-    const layoutName = libredwg.dwg_dynapi_entity_value(item, 'layout_name')
-      .data as string
-    const tabOrder = libredwg.dwg_dynapi_entity_value(item, 'tab_order')
-      .data as number
-    const controlFlag = libredwg.dwg_dynapi_entity_value(item, 'layout_flags')
-      .data as number
-    const insertionPoint = libredwg.dwg_dynapi_entity_value(item, 'INSBASE')
-      .data as DwgPoint3D
-    const minLimit = libredwg.dwg_dynapi_entity_value(item, 'LIMMIN')
-      .data as DwgPoint2D
-    const maxLimit = libredwg.dwg_dynapi_entity_value(item, 'LIMMAX')
-      .data as DwgPoint2D
-    const ucsOrigin = libredwg.dwg_dynapi_entity_value(item, 'UCSORG')
-      .data as DwgPoint3D
-    const ucsXAxis = libredwg.dwg_dynapi_entity_value(item, 'UCSXDIR')
-      .data as DwgPoint3D
-    const ucsYAxis = libredwg.dwg_dynapi_entity_value(item, 'UCSYDIR')
-      .data as DwgPoint3D
-    const orthographicType = libredwg.dwg_dynapi_entity_value(
-      item,
-      'UCSORTHOVIEW'
-    ).data as number
-    const minExtent = libredwg.dwg_dynapi_entity_value(item, 'EXTMIN')
-      .data as DwgPoint3D
-    const maxExtent = libredwg.dwg_dynapi_entity_value(item, 'EXTMAX')
-      .data as DwgPoint3D
-    const elevation = libredwg.dwg_dynapi_entity_value(item, 'ucs_elevation')
-      .data as number
+    const layoutName = libredwg.dwg_dynapi_entity_data<string>(item, 'layout_name')
+    const tabOrder = libredwg.dwg_dynapi_entity_data<number>(item, 'tab_order')
+    const controlFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'layout_flags')
+    const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'INSBASE')
+    const minLimit = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'LIMMIN')
+    const maxLimit = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(item, 'LIMMAX')
+    const ucsOrigin = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'UCSORG')
+    const ucsXAxis = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'UCSXDIR')
+    const ucsYAxis = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'UCSYDIR')
+    const orthographicType = libredwg.dwg_dynapi_entity_data<number>(item, 'UCSORTHOVIEW')
+    const minExtent = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'EXTMIN')
+    const maxExtent = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'EXTMAX')
+    const elevation = libredwg.dwg_dynapi_entity_data<number>(item, 'ucs_elevation')
 
-    const block_header_ref = libredwg.dwg_dynapi_entity_value(
-      item,
-      'block_header'
-    ).data as number
-    const paperSpaceTableId = idToString(
-      libredwg.dwg_ref_get_absref(block_header_ref)
-    )
+    const block_header_ref = libredwg.dwg_dynapi_entity_data<number>(item, 'block_header')
+    const paperSpaceTableId = (libredwg.dwg_ref_get_id(block_header_ref) ?? '')
 
-    const active_viewport_ref = libredwg.dwg_dynapi_entity_value(
-      item,
-      'active_viewport'
-    ).data as number
-    const viewportId = idToString(
-      libredwg.dwg_ref_get_absref(active_viewport_ref)
-    )
+    const active_viewport_ref = libredwg.dwg_dynapi_entity_data<number>(item, 'active_viewport')
+    const viewportId = (libredwg.dwg_ref_get_id(active_viewport_ref) ?? '')
 
-    const named_ucs_ref = libredwg.dwg_dynapi_entity_value(item, 'named_ucs')
-      .data as number
+    const named_ucs_ref = libredwg.dwg_dynapi_entity_data<number>(item, 'named_ucs')
     const namedUcsId = named_ucs_ref
-      ? idToString(libredwg.dwg_ref_get_absref(named_ucs_ref))
+      ? (libredwg.dwg_ref_get_id(named_ucs_ref) ?? '')
       : undefined
 
     // BITCODE_H base_ucs;
@@ -1117,6 +930,68 @@ export class LibreDwgConverter {
     }
   }
 
+  private convertMLeaderStyle(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgMLeaderStyleObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+    const objectVal = <T>(field: string) => libredwg.dwg_dynapi_entity_data<T>(item, field)
+    const refToId = (ref: number) => libredwg.dwg_ref_get_id(ref)
+    const asBool = (value: number) => value > 0
+    const mleaderColor = (color: Dwg_Color | undefined) =>
+      color != null ? dwgColorToMLeaderRawColor(color) : undefined
+
+    return {
+      ...commonAttrs,
+      subclassMarker: 'AcDbMLeaderStyle',
+      unknown1: objectVal<number>('class_version'),
+      contentType: objectVal<number>('content_type'),
+      drawMLeaderOrderType: objectVal<number>('mleader_order'),
+      drawLeaderOrderType: objectVal<number>('leader_order'),
+      maxLeaderSegmentPoints: objectVal<number>('max_points'),
+      firstSegmentAngleConstraint: objectVal<number>('first_seg_angle'),
+      secondSegmentAngleConstraint: objectVal<number>('second_seg_angle'),
+      leaderLineType: objectVal<number>('type'),
+      leaderLineColor: mleaderColor(objectVal<Dwg_Color>('line_color')),
+      leaderLineTypeId: refToId(objectVal<number>('line_type')),
+      leaderLineWeight: objectVal<number>('linewt'),
+      landingEnabled: asBool(objectVal<number>('has_landing')),
+      landingGap: objectVal<number>('landing_gap'),
+      doglegEnabled: asBool(objectVal<number>('has_dogleg')),
+      doglegLength: objectVal<number>('landing_dist'),
+      description: objectVal<string>('description'),
+      arrowheadId: refToId(objectVal<number>('arrow_head')),
+      arrowheadSize: objectVal<number>('arrow_head_size'),
+      defaultMTextContents: objectVal<string>('text_default'),
+      textStyleId: refToId(objectVal<number>('text_style')),
+      textLeftAttachmentType: objectVal<number>('attach_left'),
+      textAngleType: objectVal<number>('text_angle_type'),
+      textAlignmentType: objectVal<number>('text_align_type'),
+      textRightAttachmentType: objectVal<number>('attach_right'),
+      textColor: mleaderColor(objectVal<Dwg_Color>('text_color')),
+      textHeight: objectVal<number>('text_height'),
+      textFrameEnabled: asBool(objectVal<number>('has_text_frame')),
+      textAlignAlwaysLeft: asBool(objectVal<number>('text_always_left')),
+      alignSpace: objectVal<number>('align_space'),
+      blockContentId: refToId(objectVal<number>('block')),
+      blockContentColor: mleaderColor(objectVal<Dwg_Color>('block_color')),
+      blockContentScale: objectVal<DwgPoint3D>('block_scale'),
+      blockContentScaleEnabled: asBool(objectVal<number>('use_block_scale')),
+      blockContentRotation: objectVal<number>('block_rotation'),
+      blockContentRotationEnabled: asBool(objectVal<number>('use_block_rotation')),
+      blockContentConnectionType: objectVal<number>('block_connection'),
+      scale: objectVal<number>('scale'),
+      overwritePropertyValue: asBool(objectVal<number>('is_changed')),
+      annotative: asBool(objectVal<number>('is_annotative')),
+      breakGapSize: objectVal<number>('break_size'),
+      textAttachmentDirection: objectVal<number>('attach_dir'),
+      bottomTextAttachmentDirection: objectVal<number>('attach_bottom'),
+      topTextAttachmentDirection: objectVal<number>('attach_top'),
+      unknown2: asBool(objectVal<number>('text_extended'))
+    }
+  }
+
   private convertSpatialFilter(
     item: Dwg_Object_Object_Ptr,
     obj: Dwg_Object_Ptr
@@ -1124,49 +999,22 @@ export class LibreDwgConverter {
     const libredwg = this.libredwg
     const commonAttrs = this.getCommonObjectAttrs(obj)
 
-    const origin = libredwg.dwg_dynapi_entity_value(item, 'origin')
-      .data as DwgPoint3D
-    const numberOfPointsOnClipBoundary = libredwg.dwg_dynapi_entity_value(
-      item,
-      'num_clip_verts'
-    ).data as number
-    const clip_verts_ptr = libredwg.dwg_dynapi_entity_value(item, 'clip_verts')
-      .data as number
+    const origin = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'origin')
+    const numberOfPointsOnClipBoundary = libredwg.dwg_dynapi_entity_data<number>(item, 'num_clip_verts')
+    const clip_verts_ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'clip_verts')
     const vertices = libredwg.dwg_ptr_to_point2d_array(
       clip_verts_ptr,
       numberOfPointsOnClipBoundary
     )
-    const extrusionDirection = libredwg.dwg_dynapi_entity_value(
-      item,
-      'extrusion'
-    ).data as DwgPoint3D
-    const clipBoundaryVisible = libredwg.dwg_dynapi_entity_value(
-      item,
-      'display_boundary_on'
-    ).data as number
-    const frontClippingPlaneFlag = libredwg.dwg_dynapi_entity_value(
-      item,
-      'front_clip_on'
-    ).data as number
-    const frontClippingPlaneDistance = libredwg.dwg_dynapi_entity_value(
-      item,
-      'front_clip_z'
-    ).data as number
-    const backClippingPlaneFlag = libredwg.dwg_dynapi_entity_value(
-      item,
-      'back_clip_on'
-    ).data as number
-    const backClippingPlaneDistance = libredwg.dwg_dynapi_entity_value(
-      item,
-      'back_clip_z'
-    ).data as number
-    const transform_ptr = libredwg.dwg_dynapi_entity_value(item, 'transform')
-      .data as number
+    const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'extrusion')
+    const clipBoundaryVisible = libredwg.dwg_dynapi_entity_data<number>(item, 'display_boundary_on')
+    const frontClippingPlaneFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'front_clip_on')
+    const frontClippingPlaneDistance = libredwg.dwg_dynapi_entity_data<number>(item, 'front_clip_z')
+    const backClippingPlaneFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'back_clip_on')
+    const backClippingPlaneDistance = libredwg.dwg_dynapi_entity_data<number>(item, 'back_clip_z')
+    const transform_ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'transform')
     const matrix = libredwg.dwg_ptr_to_double_array(transform_ptr, 12)
-    const inverse_transform_ptr = libredwg.dwg_dynapi_entity_value(
-      item,
-      'inverse_transform'
-    ).data as number
+    const inverse_transform_ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'inverse_transform')
     const invertBlockMatrix = libredwg.dwg_ptr_to_double_array(
       inverse_transform_ptr,
       12

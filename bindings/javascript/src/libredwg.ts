@@ -366,6 +366,61 @@ export class LibreDwg {
   }
 
   /**
+   * Returns the absolute handle reference of one Dwg_Object_Ref instance.
+   * @group Handle Conversion Methods
+   * @returns Returns null when the reference or absolute_ref is absent.
+   */
+  dwg_ref_get_absref(ref_ptr: Dwg_Object_Ref_Ptr): number | null {
+    if (!ref_ptr) return null
+    const absref = this.wasmInstance.dwg_ref_get_absref(ref_ptr)
+    return absref === 0 ? null : absref
+  }
+
+  /**
+   * Returns the handle value of one Dwg_Object_Ref instance.
+   * @group Handle Conversion Methods
+   * @returns Returns null when the reference or handle value is absent.
+   */
+  dwg_ref_get_handle_value(ref_ptr: Dwg_Object_Ref_Ptr): bigint | null {
+    if (!ref_ptr) return null
+    const value = this.wasmInstance.dwg_ref_get_handle_value(ref_ptr)
+    return value === 0n ? null : value
+  }
+
+  /**
+   * Returns the absolute_ref of one Dwg_Object_Ref instance as bigint.
+   * @group Handle Conversion Methods
+   * @returns Returns null when the reference or absolute_ref is absent.
+   */
+  dwg_ref_get_handle_absolute_ref(
+    ref_ptr: Dwg_Object_Ref_Ptr
+  ): bigint | null {
+    if (!ref_ptr) return null
+    const value = this.wasmInstance.dwg_ref_get_handle_absolute_ref(ref_ptr)
+    return value === 0n ? null : value
+  }
+
+  /**
+   * Returns the handle value of one Dwg_Object instance.
+   * @group Handle Conversion Methods
+   * @returns Returns null when the object or handle value is absent.
+   */
+  dwg_obj_get_handle_value(obj_ptr: Dwg_Object_Ptr): bigint | null {
+    if (!obj_ptr) return null
+    const value = this.wasmInstance.dwg_obj_get_handle_value(obj_ptr)
+    return value === 0n ? null : value
+  }
+
+  /**
+   * Returns the absolute_ref of one Dwg_Object_Ref as uppercase hex handle id.
+   * @group Handle Conversion Methods
+   */
+  dwg_ref_get_id(ref_ptr: Dwg_Object_Ref_Ptr): string | undefined {
+    const absref = this.dwg_ref_get_absref(ref_ptr)
+    return absref == null ? undefined : absref.toString(16).toUpperCase()
+  }
+
+  /**
    * Returns object (such as line type, layer name, dimension style, and etc.) name by its handle.
    * @group Handle Conversion Methods
    * @param ref_ptr Pointer to Dwg_Object_Ref instance.
@@ -375,8 +430,7 @@ export class LibreDwg {
     const wasmInstance = this.wasmInstance
     const obj = wasmInstance.dwg_ref_get_object(ref_ptr)
     const obj_tio = wasmInstance.dwg_object_to_object_tio(obj)
-    const obj_name = this.dwg_dynapi_entity_value(obj_tio, 'name')
-      .data as string
+    const obj_name = this.dwg_dynapi_entity_data<string>(obj_tio, 'name')
     return obj_name
   }
 
@@ -969,6 +1023,17 @@ export class LibreDwg {
   }
 
   /**
+   * Returns the decoded field data of one object or entity.
+   * @group Dynamic API Methods
+   */
+  dwg_dynapi_entity_data<T>(
+    obj: Dwg_Object_Object_TIO_Ptr | Dwg_Object_Entity_TIO_Ptr,
+    field: string
+  ): T {
+    return this.dwg_dynapi_entity_value(obj, field).data as T
+  }
+
+  /**
    * Header field value getter. Used to get the field value of dwg/dxf header.
    * @group Dynamic API Methods
    * @param data Pointer to Dwg_Data instance.
@@ -977,6 +1042,14 @@ export class LibreDwg {
    */
   dwg_dynapi_header_value(data: Dwg_Data_Ptr, field: string): Dwg_Field_Value {
     return this.wasmInstance.dwg_dynapi_header_value(data, field)
+  }
+
+  /**
+   * Returns the field data of dwg/dxf header.
+   * @group Dynamic API Methods
+   */
+  dwg_dynapi_header_data<T>(data: Dwg_Data_Ptr, field: string): T {
+    return this.dwg_dynapi_header_value(data, field).data as T
   }
 
   /**
@@ -994,6 +1067,17 @@ export class LibreDwg {
   }
 
   /**
+   * Returns the field data of object or entity common fields.
+   * @group Dynamic API Methods
+   */
+  dwg_dynapi_common_data<T>(
+    obj: Dwg_Object_Object_TIO_Ptr | Dwg_Object_Entity_TIO_Ptr,
+    field: string
+  ): T {
+    return this.dwg_dynapi_common_value(obj, field).data as T
+  }
+
+  /**
    * The field of one object or entity may not be primitive type. It means one field may consist of
    * multiple sub-fields. This method is used to get the sub-field value of those complex field.
    * @group Dynamic API Methods
@@ -1008,6 +1092,42 @@ export class LibreDwg {
     field: string
   ): Dwg_Field_Value {
     return this.wasmInstance.dwg_dynapi_subclass_value(obj, subclass, field)
+  }
+
+  /**
+   * Returns the sub-field data of one complex field.
+   * @group Dynamic API Methods
+   */
+  dwg_dynapi_subclass_data<T>(
+    obj: Dwg_Object_Object_TIO_Ptr | Dwg_Object_Entity_TIO_Ptr,
+    subclass: string,
+    field: string
+  ): T {
+    return this.dwg_dynapi_subclass_value(obj, subclass, field).data as T
+  }
+
+  /**
+   * Returns the struct size of a dynapi subclass.
+   */
+  dwg_dynapi_subclass_size(subclass: string): number {
+    return this.wasmInstance.dwg_dynapi_subclass_size(subclass)
+  }
+
+  /**
+   * Returns the byte offset of a field within an entity struct.
+   */
+  dwg_dynapi_entity_field_offset(
+    entity: Dwg_Object_Entity_TIO_Ptr,
+    field: string
+  ): number {
+    return this.wasmInstance.dwg_dynapi_entity_field_offset(entity, field)
+  }
+
+  /**
+   * Returns the byte offset of a field within a dynapi subclass struct.
+   */
+  dwg_dynapi_subclass_field_offset(subclass: string, field: string): number {
+    return this.wasmInstance.dwg_dynapi_subclass_field_offset(subclass, field)
   }
 
   /**
@@ -1145,8 +1265,7 @@ export class LibreDwg {
     field: string
   ): string {
     const wasmInstance = this.wasmInstance
-    const block_header_ref = wasmInstance.dwg_dynapi_entity_value(ptr, field)
-      .data as number
+    const block_header_ref = this.dwg_dynapi_entity_data<number>(ptr, field)
     const block_header_obj = wasmInstance.dwg_ref_get_object(block_header_ref)
     const block_header_tio =
       wasmInstance.dwg_object_to_object_tio(block_header_obj)
@@ -1167,12 +1286,10 @@ export class LibreDwg {
     field: string = 'dimstyle'
   ): string {
     const wasmInstance = this.wasmInstance
-    const dimstyle_ref = wasmInstance.dwg_dynapi_entity_value(ptr, field)
-      .data as number
+    const dimstyle_ref = this.dwg_dynapi_entity_data<number>(ptr, field)
     const dimstyle_obj = wasmInstance.dwg_ref_get_object(dimstyle_ref)
     const dimstyle_tio = wasmInstance.dwg_object_to_object_tio(dimstyle_obj)
-    const dimstyle_name = this.dwg_dynapi_entity_value(dimstyle_tio, 'name')
-      .data as string
+    const dimstyle_name = this.dwg_dynapi_entity_data<string>(dimstyle_tio, 'name')
     return dimstyle_name
   }
 
@@ -1186,14 +1303,11 @@ export class LibreDwg {
     ptr: Dwg_Object_BLOCK_HEADER_Ptr
   ): Dwg_Entity_BLOCK {
     const wasmInstance = this.wasmInstance
-    const block_ref = wasmInstance.dwg_dynapi_entity_value(ptr, 'block_entity')
-      .data as number
+    const block_ref = this.dwg_dynapi_entity_data<number>(ptr, 'block_entity')
     const block_obj = wasmInstance.dwg_ref_get_object(block_ref)
     const block_tio = wasmInstance.dwg_object_to_entity_tio(block_obj)
-    const name = wasmInstance.dwg_dynapi_entity_value(block_tio, 'name')
-      .data as string
-    const base_pt = wasmInstance.dwg_dynapi_entity_value(block_tio, 'base_pt')
-      .data as DwgPoint2D
+    const name = this.dwg_dynapi_entity_data<string>(block_tio, 'name')
+    const base_pt = this.dwg_dynapi_entity_data<DwgPoint2D>(block_tio, 'base_pt')
     return {
       name,
       base_pt // preR13 only
@@ -1280,12 +1394,10 @@ export class LibreDwg {
    */
   dwg_entity_mtext_get_style_name(ptr: Dwg_Entity_MTEXT_Ptr): string {
     const wasmInstance = this.wasmInstance
-    const style_ref = wasmInstance.dwg_dynapi_entity_value(ptr, 'style')
-      .data as number
+    const style_ref = this.dwg_dynapi_entity_data<number>(ptr, 'style')
     const style_obj = wasmInstance.dwg_ref_get_object(style_ref)
     const style_tio = wasmInstance.dwg_object_to_object_tio(style_obj)
-    const name = wasmInstance.dwg_dynapi_entity_value(style_tio, 'name')
-      .data as string
+    const name = this.dwg_dynapi_entity_data<string>(style_tio, 'name')
     return name
   }
 
