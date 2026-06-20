@@ -447,6 +447,9 @@ interface EmbindModule {
   dwg_dynapi_entity_set_value(_0: number, _1: EmbindString, _2: EmbindString, _3: number, _4: boolean): boolean;
   dwg_dynapi_common_set_value(_0: number, _1: EmbindString, _2: number, _3: boolean): boolean;
   dwg_dynapi_handle_name(_0: number, _1: number, _2: number): string;
+  dwg_dynapi_subclass_size(_0: EmbindString): number;
+  dwg_dynapi_entity_field_offset(_0: number, _1: EmbindString): number;
+  dwg_dynapi_subclass_field_offset(_0: EmbindString, _1: EmbindString): number;
   dwg_write_dxf(_0: EmbindString, _1: EmbindString): number;
   dwg_find_tablehandle(_0: number, _1: EmbindString, _2: EmbindString): number;
   dwg_find_tablehandle_index(_0: number, _1: number, _2: EmbindString): number;
