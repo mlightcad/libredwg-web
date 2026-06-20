@@ -660,6 +660,7 @@ export class SvgConverter {
         result = this.ray(entity as DwgRayEntity)
         break
       case 'TABLE':
+      case 'ACAD_TABLE':
         result = this.table(entity as DwgTableEntity)
         break
       case 'TEXT':
