@@ -177,7 +177,7 @@ export interface DwgAngularDimensionEntity extends DwgDimensionEntityCommon {
   /**
    * 	Subclass marker (AcDb3PointAngularDimension)
    */
-  subclassMarker: 'AcDb3PointAngularDimension'
+  subclassMarker: 'AcDb3PointAngularDimension' | 'AcDb2LineAngularDimension'
   /**
    * Definition point for linear and angular dimensions (in WCS)
    */
