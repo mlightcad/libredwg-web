@@ -173,6 +173,8 @@ export class LibreEntityConverter {
         return this.convertAlignedDimension(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_ANG3PT) {
         return this.convert3PointAngularDimension(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_ANG2LN) {
+        return this.convert2LineAngularDimension(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_DIAMETER) {
         return this.convertDiameterDimension(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_ORDINATE) {
@@ -491,6 +493,35 @@ export class LibreEntityConverter {
       subDefinitionPoint2: subDefinitionPoint2,
       centerPoint: centerPoint,
       arcPoint: arcPoint
+    }
+  }
+
+  private convert2LineAngularDimension(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgAngularDimensionEntity {
+    const libredwg = this.libredwg
+    const dimensionCommonAttrs = this.getDimensionCommonAttrs(entity)
+    const xline1Start = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline1start_pt')
+    const xline1End = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline1end_pt')
+    const xline2Start = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline2start_pt')
+    const xline2End = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline2end_pt')
+    const vertexPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'def_pt')
+
+    // For 2-line angular dimensions DXF group 10 is the arc location (xline2end_pt),
+    // not def_pt which stores the dimension line location (DXF group 16).
+    if (xline2End) {
+      dimensionCommonAttrs.definitionPoint = xline2End
+    }
+
+    return {
+      subclassMarker: 'AcDb2LineAngularDimension',
+      ...commonAttrs,
+      ...dimensionCommonAttrs,
+      subDefinitionPoint1: xline1Start ?? xline1End ?? vertexPoint ?? xline2End,
+      subDefinitionPoint2: xline2Start ?? xline2End ?? vertexPoint ?? xline1End,
+      centerPoint: vertexPoint ?? xline2Start ?? xline1End ?? xline2End,
+      arcPoint: xline2End ?? dimensionCommonAttrs.definitionPoint
     }
   }
 
