@@ -223,6 +223,48 @@ emscripten::val dwg_entity_proxy_entity_get_entity_data_wrapper(uintptr_t ent_ti
   return result;
 }
 
+/**
+ * OLEFRAME/OLE2FRAME store binary payloads in BITCODE_TF with an explicit
+ * data_size. The generic dynapi TF path truncates at the first NUL via
+ * std::string, so expose sized copies for these entities.
+ */
+static emscripten::val dwg_entity_ole_get_data_common(BITCODE_TF data,
+                                                     BITCODE_BL data_size) {
+  emscripten::val result = emscripten::val::object();
+  result.set("success", true);
+  result.set("size", data_size);
+  if (!data || data_size == 0) {
+    result.set("data", emscripten::val::null());
+    return result;
+  }
+  result.set("data", dwg_ptr_to_unsigned_char_array(data, data_size));
+  return result;
+}
+
+emscripten::val dwg_entity_ole2frame_get_data_wrapper(uintptr_t ent_tio_ptr) {
+  Dwg_Entity_OLE2FRAME* ole =
+      reinterpret_cast<Dwg_Entity_OLE2FRAME*>(ent_tio_ptr);
+  if (!ole) {
+    emscripten::val result = emscripten::val::object();
+    result.set("success", false);
+    result.set("message", "Null pointer passed!");
+    return result;
+  }
+  return dwg_entity_ole_get_data_common(ole->data, ole->data_size);
+}
+
+emscripten::val dwg_entity_oleframe_get_data_wrapper(uintptr_t ent_tio_ptr) {
+  Dwg_Entity_OLEFRAME* ole =
+      reinterpret_cast<Dwg_Entity_OLEFRAME*>(ent_tio_ptr);
+  if (!ole) {
+    emscripten::val result = emscripten::val::object();
+    result.set("success", false);
+    result.set("message", "Null pointer passed!");
+    return result;
+  }
+  return dwg_entity_ole_get_data_common(ole->data, ole->data_size);
+}
+
 emscripten::val dwg_entity_polyline_3d_get_numpoints_wrapper(Dwg_Object_Ptr obj_ptr) {
   Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
   int error = 0;
@@ -426,6 +468,8 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_entity) {
   DEFINE_FUNC(dwg_entity_block_header_get_preview);
   DEFINE_FUNC(dwg_entity_get_preview);
   DEFINE_FUNC(dwg_entity_proxy_entity_get_entity_data);
+  DEFINE_FUNC(dwg_entity_ole2frame_get_data);
+  DEFINE_FUNC(dwg_entity_oleframe_get_data);
   DEFINE_FUNC(dwg_entity_insert_get_attribs);
 }
 

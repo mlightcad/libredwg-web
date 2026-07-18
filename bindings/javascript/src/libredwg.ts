@@ -23,6 +23,8 @@ import {
   Dwg_Entity_IMAGE_Ptr,
   Dwg_Entity_LWPOLYLINE_Ptr,
   Dwg_Entity_MTEXT_Ptr,
+  Dwg_Entity_OLE2FRAME_Ptr,
+  Dwg_Entity_OLEFRAME_Ptr,
   Dwg_Entity_POLYLINE_2D_Ptr,
   Dwg_Entity_POLYLINE_3D_Ptr,
   Dwg_Entity_PROXY_ENTITY_Ptr,
@@ -1241,6 +1243,30 @@ export class LibreDwg {
   }
 
   /**
+   * Returns the extension dictionary handle of a Dwg_Object_Object instance.
+   * @group Dwg_Object_Object Methods
+   * @param ptr Pointer to one Dwg_Object_Object instance.
+   * @returns Object ref for the extension dictionary, or null when absent.
+   */
+  dwg_object_object_get_xdicobjhandle_object(
+    ptr: Dwg_Object_Object_Ptr
+  ): Dwg_Object_Ref | null {
+    return this.wasmInstance.dwg_object_object_get_xdicobjhandle_object(ptr)
+  }
+
+  /**
+   * Returns XRECORD payload as DXF group-code / value pairs.
+   * @group Dwg_Object_XRECORD Methods
+   * @param ptr Pointer to one Dwg_Object_XRECORD instance (object tio).
+   * @returns Array of `{ code, value }` groups.
+   */
+  dwg_object_xrecord_get_xdata(
+    ptr: Dwg_Object_Object_TIO_Ptr
+  ): { code: number; value: unknown }[] {
+    return this.wasmInstance.dwg_object_xrecord_get_xdata(ptr) ?? []
+  }
+
+  /**
    * Returns pointer to BLOCK_HEADER owner for generic entity from ent->ownerhandle.
    * @group Dwg_Object_Entity Methods
    * @param ptr Pointer to one Dwg_Object_Entity instance.
@@ -1357,6 +1383,42 @@ export class LibreDwg {
       return null
     }
     const result = wasm.dwg_entity_proxy_entity_get_entity_data(ptr) as {
+      data?: Uint8Array | null
+    }
+    return (result?.data as Uint8Array | null) ?? null
+  }
+
+  /**
+   * Returns binary OLE payload of one Dwg_Entity_OLE2FRAME instance.
+   * Uses data_size so embedded NUL bytes are preserved (unlike dynapi TF).
+   * @group Dwg_Entity_OLE2FRAME Methods
+   */
+  dwg_entity_ole2frame_get_data(
+    ptr: Dwg_Entity_OLE2FRAME_Ptr
+  ): Uint8Array | null {
+    const wasm = this.wasmInstance
+    if (typeof wasm.dwg_entity_ole2frame_get_data !== 'function') {
+      return null
+    }
+    const result = wasm.dwg_entity_ole2frame_get_data(ptr) as {
+      data?: Uint8Array | null
+    }
+    return (result?.data as Uint8Array | null) ?? null
+  }
+
+  /**
+   * Returns binary OLE payload of one Dwg_Entity_OLEFRAME instance.
+   * Uses data_size so embedded NUL bytes are preserved (unlike dynapi TF).
+   * @group Dwg_Entity_OLEFRAME Methods
+   */
+  dwg_entity_oleframe_get_data(
+    ptr: Dwg_Entity_OLEFRAME_Ptr
+  ): Uint8Array | null {
+    const wasm = this.wasmInstance
+    if (typeof wasm.dwg_entity_oleframe_get_data !== 'function') {
+      return null
+    }
+    const result = wasm.dwg_entity_oleframe_get_data(ptr) as {
       data?: Uint8Array | null
     }
     return (result?.data as Uint8Array | null) ?? null
