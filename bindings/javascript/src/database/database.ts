@@ -4,9 +4,12 @@ import { DwgHeader } from './header'
 import {
   DwgDictionaryObject,
   DwgImageDefObject,
+  DwgLayerFilterObject,
+  DwgLayerIndexObject,
   DwgLayoutObject,
   DwgMLeaderStyleObject,
-  DwgSpatialFilterObject
+  DwgSpatialFilterObject,
+  DwgXRecordObject
 } from './objects'
 import {
   DwgAppIdEntry,
@@ -32,9 +35,12 @@ export interface DwgDatabase {
   objects: {
     DICTIONARY: DwgDictionaryObject[]
     IMAGEDEF: DwgImageDefObject[]
+    LAYER_FILTER: DwgLayerFilterObject[]
+    LAYER_INDEX: DwgLayerIndexObject[]
     LAYOUT: DwgLayoutObject[]
     MLEADERSTYLE: DwgMLeaderStyleObject[]
     SPATIAL_FILTER: DwgSpatialFilterObject[]
+    XRECORD: DwgXRecordObject[]
   }
   header: DwgHeader
   /**

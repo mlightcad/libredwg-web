@@ -11,6 +11,8 @@ import {
   DwgHeader,
   DwgImageDefObject,
   DwgInsertEntity,
+  DwgLayerFilterObject,
+  DwgLayerIndexObject,
   DwgLayerTableEntry,
   DwgLayoutObject,
   DwgLineTypeElement,
@@ -22,6 +24,7 @@ import {
   DwgStyleTableEntry,
   DwgViewportEntity,
   DwgVPortTableEntry,
+  DwgXRecordObject,
   HEADER_VARIABLES
 } from '../database'
 import { LibreDwgEx } from '../libredwg'
@@ -82,9 +85,12 @@ export class LibreDwgConverter {
       objects: {
         DICTIONARY: [],
         IMAGEDEF: [],
+        LAYER_FILTER: [],
+        LAYER_INDEX: [],
         LAYOUT: [],
         MLEADERSTYLE: [],
-        SPATIAL_FILTER: []
+        SPATIAL_FILTER: [],
+        XRECORD: []
       },
       header: {},
       entities: [],
@@ -169,6 +175,12 @@ export class LibreDwgConverter {
             case Dwg_Object_Type.DWG_TYPE_IMAGEDEF:
               db.objects.IMAGEDEF.push(this.convertImageDef(tio, obj))
               break
+            case Dwg_Object_Type.DWG_TYPE_LAYERFILTER:
+              db.objects.LAYER_FILTER.push(this.convertLayerFilter(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_LAYER_INDEX:
+              db.objects.LAYER_INDEX.push(this.convertLayerIndex(tio, obj))
+              break
             case Dwg_Object_Type.DWG_TYPE_LAYOUT:
               db.objects.LAYOUT.push(this.convertLayout(tio, obj))
               break
@@ -179,6 +191,9 @@ export class LibreDwgConverter {
               db.objects.SPATIAL_FILTER.push(
                 this.convertSpatialFilter(tio, obj)
               )
+              break
+            case Dwg_Object_Type.DWG_TYPE_XRECORD:
+              db.objects.XRECORD.push(this.convertXRecord(tio, obj))
               break
             default:
               break
@@ -870,6 +885,78 @@ export class LibreDwgConverter {
     }
   }
 
+  private convertLayerFilter(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgLayerFilterObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+    const numNames = libredwg.dwg_dynapi_entity_data<number>(item, 'num_names') ?? 0
+    const namesPtr = libredwg.dwg_dynapi_entity_data<number>(item, 'names')
+    const layerNames =
+      namesPtr && numNames > 0
+        ? libredwg
+            .dwg_ptr_to_wchar_string_array(namesPtr, numNames)
+            .filter((name): name is string => name != null && name !== '')
+        : []
+
+    return {
+      ...commonAttrs,
+      ...(layerNames.length ? { layerNames } : {})
+    }
+  }
+
+  private convertLayerIndex(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgLayerIndexObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+    const timeStamp = libredwg.dwg_dynapi_entity_data<number>(item, 'last_updated')
+    const numEntries =
+      libredwg.dwg_dynapi_entity_data<number>(item, 'num_entries') ?? 0
+    const entriesPtr = libredwg.dwg_dynapi_entity_data<number>(item, 'entries')
+    const entrySize = libredwg.dwg_dynapi_subclass_size('LAYER_entry')
+
+    const layerNames: string[] = []
+    const idBufferIds: string[] = []
+    const idBufferEntryCounts: number[] = []
+
+    if (entriesPtr && entrySize > 0) {
+      for (let i = 0; i < numEntries; i++) {
+        const entryPtr = entriesPtr + i * entrySize
+        const name = libredwg.dwg_dynapi_subclass_data<string>(
+          entryPtr,
+          'LAYER_entry',
+          'name'
+        )
+        // Keep parallel arrays aligned with entries even when name is absent.
+        layerNames.push(name ?? '')
+        const handleRef = libredwg.dwg_dynapi_subclass_data<number>(
+          entryPtr,
+          'LAYER_entry',
+          'handle'
+        )
+        idBufferIds.push(handleRef ? (libredwg.dwg_ref_get_id(handleRef) ?? '') : '')
+        idBufferEntryCounts.push(
+          libredwg.dwg_dynapi_subclass_data<number>(
+            entryPtr,
+            'LAYER_entry',
+            'numlayers'
+          ) ?? 0
+        )
+      }
+    }
+
+    return {
+      ...commonAttrs,
+      ...(timeStamp != null ? { timeStamp } : {}),
+      ...(layerNames.length ? { layerNames } : {}),
+      ...(idBufferIds.length ? { idBufferIds } : {}),
+      ...(idBufferEntryCounts.length ? { idBufferEntryCounts } : {})
+    }
+  }
+
   private convertLayout(
     item: Dwg_Object_Object_Ptr,
     obj: Dwg_Object_Ptr
@@ -1033,6 +1120,32 @@ export class LibreDwgConverter {
       backClippingPlaneDistance: backClippingPlaneDistance,
       matrix: matrix,
       invertBlockMatrix: invertBlockMatrix
+    }
+  }
+
+  private convertXRecord(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgXRecordObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+    const cloning = libredwg.dwg_dynapi_entity_data<number>(item, 'cloning')
+    const data = libredwg.dwg_object_xrecord_get_xdata(item) ?? []
+
+    const objectObj = libredwg.dwg_object_get_tio(obj)
+    const xdic = objectObj
+      ? libredwg.dwg_object_object_get_xdicobjhandle_object(objectObj)
+      : null
+    const extensionDictionary =
+      xdic && xdic.absolute_ref
+        ? idToString(xdic.absolute_ref)
+        : undefined
+
+    return {
+      ...commonAttrs,
+      ...(cloning != null ? { cloning } : {}),
+      ...(extensionDictionary ? { extensionDictionary } : {}),
+      data
     }
   }
 
