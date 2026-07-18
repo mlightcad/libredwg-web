@@ -139,6 +139,10 @@ emscripten::val get_obj_value(const Dwg_Data *dwg, T _obj, const Dwg_DYNAPI_fiel
     // Dwg_Object_Ref* (BITCODE_H)
     auto object_ref = *reinterpret_cast<BITCODE_H*>(&((char *)_obj)[f->offset]);
     result.set("data", reinterpret_cast<uintptr_t>(object_ref));
+  } else if (strEQc(f->type, "TIMEBLL") || strEQc(f->type, "TIMERLL")) {
+    // Julian date as BD (DXF group 40)
+    auto time = reinterpret_cast<BITCODE_TIMEBLL*>(&((char *)_obj)[f->offset]);
+    result.set("data", time->value);
   } else if (is_last_char(f->type, '*')) {
     // Array
     auto ptr = *reinterpret_cast<uintptr_t**>(&((char *)_obj)[f->offset]);

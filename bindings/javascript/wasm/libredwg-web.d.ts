@@ -519,6 +519,8 @@ interface EmbindModule {
   dwg_object_entity_get_ltype_object_ref(_0: number): any;
   dwg_object_entity_get_color_object(_0: number): any;
   dwg_object_entity_get_xdata(_0: number): any;
+  dwg_object_object_get_xdicobjhandle_object(_0: number): any;
+  dwg_object_xrecord_get_xdata(_0: number): any;
   dwg_ref_get_handle_object(_0: number): any;
   dwg_dynapi_header_value(_0: number, _1: EmbindString): any;
   dwg_dynapi_entity_value(_0: number, _1: EmbindString): any;
@@ -533,6 +535,8 @@ interface EmbindModule {
   dwg_entity_block_header_get_preview(_0: number): any;
   dwg_entity_get_preview(_0: number): any;
   dwg_entity_proxy_entity_get_entity_data(_0: number): any;
+  dwg_entity_ole2frame_get_data(_0: number): any;
+  dwg_entity_oleframe_get_data(_0: number): any;
   dwg_entity_insert_get_attribs(_0: number): any;
   dwg_object_dictionary_get_texts(_0: number): any;
   dwg_read_file(_0: EmbindString): any;
