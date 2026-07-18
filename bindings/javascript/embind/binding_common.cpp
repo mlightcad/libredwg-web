@@ -1,4 +1,6 @@
 #include <stack>
+#include <cstdio>
+#include <cstdlib>
 #include "binding_common.h"
 #include "bits.h"
 
@@ -1044,6 +1046,135 @@ EMSCRIPTEN_BINDINGS(libredwg_dwg_object_entity) {
   DEFINE_FUNC(dwg_object_entity_get_num_reactors);
   DEFINE_FUNC(dwg_object_entity_get_reactors);
   DEFINE_FUNC(dwg_object_entity_get_xdata);
+}
+
+/***********************************************************************/
+
+/**
+ * Returns the extension dictionary handle of a Dwg_Object_Object instance.
+ */
+emscripten::val dwg_object_object_get_xdicobjhandle_object_wrapper(
+    Dwg_Object_Object_Ptr obj_obj_ptr) {
+  Dwg_Object_Object* obj_obj =
+      reinterpret_cast<Dwg_Object_Object*>(obj_obj_ptr);
+  if (!obj_obj || !obj_obj->xdicobjhandle) {
+    return emscripten::val::null();
+  }
+  return object_ref_to_js_object(obj_obj->xdicobjhandle);
+}
+
+/**
+ * Walks an XRECORD Resbuf linked list and returns DXF group/value pairs.
+ *
+ * Values mirror the DXF XRECORD payload used by Layer Manager filters:
+ * strings, numbers, booleans (0/1), uppercase hex handle strings, binary
+ * byte arrays, and `{x,y,z}` for 3D points.
+ */
+emscripten::val dwg_object_xrecord_get_xdata_wrapper(uintptr_t xrecord_ptr) {
+  emscripten::val result = emscripten::val::array();
+  if (!xrecord_ptr) {
+    return result;
+  }
+#if defined(__EMSCRIPTEN__)
+  if (!wasm_ptr_in_bounds((const void*)xrecord_ptr,
+                          sizeof(Dwg_Object_XRECORD))) {
+    return result;
+  }
+#endif
+
+  Dwg_Object_XRECORD* xrecord =
+      reinterpret_cast<Dwg_Object_XRECORD*>(xrecord_ptr);
+  Dwg_Resbuf* rbuf = xrecord->xdata;
+  const BITCODE_BL limit =
+      xrecord->num_xdata > 0 ? xrecord->num_xdata : 100000;
+  BITCODE_BL count = 0;
+
+  while (rbuf && count < limit) {
+#if defined(__EMSCRIPTEN__)
+    if (!wasm_ptr_in_bounds(rbuf, sizeof(Dwg_Resbuf))) {
+      break;
+    }
+#endif
+    const short dxftype = rbuf->type;
+    const Dwg_Resbuf_Value_Type vtype =
+        static_cast<Dwg_Resbuf_Value_Type>(dwg_resbuf_value_type(dxftype));
+
+    emscripten::val entry = emscripten::val::object();
+    entry.set("code", static_cast<int>(dxftype));
+
+    switch (vtype) {
+      case DWG_VT_STRING: {
+        if (rbuf->value.str.is_tu) {
+          char* utf8 = bit_convert_TU(rbuf->value.str.u.wdata);
+          entry.set("value", utf8 ? std::string(utf8) : std::string(""));
+          free(utf8);
+        } else if (rbuf->value.str.u.data) {
+          entry.set("value", std::string(rbuf->value.str.u.data));
+        } else {
+          entry.set("value", std::string(""));
+        }
+        break;
+      }
+      case DWG_VT_REAL:
+        entry.set("value", rbuf->value.dbl);
+        break;
+      case DWG_VT_BOOL:
+        entry.set("value", static_cast<int>(rbuf->value.i8) ? 1 : 0);
+        break;
+      case DWG_VT_INT8:
+        entry.set("value", static_cast<int>(rbuf->value.i8));
+        break;
+      case DWG_VT_INT16:
+        entry.set("value", static_cast<int>(rbuf->value.i16));
+        break;
+      case DWG_VT_INT32:
+        entry.set("value", static_cast<int>(rbuf->value.i32));
+        break;
+      case DWG_VT_INT64:
+        entry.set("value", static_cast<double>(rbuf->value.i64));
+        break;
+      case DWG_VT_POINT3D: {
+        emscripten::val point = emscripten::val::object();
+        point.set("x", rbuf->value.pt[0]);
+        point.set("y", rbuf->value.pt[1]);
+        point.set("z", rbuf->value.pt[2]);
+        entry.set("value", point);
+        break;
+      }
+      case DWG_VT_BINARY:
+        entry.set(
+            "value",
+            dwg_ptr_to_unsigned_char_array(
+                reinterpret_cast<unsigned char*>(rbuf->value.str.u.data),
+                rbuf->value.str.size));
+        break;
+      case DWG_VT_HANDLE:
+      case DWG_VT_OBJECTID: {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%llX",
+                      static_cast<unsigned long long>(rbuf->value.absref));
+        entry.set("value", std::string(buf));
+        break;
+      }
+      case DWG_VT_INVALID:
+      default:
+        // Skip unknown / invalid codes so callers still get usable payload.
+        rbuf = rbuf->nextrb;
+        count++;
+        continue;
+    }
+
+    result.call<void>("push", entry);
+    rbuf = rbuf->nextrb;
+    count++;
+  }
+
+  return result;
+}
+
+EMSCRIPTEN_BINDINGS(libredwg_dwg_object_xrecord) {
+  DEFINE_FUNC(dwg_object_object_get_xdicobjhandle_object);
+  DEFINE_FUNC(dwg_object_xrecord_get_xdata);
 }
 
 /***********************************************************************/

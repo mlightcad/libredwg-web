@@ -63,6 +63,7 @@ import {
   DwgRayEntity,
   DwgSectionEntity,
   DwgShapeEntity,
+  DwgSolid3dEntity,
   DwgSolidEntity,
   DwgSplineEdge,
   DwgSplineEntity,
@@ -91,7 +92,11 @@ import {
   Dwg_TABLE_Cell
 } from '../types'
 import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor'
-import { idToString, uint8ArrayToHexString } from './utils'
+import {
+  decodeOle2FrameCornersFromData,
+  idToString,
+  uint8ArrayToHexString
+} from './utils'
 
 type DwgCommonAttributes = Omit<DwgEntity, 'type'>
 type DwgDimensionCommonAttributes = Omit<
@@ -156,6 +161,8 @@ export class LibreEntityConverter {
       const fixedtype = libredwg.dwg_object_get_fixedtype(object_ptr)
       if (fixedtype == Dwg_Object_Type.DWG_TYPE_3DFACE) {
         return this.convert3dFace(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_3DSOLID) {
+        return this.convert3dSolid(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ARC) {
         return this.convertArc(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTDEF) {
@@ -262,6 +269,50 @@ export class LibreEntityConverter {
       corner4: corner4,
       flag: flag
     }
+  }
+
+  private convert3dSolid(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgSolid3dEntity {
+    const libredwg = this.libredwg
+    const version = libredwg.dwg_dynapi_entity_data<number>(entity, 'version')
+    const satCache = libredwg.dwg_dynapi_entity_data<number>(entity, 'acis_empty')
+    const data = libredwg.dwg_dynapi_entity_data<string>(entity, 'acis_data')
+    const hasRevisionGuid = libredwg.dwg_dynapi_entity_data<number>(
+      entity,
+      'has_revision_guid'
+    )
+    const historyRef = libredwg.dwg_dynapi_entity_data<number>(entity, 'history_id')
+    const historyObjectSoftId = libredwg.dwg_ref_get_id(historyRef)
+
+    const result: DwgSolid3dEntity = {
+      type: '3DSOLID',
+      subclassMarker: 'AcDb3dSolid',
+      ...commonAttrs
+    }
+
+    if (version) {
+      result.version = version
+    }
+    result.satCache = satCache
+    if (data) {
+      result.data = data
+    }
+    if (hasRevisionGuid) {
+      const guidOffset = libredwg.dwg_dynapi_entity_field_offset(entity, 'revision_guid')
+      if (guidOffset >= 0) {
+        const guid = libredwg.UTF8ToString(entity + guidOffset, 38)
+        if (guid) {
+          result.guid = guid
+        }
+      }
+    }
+    if (historyObjectSoftId) {
+      result.historyObjectSoftId = historyObjectSoftId
+    }
+
+    return result
   }
 
   private convertArc(
@@ -1606,12 +1657,22 @@ export class LibreEntityConverter {
     const oleVersion = libredwg.dwg_dynapi_entity_data<number>(entity, 'oleversion')
     const oleClient = libredwg.dwg_dynapi_entity_data<string>(entity, 'oleclient')
     const dataSize = libredwg.dwg_dynapi_entity_data<number>(entity, 'data_size')
-    const leftUpPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt1')
-    const rightDownPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt2')
+    let leftUpPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt1')
+    let rightDownPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'pt2')
     const lockAspect = libredwg.dwg_dynapi_entity_data<number>(entity, 'lock_aspect')
     const oleObjectType = libredwg.dwg_dynapi_entity_data<number>(entity, 'type')
     const tileModeDescriptor = libredwg.dwg_dynapi_entity_data<number>(entity, 'mode')
-    const binaryData = libredwg.dwg_dynapi_entity_data<string>(entity, 'data')
+    // Prefer sized TF copy: dynapi TF truncates at the first embedded NUL.
+    const dataBytes = libredwg.dwg_entity_ole2frame_get_data(entity)
+    const binaryData = dataBytes ? uint8ArrayToHexString(dataBytes) : ''
+    // Prefer corners decoded from the OLE header (also fixed in dwg_decode_ole2).
+    if (dataBytes) {
+      const corners = decodeOle2FrameCornersFromData(dataBytes)
+      if (corners) {
+        leftUpPoint = corners.upperLeft
+        rightDownPoint = corners.lowerRight
+      }
+    }
     return {
       type: 'OLE2FRAME',
       ...commonAttrs,
@@ -1635,7 +1696,8 @@ export class LibreEntityConverter {
     const flag = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag')
     const mode = libredwg.dwg_dynapi_entity_data<number>(entity, 'mode')
     const dataSize = libredwg.dwg_dynapi_entity_data<number>(entity, 'data_size')
-    const binaryData = libredwg.dwg_dynapi_entity_data<string>(entity, 'data')
+    const dataBytes = libredwg.dwg_entity_oleframe_get_data(entity)
+    const binaryData = dataBytes ? uint8ArrayToHexString(dataBytes) : ''
     return {
       type: 'OLEFRAME',
       ...commonAttrs,
