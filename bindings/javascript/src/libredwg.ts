@@ -1348,10 +1348,15 @@ export class LibreDwg {
    */
   dwg_entity_block_header_get_preview(
     ptr: Dwg_Object_BLOCK_HEADER_Ptr
-  ): Uint8Array {
-    const wasmInstance = this.wasmInstance
-    return wasmInstance.dwg_entity_block_header_get_preview(ptr)
-      .data as Uint8Array
+  ): Uint8Array | null {
+    const wasm = this.wasmInstance
+    if (typeof wasm.dwg_entity_block_header_get_preview !== 'function') {
+      return null
+    }
+    const result = wasm.dwg_entity_block_header_get_preview(ptr) as {
+      data?: Uint8Array | null
+    }
+    return (result?.data as Uint8Array | null) ?? null
   }
 
   /**

@@ -42,7 +42,7 @@ import {
 } from '../types'
 import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor'
 import { LibreEntityConverter } from './entityConverter'
-import { idToString, isModelSpace, isPaperSpace } from './utils'
+import { idToString, isModelSpace, isPaperSpace, uint8ArrayToHexString } from './utils'
 
 /**
  * Class used to convert Dwg_Data instance to DwgDatabase instance.
@@ -218,6 +218,11 @@ export class LibreDwgConverter {
       viewport.viewportId = index + 1
     })
 
+    const thumbnail = libredwg.dwg_bmp(data)
+    if (thumbnail?.data?.length) {
+      db.thumbnailImage = thumbnail.data
+    }
+
     return db
   }
 
@@ -327,14 +332,7 @@ export class LibreDwgConverter {
     const layout_ptr = libredwg.dwg_dynapi_entity_data<number>(item, 'layout')
     const layout = (libredwg.dwg_ref_get_id(layout_ptr) ?? '')
 
-    let bmpPreview = ''
-    const uint8ArrayToHexString = (bytes: Uint8Array): string => {
-      const hexChars: string[] = new Array(bytes.length)
-      for (let i = 0; i < bytes.length; i++) {
-        hexChars[i] = bytes[i].toString(16).toUpperCase()
-      }
-      return hexChars.join('')
-    }
+    let bmpPreview: string | undefined
     const bmpPreviewBinaryData =
       libredwg.dwg_entity_block_header_get_preview(item)
     if (bmpPreviewBinaryData && bmpPreviewBinaryData.length > 0) {

@@ -42,6 +42,7 @@ export interface DwgDatabase {
     SPATIAL_FILTER: DwgSpatialFilterObject[]
     XRECORD: DwgXRecordObject[]
   }
+  thumbnailImage?: Uint8Array
   header: DwgHeader
   /**
    * All of entities in the model space.
