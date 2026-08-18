@@ -1,5 +1,8 @@
 # libredwg-web
 
+[![npm version](https://img.shields.io/npm/v/@mlightcad/libredwg-web.svg)](https://www.npmjs.com/package/@mlightcad/libredwg-web)
+[![npm downloads](https://img.shields.io/npm/dy/@mlightcad/libredwg-web.svg)](https://www.npmjs.com/package/@mlightcad/libredwg-web)
+
 This is a DWG/DXF JavaScript parser based on libredwg. It can be used in browser and Node.js environments. 
 
 - [Live demo](https://mlightcad.github.io/libredwg-web/)
