@@ -1814,7 +1814,8 @@ export class LibreEntityConverter {
     const thickness = libredwg.dwg_dynapi_entity_data<number>(entity, 'thickness')
     const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
-    const vertices = libredwg.dwg_entity_polyline_2d_get_vertices(object)
+    const vertices =
+      libredwg.dwg_entity_polyline_2d_get_vertices(object) ?? []
     return {
       type: 'POLYLINE2D',
       ...commonAttrs,
@@ -1856,7 +1857,8 @@ export class LibreEntityConverter {
     const endWidth = libredwg.dwg_dynapi_entity_data<number>(entity, 'end_width')
     const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
-    const vertices = libredwg.dwg_entity_polyline_3d_get_vertices(object)
+    const vertices =
+      libredwg.dwg_entity_polyline_3d_get_vertices(object) ?? []
     return {
       type: 'POLYLINE3D',
       ...commonAttrs,
