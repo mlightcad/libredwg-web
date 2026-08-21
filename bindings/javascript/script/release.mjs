@@ -84,8 +84,8 @@ try {
 
 try {
   const branch = run('git branch --show-current');
-  if (branch !== 'main') {
-    fail(`Current branch is "${branch}". Please release from "main".`);
+  if (branch !== 'master') {
+    fail(`Current branch is "${branch}". Please release from "master".`);
   }
 } catch {
   // non-fatal
