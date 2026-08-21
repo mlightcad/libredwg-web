@@ -3,7 +3,7 @@
   "description": "A DWG/DXF JavaScript parser based on libredwg",
   "license": "GPL-3.0",
   "private": false,
-  "version": "0.7.9",
+  "version": "0.7.10",
   "author": "MLight Lee <mlight.lee@outlook.com>",
   "type": "module",
   "engines": {
@@ -44,7 +44,7 @@
     "test": "node --test test/node-api.test.mjs",
     "test:node": "pnpm build && pnpm test",
     "publish:npm": "pnpm publish --access public --no-git-checks",
-    "release": "node tools/release.mjs"
+    "release": "node script/release.mjs"
   },
   "files": [
     "dist",
