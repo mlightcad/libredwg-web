@@ -2,6 +2,7 @@ import { MainModule } from '../wasm/libredwg-web'
 import createModule from '../wasm/libredwg-web.js'
 import { LibreDwgConverter } from './converter'
 import {
+  decodeUnicodeEscapes,
   DwgCodePage,
   dwgCodePageToEncoding,
   DwgDatabase,
@@ -11,8 +12,7 @@ import {
   DwgPoint4D,
   DwgVersion,
   dwgVersions,
-  DwgXData,
-  decodeUnicodeEscapes
+  DwgXData
 } from './database'
 import { SvgConverter } from './svg'
 import {
