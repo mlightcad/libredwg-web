@@ -53,7 +53,7 @@ pnpm build
 In order to reduce the size of wasm file, the following functionalities are not included by default when building web assembly.
 
 - write dwg file
-- read/write dxf file
+- write dxf file
 - import/export json file
 
 If you want those functionalities, just modify command `build:prepare` defined in [package.json](./package.json) and remove the following options.

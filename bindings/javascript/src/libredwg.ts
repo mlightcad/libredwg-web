@@ -11,7 +11,8 @@ import {
   DwgPoint4D,
   DwgVersion,
   dwgVersions,
-  DwgXData
+  DwgXData,
+  decodeUnicodeEscapes
 } from './database'
 import { SvgConverter } from './svg'
 import {
@@ -1021,6 +1022,9 @@ export class LibreDwg {
     if (value.bin && this.decoder) {
       value.data = this.decoder.decode(value.bin)
     }
+    if (typeof value.data === 'string') {
+      value.data = decodeUnicodeEscapes(value.data)
+    }
     return value
   }
 
@@ -1093,7 +1097,18 @@ export class LibreDwg {
     subclass: string,
     field: string
   ): Dwg_Field_Value {
-    return this.wasmInstance.dwg_dynapi_subclass_value(obj, subclass, field)
+    const value = this.wasmInstance.dwg_dynapi_subclass_value(
+      obj,
+      subclass,
+      field
+    ) as Dwg_Field_Value
+    if (value.bin && this.decoder) {
+      value.data = this.decoder.decode(value.bin)
+    }
+    if (typeof value.data === 'string') {
+      value.data = decodeUnicodeEscapes(value.data)
+    }
+    return value
   }
 
   /**
