@@ -50,6 +50,15 @@ import { idToString, isModelSpace, isPaperSpace, uint8ArrayToHexString } from '.
 export class LibreDwgConverter {
   private libredwg: LibreDwgEx
   private entityConverter: LibreEntityConverter
+  /**
+   * Entity object indices keyed by owning BLOCK_HEADER object pointer.
+   * Built lazily when an ownership walk returns no entities (LibreDWG
+   * https://github.com/LibreDWG/libredwg/issues/1199).
+   */
+  private orphanEntitiesByBlock: Map<number, number[]> | null = null
+  /** Entity indices whose ownerhandle does not resolve to any object. */
+  private ownerlessOrphanIndices: number[] | null = null
+  private orphanIndexDataPtr: Dwg_Data_Ptr | null = null
 
   constructor(instance: LibreDwgEx) {
     this.libredwg = instance
@@ -58,6 +67,9 @@ export class LibreDwgConverter {
 
   convert(data: Dwg_Data_Ptr) {
     this.entityConverter.clear()
+    this.orphanEntitiesByBlock = null
+    this.ownerlessOrphanIndices = null
+    this.orphanIndexDataPtr = data
     const db: DwgDatabase = {
       tables: {
         APPID: {
@@ -364,6 +376,31 @@ export class LibreDwgConverter {
         }
       }
     }
+    // Some DWG writers (including LibreDWG's own) declare first_entity /
+    // last_entity handles that resolve to no object, or only link a
+    // partial ownership chain. Fall back to entity objects whose owner
+    // (ownerhandle / entmode via dwg_entity_owner) names this block.
+    // For *Model_Space only, also pick up entities with no resolvable owner.
+    if (this.orphanIndexDataPtr != null) {
+      const orphans = this.convertOrphanOwnedEntities(
+        this.orphanIndexDataPtr,
+        obj,
+        commonAttrs.handle,
+        isModelSpace(commonAttrs.name) === true
+      )
+      if (orphans.length) {
+        if (entities.length === 0) {
+          entities = orphans
+        } else {
+          const seen = new Set(entities.map(e => e.handle))
+          for (const entity of orphans) {
+            if (!seen.has(entity.handle)) {
+              entities.push(entity)
+            }
+          }
+        }
+      }
+    }
 
     return {
       ...commonAttrs,
@@ -396,6 +433,116 @@ export class LibreDwgConverter {
       next = libredwg.get_next_owned_entity(obj, next)
     }
     return entities
+  }
+
+  /**
+   * Builds (once) a map of BLOCK_HEADER object pointer → entity object indices
+   * for entities that are not reachable through the ownership chain, then
+   * converts the entities owned by `blockHeaderPtr`.
+   *
+   * @param includeOwnerless - When true (only for *Model_Space), also convert
+   *   entities that still have no resolvable owner after ownerhandle + entmode
+   *   fallback via dwg_entity_owner.
+   */
+  private convertOrphanOwnedEntities(
+    data: Dwg_Data_Ptr,
+    blockHeaderPtr: Dwg_Object_Ptr,
+    ownerHandle: string,
+    includeOwnerless: boolean
+  ): DwgEntity[] {
+    this.ensureOrphanEntityIndex(data)
+    const byBlock = this.orphanEntitiesByBlock ?? new Map<number, number[]>()
+    const owned = byBlock.get(blockHeaderPtr) ?? []
+    const ownerless =
+      includeOwnerless && this.ownerlessOrphanIndices
+        ? this.ownerlessOrphanIndices
+        : []
+    const indices = owned.length && ownerless.length
+      ? owned.concat(ownerless)
+      : owned.length
+        ? owned
+        : ownerless
+    if (indices.length === 0) {
+      return []
+    }
+    const libredwg = this.libredwg
+    const converter = this.entityConverter
+    const entities: DwgEntity[] = []
+    for (const index of indices) {
+      const object = libredwg.dwg_get_object(data, index)
+      const entity = converter.convert(object)
+      if (entity) {
+        entity.ownerBlockRecordSoftId = ownerHandle
+        entities.push(entity)
+      }
+    }
+    return entities
+  }
+
+  private ensureOrphanEntityIndex(data: Dwg_Data_Ptr): void {
+    if (this.orphanEntitiesByBlock) {
+      return
+    }
+    const libredwg = this.libredwg
+    const numObjects = libredwg.dwg_get_num_objects(data)
+    const indexByEntityPtr = new Map<number, number>()
+    const entityIndices: number[] = []
+    const blockHeaderPtrs: number[] = []
+    // dwg_entity_owner returns a BLOCK_HEADER TIO pointer; map it back to the
+    // Dwg_Object* used as the orphan-index key.
+    const blockObjByTio = new Map<number, number>()
+
+    for (let i = 0; i < numObjects; i++) {
+      const obj = libredwg.dwg_get_object(data, i)
+      if (!obj) continue
+      if (
+        libredwg.dwg_object_get_supertype(obj) ===
+        Dwg_Object_Supertype.DWG_SUPERTYPE_ENTITY
+      ) {
+        entityIndices.push(i)
+        indexByEntityPtr.set(obj, i)
+      } else if (
+        libredwg.dwg_object_get_fixedtype(obj) ===
+        Dwg_Object_Type.DWG_TYPE_BLOCK_HEADER
+      ) {
+        blockHeaderPtrs.push(obj)
+        const tio = libredwg.dwg_object_to_object_tio(obj)
+        if (tio) blockObjByTio.set(tio, obj)
+      }
+    }
+
+    const claimed = new Set<number>()
+    for (const blockHeader of blockHeaderPtrs) {
+      let current = libredwg.get_first_owned_entity(blockHeader)
+      let steps = 0
+      while (current && steps++ <= entityIndices.length) {
+        const index = indexByEntityPtr.get(current)
+        if (index === undefined || claimed.has(index)) break
+        claimed.add(index)
+        current = libredwg.get_next_owned_entity(blockHeader, current)
+      }
+    }
+
+    const orphansByBlock = new Map<number, number[]>()
+    const ownerless: number[] = []
+    for (const index of entityIndices) {
+      if (claimed.has(index)) continue
+      const obj = libredwg.dwg_get_object(data, index)
+      const etio = obj ? libredwg.dwg_object_to_entity_tio(obj) : 0
+      // Resolves ownerhandle, then entmode → MSPACE/PSPACE (LibreDWG).
+      const ownerTio = etio ? libredwg.dwg_entity_owner(etio) : 0
+      const owner = ownerTio ? (blockObjByTio.get(ownerTio) ?? 0) : 0
+      if (owner) {
+        const owned = orphansByBlock.get(owner)
+        if (owned) owned.push(index)
+        else orphansByBlock.set(owner, [index])
+      } else {
+        ownerless.push(index)
+      }
+    }
+
+    this.orphanEntitiesByBlock = orphansByBlock
+    this.ownerlessOrphanIndices = ownerless
   }
 
   private convertDimStyle(
