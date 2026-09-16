@@ -73,7 +73,8 @@ const encodings = [
   'shift-jis', // DOS Japanese (shiftjis)
   'macintosh', // 23
   'big5',
-  'utf-8', // Korean (Wansung + Johab)
+  // WHATWG 'euc-kr' decodes windows-949, which covers CP949 (Wansung + UHC).
+  'euc-kr', // Korean (CP949 / Wansung + UHC)
   'utf-8', // Johab?
   'ibm866', // Russian
   'windows-1250', // Central + Eastern European
