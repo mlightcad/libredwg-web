@@ -265,6 +265,30 @@ emscripten::val dwg_ptr_to_point4d_array_wrapper(uintptr_t array_ptr, size_t siz
   return points_obj;
 }
 
+static std::string ltype_dash_text_to_utf8(const Dwg_LTYPE_dash& dash) {
+  if (!dash.text)
+    return std::string();
+
+  // R2007+ stores dash text as UCS-2LE inside strings_area. Treating it as a
+  // C string stops at the first 0x00, which is the high byte of ASCII chars.
+  bool is_tu = false;
+  if (dash.parent) {
+    int error = 0;
+    Dwg_Data* dwg = dwg_obj_generic_dwg(dash.parent, &error);
+    if (dwg)
+      is_tu = IS_FROM_TU_DWG(dwg);
+  }
+  if (is_tu) {
+    char* utf8 = bit_convert_TU((BITCODE_TU)dash.text);
+    if (!utf8)
+      return std::string();
+    std::string out(utf8);
+    free(utf8);
+    return out;
+  }
+  return std::string(dash.text);
+}
+
 emscripten::val dwg_ptr_to_ltype_dash_array_wrapper(uintptr_t array_ptr, size_t size) {
   Dwg_LTYPE_dash* array = reinterpret_cast<Dwg_LTYPE_dash*>(array_ptr);
 
@@ -280,7 +304,7 @@ emscripten::val dwg_ptr_to_ltype_dash_array_wrapper(uintptr_t array_ptr, size_t 
     dash_obj.set("scale", dash.scale);
     dash_obj.set("rotation", dash.rotation);
     dash_obj.set("shape_flag", dash.shape_flag);
-    dash_obj.set("text", std::string(dash.text));
+    dash_obj.set("text", ltype_dash_text_to_utf8(dash));
     dashes.call<void>("push", dash_obj);
   }
   return dashes;
