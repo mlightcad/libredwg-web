@@ -811,8 +811,10 @@ export class LibreDwgConverter {
     dashes.forEach(dash => {
       patterns.push({
         elementLength: dash.length || 0,
-        elementTypeFlag: dash.complex_shapecode,
-        shapeNumber: dash.shape_flag,
+        // DXF 74: 1=absolute rotation, 2=text, 4=shape
+        elementTypeFlag: dash.shape_flag || 0,
+        // DXF 75: shape number (when flag has bit 4)
+        shapeNumber: dash.complex_shapecode,
         // TODO: convert style handle to style object id
         // styleObjectId: dash.style,
         scale: dash.scale,
