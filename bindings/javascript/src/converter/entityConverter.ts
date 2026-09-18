@@ -1039,13 +1039,28 @@ export class LibreEntityConverter {
     const num_bulges = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_bulges')
     const bulges_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'bulges')
     const bulges = libredwg.dwg_ptr_to_double_array(bulges_ptr, num_bulges)
+    // Flag bit 32 = HAS_NUM_WIDTHS. Each Dwg_LWPOLYLINE_width is two BITCODE_BD
+    // values (start, end). Without copying these, tapered polylines (e.g. valve
+    // triangles) become zero-width lines after conversion.
+    const num_widths =
+      libredwg.dwg_dynapi_entity_data<number>(entity, 'num_widths') ?? 0
+    const widths_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'widths')
+    const widthDoubles =
+      num_widths > 0 && widths_ptr
+        ? libredwg.dwg_ptr_to_double_array(widths_ptr, num_widths * 2)
+        : []
     points.forEach((point, index) => {
-      vertices.push({
+      const vertex: DwgLWPolylineVertex = {
         id: index,
         x: point.x,
         y: point.y,
         bulge: bulges.length > index ? bulges[index] : 0
-      })
+      }
+      if (index < num_widths && widthDoubles.length >= (index + 1) * 2) {
+        vertex.startWidth = widthDoubles[index * 2]
+        vertex.endWidth = widthDoubles[index * 2 + 1]
+      }
+      vertices.push(vertex)
     })
 
     return {
