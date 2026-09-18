@@ -926,7 +926,37 @@ export class LibreDwg {
     ptr: Dwg_Array_Ptr,
     size: number
   ): Dwg_LTYPE_Dash[] {
-    return this.wasmInstance.dwg_ptr_to_ltype_dash_array(ptr, size)
+    const dashes = this.wasmInstance.dwg_ptr_to_ltype_dash_array(
+      ptr,
+      size
+    ) as Dwg_LTYPE_Dash[]
+    // R2007+ dash text is UCS-2LE in strings_area. Older wasm copies it with
+    // std::string(char*), which stops at the first 0x00 (often a single space).
+    // Recover the full UTF-8 string via the subclass dynapi (always decodes T
+    // as TU). Keep the C-string value when it is already longer (pre-R2007).
+    const LTYPE_SHAPE_FLAG_IS_TEXT = 2
+    const dashSize = this.wasmInstance.dwg_dynapi_subclass_size('LTYPE_dash')
+    if (!ptr || !dashSize || !dashes?.length) {
+      return dashes
+    }
+    for (let i = 0; i < dashes.length; i++) {
+      const dash = dashes[i]
+      if (!dash || !(dash.shape_flag & LTYPE_SHAPE_FLAG_IS_TEXT)) {
+        continue
+      }
+      const decoded = this.dwg_dynapi_subclass_value(
+        ptr + i * dashSize,
+        'LTYPE_dash',
+        'text'
+      )
+      if (
+        typeof decoded.data === 'string' &&
+        decoded.data.length > (dash.text?.length ?? 0)
+      ) {
+        dash.text = decoded.data
+      }
+    }
+    return dashes
   }
 
   /**
