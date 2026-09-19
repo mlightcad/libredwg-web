@@ -2227,33 +2227,32 @@ export class LibreEntityConverter {
     const startPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
     const directionVector = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'horiz_direction')
     const tableValue = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag_for_table_value')
-    const linked = this.readLinkedTable(entity)
-    const rowCount = linked?.rowCount
-      ?? libredwg.dwg_dynapi_entity_data<number>(entity, 'num_rows')
-    const columnCount = linked?.columnCount
-      ?? libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cols')
-    const rowHeightArr = linked?.rowHeightArr ?? libredwg.dwg_ptr_to_double_array(
-      libredwg.dwg_dynapi_entity_data<number>(entity, 'row_heights'),
-      rowCount
-    )
-    const columnWidthArr = linked?.columnWidthArr ?? libredwg.dwg_ptr_to_double_array(
-      libredwg.dwg_dynapi_entity_data<number>(entity, 'col_widths'),
-      columnCount
-    )
+    const rowCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_rows')
+    const columnCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cols')
+    const row_heights_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'row_heights')
+    const rowHeightArr = libredwg.dwg_ptr_to_double_array(row_heights_ptr, rowCount)
+    const col_widths_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'col_widths')
+    const columnWidthArr = libredwg.dwg_ptr_to_double_array(col_widths_ptr, columnCount)
     const table_style_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'tablestyle')
-    const tableStyleId = (libredwg.dwg_ref_get_id(table_style_ref) ?? '')
+    const tableStyleId = libredwg.dwg_ref_get_id(table_style_ref) ?? ''
     const block_header_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'block_header')
-    const blockRecordHandle = (libredwg.dwg_ref_get_id(block_header_ref) ?? '')
+    const blockRecordHandle = libredwg.dwg_ref_get_id(block_header_ref) ?? ''
     const overrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'table_flag_override')
-    const borderColorOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_color_overrides_flag')
-    const borderLineWeightOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_lineweight_overrides_flag')
-    const borderVisibilityOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_visibility_overrides_flag')
-    const cells = linked?.cells ?? this.convertTableCells(
-      libredwg.dwg_ptr_to_table_cell_array(
-        libredwg.dwg_dynapi_entity_data<number>(entity, 'cells'),
-        libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cells')
-      )
+    const borderColorOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(
+      entity,
+      'border_color_overrides_flag'
     )
+    const borderLineWeightOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(
+      entity,
+      'border_lineweight_overrides_flag'
+    )
+    const borderVisibilityOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(
+      entity,
+      'border_visibility_overrides_flag'
+    )
+    const num_cells = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cells')
+    const cells_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'cells')
+    const cells = libredwg.dwg_ptr_to_table_cell_array(cells_ptr, num_cells)
 
     return {
       type: 'ACAD_TABLE',
@@ -2273,100 +2272,9 @@ export class LibreEntityConverter {
       columnWidthArr: columnWidthArr,
       tableStyleId: tableStyleId,
       blockRecordHandle: blockRecordHandle,
-      cells: cells,
+      cells: this.convertTableCells(cells),
       bmpPreview: ''
     }
-  }
-
-  /**
-   * R2010+ ACAD_TABLE stores the grid inline as TABLECONTENT (`tdata`), not in
-   * the pre-2010 `cells` array. Display text is the formatted value string.
-   */
-  private readLinkedTable(entity: Dwg_Object_Entity_Ptr): {
-    rowCount: number
-    columnCount: number
-    rowHeightArr: number[]
-    columnWidthArr: number[]
-    cells: DwgTableCell[]
-  } | undefined {
-    const libredwg = this.libredwg
-    const tdata = entity + libredwg.dwg_dynapi_entity_field_offset(entity, 'tdata')
-    const rowCount = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'num_rows') ?? 0
-    const columnCount = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'num_cols') ?? 0
-    if (rowCount <= 0 || columnCount <= 0) return undefined
-
-    const colSize = libredwg.dwg_dynapi_subclass_size('TableDataColumn')
-    const cols = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'cols')
-    const columnWidthArr: number[] = []
-    for (let i = 0; i < columnCount; i++) {
-      columnWidthArr.push(
-        libredwg.dwg_dynapi_subclass_data<number>(
-          cols + i * colSize,
-          'TableDataColumn',
-          'width'
-        ) ?? 0
-      )
-    }
-
-    const rowSize = libredwg.dwg_dynapi_subclass_size('TableRow')
-    const cellSize = libredwg.dwg_dynapi_subclass_size('TableCell')
-    const contentSize = libredwg.dwg_dynapi_subclass_size('TableCellContent')
-    const valueOff = libredwg.dwg_dynapi_subclass_field_offset('TableCellContent', 'value')
-    const rows = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'rows')
-    const rowHeightArr: number[] = []
-    const cells: DwgTableCell[] = []
-    for (let r = 0; r < rowCount; r++) {
-      const row = rows + r * rowSize
-      rowHeightArr.push(
-        libredwg.dwg_dynapi_subclass_data<number>(row, 'TableRow', 'height') ?? 0
-      )
-      const ncells = libredwg.dwg_dynapi_subclass_data<number>(row, 'TableRow', 'num_cells') ?? 0
-      const rowCells = libredwg.dwg_dynapi_subclass_data<number>(row, 'TableRow', 'cells')
-      for (let c = 0; c < columnCount; c++) {
-        let text = ''
-        if (c < ncells && rowCells) {
-          const cell = rowCells + c * cellSize
-          const ncontents = libredwg.dwg_dynapi_subclass_data<number>(
-            cell,
-            'TableCell',
-            'num_cell_contents'
-          ) ?? 0
-          const contents = libredwg.dwg_dynapi_subclass_data<number>(
-            cell,
-            'TableCell',
-            'cell_contents'
-          )
-          for (let k = 0; k < ncontents; k++) {
-            const value = contents + k * contentSize + valueOff
-            const formatted = libredwg.dwg_dynapi_subclass_data<string>(
-              value,
-              'TABLE_value',
-              'value_string'
-            )
-            const raw = libredwg.dwg_dynapi_subclass_data<string>(
-              value,
-              'TABLE_value',
-              'data_string'
-            )
-            if (formatted || raw) {
-              text = formatted || raw || ''
-              break
-            }
-          }
-        }
-        cells.push({
-          text,
-          attachmentPoint: DwgAttachmentPoint.TopLeft,
-          cellType: text ? 1 : 0,
-          topBorderVisibility: false,
-          bottomBorderVisibility: false,
-          leftBorderVisibility: false,
-          rightBorderVisibility: false,
-          textHeight: 0
-        })
-      }
-    }
-    return { rowCount, columnCount, rowHeightArr, columnWidthArr, cells }
   }
 
   private convertTableCells(cells: Dwg_TABLE_Cell[]): DwgTableCell[] {
