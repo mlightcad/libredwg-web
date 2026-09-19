@@ -859,7 +859,7 @@ in_word_set (const char *str, size_t len)
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str76,                    "LEADER",                     DWG_TYPE_LEADER,	1,	STABLE},
       {-1}, {-1}, {-1},
 #line 130 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str80,                     "ACAD_TABLE",                 DWG_TYPE_TABLE,	1,	UNSTABLE},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str80,                     "ACAD_TABLE",                 DWG_TYPE_TABLE,	1,	DEBUGGING},
       {-1}, {-1}, {-1}, {-1},
 #line 304 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str85,                            "LTYPE",                             DWG_TYPE_LTYPE,	0,	STABLE},
@@ -1019,7 +1019,7 @@ in_word_set (const char *str, size_t len)
 #line 91 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str246,     "LINEARPARAMETERENTITY",      DWG_TYPE_LINEARPARAMETERENTITY,	1,	DEBUGGING},
 #line 350 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str247,                     "TABLECONTENT",                      DWG_TYPE_TABLECONTENT,	0,	UNSTABLE},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str247,                     "TABLECONTENT",                      DWG_TYPE_TABLECONTENT,	0,	DEBUGGING},
 #line 161 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str248,               "ACSH_PYRAMID_CLASS",                DWG_TYPE_ACSH_PYRAMID_CLASS,	0,	UNSTABLE},
 #line 131 "src/objects.in"
@@ -1132,7 +1132,7 @@ in_word_set (const char *str, size_t len)
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str341,                    "CIRCLE",                     DWG_TYPE_CIRCLE,	1,	STABLE},
       {-1}, {-1},
 #line 266 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str344,                        "DATATABLE",                         DWG_TYPE_DATATABLE,	0,	UNSTABLE},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str344,                        "DATATABLE",                         DWG_TYPE_DATATABLE,	0,	DEBUGGING},
       {-1},
 #line 256 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str346,                 "BLOCKXYPARAMETER",                  DWG_TYPE_BLOCKXYPARAMETER,	0,	UNSTABLE},
