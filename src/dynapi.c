@@ -12962,7 +12962,7 @@ static const Dwg_DYNAPI_field _dwg_TableDataColumn_fields[] = {
     0,0,0, 0 },
   { "cellstyle_id",	"BL", sizeof (BITCODE_BL),  OFF (struct _dwg_TableDataColumn, cellstyle_id),
     0,0,0, 0 },
-  { "width",	"BD", sizeof (BITCODE_BD),  OFF (struct _dwg_TableDataColumn, width),
+  { "width",	"BL", sizeof (BITCODE_BL),  OFF (struct _dwg_TableDataColumn, width),
     0,0,0, 0 },
   {NULL,	NULL,	0,	0,	0,0,0, 0},
 };
@@ -12984,7 +12984,7 @@ static const Dwg_DYNAPI_field _dwg_TableRow_fields[] = {
     0,0,0, 0 },
   { "style_id",	"BL", sizeof (BITCODE_BL),  OFF (struct _dwg_TableRow, style_id),
     0,0,0, 0 },
-  { "height",	"BD", sizeof (BITCODE_BD),  OFF (struct _dwg_TableRow, height),
+  { "height",	"BL", sizeof (BITCODE_BL),  OFF (struct _dwg_TableRow, height),
     0,0,0, 0 },
   {NULL,	NULL,	0,	0,	0,0,0, 0},
 };
