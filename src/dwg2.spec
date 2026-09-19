@@ -223,6 +223,35 @@ DWG_OBJECT (SPATIAL_INDEX)
 
 DWG_OBJECT_END
 
+#ifdef IS_DECODER
+/* Defaulted doubles in cell styles are stored as the BD sentinel. Treat that
+   as 0 instead of aborting the rest of the table. */
+#  define FIELD_BD_DEFAULT(nam, dxf)                                          \
+    {                                                                         \
+      _obj->nam = bit_read_BD (dat);                                          \
+      if (bit_isnan (_obj->nam))                                              \
+        _obj->nam = 0.0;                                                      \
+    }
+#  define SUB_FIELD_BD_DEFAULT(o, nam, dxf) FIELD_BD_DEFAULT (o.nam, dxf)
+#  define SUB_FIELD_3BD_DEFAULT(o, nam, dxf)                                  \
+    {                                                                         \
+      _obj->o.nam.x = bit_read_BD (dat);                                      \
+      _obj->o.nam.y = bit_read_BD (dat);                                      \
+      _obj->o.nam.z = bit_read_BD (dat);                                      \
+      if (bit_isnan (_obj->o.nam.x) || bit_isnan (_obj->o.nam.y)              \
+          || bit_isnan (_obj->o.nam.z))                                       \
+        {                                                                     \
+          _obj->o.nam.x = 0.0;                                                \
+          _obj->o.nam.y = 0.0;                                                \
+          _obj->o.nam.z = 0.0;                                                \
+        }                                                                     \
+    }
+#else
+#  define FIELD_BD_DEFAULT(nam, dxf) FIELD_BD (nam, dxf)
+#  define SUB_FIELD_BD_DEFAULT(o, nam, dxf) SUB_FIELD_BD (o, nam, dxf)
+#  define SUB_FIELD_3BD_DEFAULT(o, nam, dxf) SUB_FIELD_3BD (o, nam, dxf)
+#endif
+
 // 20.4.101.3 Content format for TABLECONTENT and CellStyle_Field
 #define ContentFormat_fields(fmt)                 \
   DXF { VALUE_TFF ("CONTENTFORMAT", 300) }        \
@@ -232,12 +261,12 @@ DWG_OBJECT_END
   FIELD_BLx (fmt.value_data_type, 92);            \
   FIELD_BLx (fmt.value_unit_type, 93);            \
   FIELD_T (fmt.value_format_string, 300);         \
-  FIELD_BD (fmt.rotation, 40);                    \
-  FIELD_BD (fmt.block_scale, 140);                \
+  FIELD_BD_DEFAULT (fmt.rotation, 40);                    \
+  FIELD_BD_DEFAULT (fmt.block_scale, 140);                \
   FIELD_BL (fmt.cell_alignment, 94);              \
   FIELD_CMTC (fmt.content_color, 62);             \
   FIELD_HANDLE (fmt.text_style, 3, 340);          \
-  FIELD_BD (fmt.text_height, 144);                \
+  FIELD_BD_DEFAULT (fmt.text_height, 144);                \
   DXF { VALUE_TFF ("CONTENTFORMAT_END", 309) }
 
 // Cell style 20.4.101.4 for TABLE, TABLECONTENT, TABLESTYLE, and CELLSTYLEMAP
@@ -253,40 +282,48 @@ DWG_OBJECT_END
       FIELD_BL (sty.content_layout, 93);				\
       ContentFormat_fields (sty.content_format);			\
       FIELD_BSx (sty.margin_override_flags, 171);			\
-      if (FIELD_VALUE (sty.margin_override_flags))			\
+      if (FIELD_VALUE (sty.margin_override_flags) & 1)			\
 	{								\
 	  DXF { VALUE_TFF ("MARGIN", 301) }				\
 	  DXF { VALUE_TFF ("CELLMARGIN_BEGIN", 1) }			\
-	  FIELD_BD (sty.vert_margin, 40);				\
-	  FIELD_BD (sty.horiz_margin, 40);				\
-	  FIELD_BD (sty.bottom_margin, 40);				\
-	  FIELD_BD (sty.right_margin, 40);				\
-	  FIELD_BD (sty.margin_horiz_spacing, 40);			\
-	  FIELD_BD (sty.margin_vert_spacing, 40);			\
+	  FIELD_BD_DEFAULT (sty.vert_margin, 40);				\
+	  FIELD_BD_DEFAULT (sty.horiz_margin, 40);				\
+	  FIELD_BD_DEFAULT (sty.bottom_margin, 40);				\
+	  FIELD_BD_DEFAULT (sty.right_margin, 40);				\
+	  FIELD_BD_DEFAULT (sty.margin_horiz_spacing, 40);			\
+	  FIELD_BD_DEFAULT (sty.margin_vert_spacing, 40);			\
 	  DXF { VALUE_TFF ("CELLMARGIN_END", 309) }			\
 	}								\
       FIELD_BL (sty.num_borders, 94); /* 0-6 */			\
       VALUEOUTOFBOUNDS (sty.num_borders, 6);				\
-      REPEAT2 (sty.num_borders, sty.borders, Dwg_GridFormat)		\
+      /* REPEAT4: this macro is expanded inside the TABLE cell loop,	\
+         which already owns rcount2. */					\
+      REPEAT4 (sty.num_borders, sty.borders, Dwg_GridFormat)		\
       REPEAT_BLOCK							\
 	DXF {								\
-	  if (FIELD_VALUE (sty.borders[rcount2].index_mask))		\
+	  if (FIELD_VALUE (sty.borders[rcount4].index_mask))		\
 	    {								\
-	      SUB_FIELD_BL (sty.borders[rcount2],index_mask, 95);	\
+	      SUB_FIELD_BL (sty.borders[rcount4],index_mask, 95);	\
 	      VALUE_TFF ("GRIDFORMAT", 302);				\
 	      VALUE_TFF ("GRIDFORMAT_BEGIN", 1);			\
 	    }								\
 	}								\
-	SUB_FIELD_BLx (sty.borders[rcount2],index_mask, 0);		\
-	if (FIELD_VALUE (sty.borders[rcount2].index_mask))		\
+	SUB_FIELD_BLx (sty.borders[rcount4],index_mask, 0);		\
+	/* ODA: the border body is present only for a single edge bit. */ \
+	if (FIELD_VALUE (sty.borders[rcount4].index_mask) == 1		\
+	    || FIELD_VALUE (sty.borders[rcount4].index_mask) == 2	\
+	    || FIELD_VALUE (sty.borders[rcount4].index_mask) == 4	\
+	    || FIELD_VALUE (sty.borders[rcount4].index_mask) == 8	\
+	    || FIELD_VALUE (sty.borders[rcount4].index_mask) == 16	\
+	    || FIELD_VALUE (sty.borders[rcount4].index_mask) == 32)	\
 	  {								\
-	    SUB_FIELD_BL (sty.borders[rcount2],border_overrides, 90);	\
-	    SUB_FIELD_BL (sty.borders[rcount2],border_type, 91);	\
-	    SUB_FIELD_CMTC (sty.borders[rcount2],color, 62);		\
-	    SUB_FIELD_BLd (sty.borders[rcount2],linewt, 92);		\
-	    SUB_FIELD_HANDLE (sty.borders[rcount2],ltype, 3, 340);	\
-	    SUB_FIELD_BL (sty.borders[rcount2],visible, 93);		\
-	    SUB_FIELD_BD (sty.borders[rcount2],double_line_spacing, 40);\
+	    SUB_FIELD_BL (sty.borders[rcount4],border_overrides, 90);	\
+	    SUB_FIELD_BL (sty.borders[rcount4],border_type, 91);	\
+	    SUB_FIELD_CMTC (sty.borders[rcount4],color, 62);		\
+	    SUB_FIELD_BLd (sty.borders[rcount4],linewt, 92);		\
+	    SUB_FIELD_HANDLE (sty.borders[rcount4],ltype, 3, 340);	\
+	    SUB_FIELD_BL (sty.borders[rcount4],visible, 93);		\
+	    SUB_FIELD_BD_DEFAULT (sty.borders[rcount4],double_line_spacing, 40);\
 	  }								\
 	DXF { VALUE_TFF ("GRIDFORMAT_END", 309) }			\
       END_REPEAT_BLOCK							\
@@ -304,6 +341,105 @@ DWG_OBJECT_END
 #define attr content.attrs[rcount4]
 #define merged fdata.merged_cells[rcount1]
 
+/* R2007+ table cell values. The shared TABLE_cell_value_fields reader treats
+   format_flags & 3 as empty and reads kString from the text stream. ACAD_TABLE
+   cells only use bit 0 as empty, keep the variant string in the data stream,
+   and always store the formatted value (group 302). */
+#ifdef IS_DECODER
+#  define TABLE_READ_DATA_STRING(value)                                       \
+    {                                                                         \
+      BITCODE_BL _len = bit_read_BL (dat);                                    \
+      FIELD_VALUE (value.data_size) = _len;                                   \
+          if (_len > 0 && _len < 0x100000)                                        \
+            {                                                                     \
+              unsigned char *_raw = bit_read_TF (dat, _len);                     \
+              unsigned _i;                                                        \
+              if (!_raw)                                                          \
+                return DWG_ERR_OUTOFMEM;                                          \
+              int _uni = _len >= 2 && (_len % 2) == 0;                            \
+              for (_i = 1; _uni && _i < _len; _i += 2)                            \
+                if (_raw[_i] != 0)                                                \
+                  _uni = 0;                                                       \
+              if (_uni)                                                           \
+                {                                                                 \
+                  FIELD_VALUE (value.data_string)                                 \
+                      = bit_convert_TU ((BITCODE_TU)_raw);                        \
+                  free (_raw);                                                    \
+                }                                                                 \
+              else                                                                \
+                {                                                                 \
+                  char *_s = (char *)malloc (_len + 1);                           \
+                  if (_s)                                                         \
+                    {                                                             \
+                      memcpy (_s, _raw, _len);                                    \
+                      _s[_len] = '\0';                                            \
+                    }                                                             \
+                  FIELD_VALUE (value.data_string) = _s;                           \
+                  free (_raw);                                                    \
+                }                                                                 \
+            }                                                                     \
+      else if (_len)                                                          \
+        return DWG_ERR_VALUEOUTOFBOUNDS;                                      \
+    }
+#  define TABLE_cell_value_fields(value)                                      \
+    PRE (R_2007a) { FIELD_VALUE (value.data_type) &= ~0x200; }                \
+    LATER_VERSIONS { FIELD_BL (value.format_flags, 93); }                     \
+    FIELD_BL (value.data_type, 90);                                           \
+    if (!(dat->version >= R_2007 && (FIELD_VALUE (value.format_flags) & 1)))  \
+      {                                                                       \
+        switch (FIELD_VALUE (value.data_type))                                \
+          {                                                                   \
+          case 0:                                                             \
+          case 1:                                                             \
+            FIELD_BL (value.data_long, 91);                                   \
+            break;                                                            \
+          case 2:                                                             \
+            FIELD_BD (value.data_double, 140);                                \
+            break;                                                            \
+          case 4:                                                             \
+          case 512:                                                           \
+            TABLE_READ_DATA_STRING (value)                                    \
+            break;                                                            \
+          case 8:                                                             \
+            FIELD_BL (value.data_size, 92);                                   \
+            FIELD_BINARY (value.data_date, FIELD_VALUE (value.data_size), 310); \
+            break;                                                            \
+          case 16:                                                            \
+            FIELD_BL (value.data_size, 92);                                   \
+            if (FIELD_VALUE (value.data_size))                                \
+              FIELD_2RD (value.data_point, 11);                               \
+            break;                                                            \
+          case 32:                                                            \
+            FIELD_BL (value.data_size, 92);                                   \
+            if (FIELD_VALUE (value.data_size))                                \
+              FIELD_3RD (value.data_3dpoint, 11);                             \
+            break;                                                            \
+          case 64:                                                            \
+            FIELD_HANDLE (value.data_handle, -1, 330);                        \
+            break;                                                            \
+          default:                                                            \
+            break;                                                            \
+          }                                                                   \
+      }                                                                       \
+    SINCE (R_2007a)                                                           \
+    {                                                                         \
+      FIELD_BL (value.unit_type, 94);                                         \
+      FIELD_T (value.format_string, 300);                                     \
+      FIELD_T (value.value_string, 302);                                      \
+    }
+#else
+#  ifdef IS_FREE
+#    define TABLE_cell_value_fields(value)                                    \
+      FIELD_T (value.data_string, 1);                                         \
+      FIELD_T (value.format_string, 300);                                     \
+      FIELD_T (value.value_string, 302);                                      \
+      FIELD_BINARY (value.data_date, 0, 310);                                 \
+      FIELD_HANDLE (value.data_handle, -1, 330);
+#  else
+#    define TABLE_cell_value_fields(value)
+#  endif
+#endif
+
 // pg.237 20.4.97 for TABLE (2010+) and TABLECONTENT
 #define TABLECONTENTs_fields					\
   SUBCLASS (AcDbLinkedData)                                     \
@@ -316,8 +452,23 @@ DWG_OBJECT_END
       SUB_FIELD_T (tdata.cols[rcount1],name, 300);		\
       DXF { VALUE_TFF ("LINKEDTABLEDATACOLUMN_BEGIN", 1) }      \
       SUB_FIELD_BL (tdata.cols[rcount1],custom_data, 91);	\
+      SUB_FIELD_BL (tdata.cols[rcount1],num_customdata_items, 90); \
+      REPEAT2 (tdata.cols[rcount1].num_customdata_items, tdata.cols[rcount1].customdata_items, Dwg_TABLE_CustomDataItem) \
+      REPEAT_BLOCK						\
+          SUB_FIELD_T (tdata.cols[rcount1].customdata_items[rcount2],name, 300); \
+          TABLE_cell_value_fields (tdata.cols[rcount1].customdata_items[rcount2].value); \
+          if (error & DWG_ERR_INVALIDTYPE)			\
+            {							\
+              JSON_END_REPEAT (tdata.cols[rcount1].customdata_items); \
+              JSON_END_REPEAT (tdata.cols);				\
+              return error;					\
+            }							\
+      END_REPEAT_BLOCK						\
+      END_REPEAT (tdata.cols[rcount1].customdata_items);	\
       DXF { VALUE_TFF ("DATAMAP_BEGIN", 1) }                    \
       CellStyle_fields (tdata.cols[rcount1].cellstyle);		\
+      SUB_FIELD_BL (tdata.cols[rcount1],cellstyle_id, 90);	\
+      SUB_FIELD_BD (tdata.cols[rcount1],width, 40);		\
       DXF { VALUE_TFF ("DATAMAP_END", 309) }                    \
       DXF { VALUE_TFF ("LINKEDTABLEDATACOLUMN_END", 309) }      \
       SET_PARENT (tdata.cols[rcount1], &_obj->tdata);		\
@@ -336,7 +487,7 @@ DWG_OBJECT_END
           REPEAT3 (cell.num_customdata_items, cell.customdata_items, Dwg_TABLE_CustomDataItem) \
           REPEAT_BLOCK						\
               SUB_FIELD_T (cell.customdata_items[rcount3],name, 300);	 \
-              TABLE_value_fields (cell.customdata_items[rcount3].value); \
+              TABLE_cell_value_fields (cell.customdata_items[rcount3].value); \
               if (error & DWG_ERR_INVALIDTYPE)			\
                 {						\
                   JSON_END_REPEAT (cell.customdata_items);	\
@@ -348,7 +499,7 @@ DWG_OBJECT_END
           END_REPEAT_BLOCK					\
           END_REPEAT (cell.customdata_items);			\
           SUB_FIELD_BL (cell,has_linked_data, 92);		\
-          if (FIELD_VALUE (cell.has_linked_data))		\
+          if (FIELD_VALUE (cell.has_linked_data) == 1)		\
             {							\
               SUB_FIELD_HANDLE (cell,data_link, 5, 340);	\
               SUB_FIELD_BL (cell,num_rows, 93);			\
@@ -365,7 +516,7 @@ DWG_OBJECT_END
                 {						\
                   DXF { VALUE_TFF ("VALUE", 300) }              \
                   /* 20.4.99 Value, page 241 */         	\
-                  TABLE_value_fields (content.value)		\
+                  TABLE_cell_value_fields (content.value)		\
                   if (error & DWG_ERR_INVALIDTYPE)		\
                     {						\
                       JSON_END_REPEAT (cell.cell_contents);	\
@@ -400,23 +551,30 @@ DWG_OBJECT_END
               SET_PARENT (content, &_obj->cell);                \
           END_REPEAT_BLOCK					\
           END_REPEAT (cell.cell_contents);			\
+          CellStyle_fields (cell.cellstyle);			\
           SUB_FIELD_BL (cell, style_id, 90);			\
           SUB_FIELD_BL (cell, has_geom_data, 91);		\
           if (FIELD_VALUE (cell.has_geom_data))			\
             {							\
               SUB_FIELD_BL (cell,geom_data_flag, 91);		\
-              SUB_FIELD_BD (cell,width_w_gap, 40);		\
-              SUB_FIELD_BD (cell,height_w_gap, 41);		\
+              SUB_FIELD_BD_DEFAULT (cell,width_w_gap, 40);		\
+              SUB_FIELD_BD_DEFAULT (cell,height_w_gap, 41);		\
               SUB_FIELD_BL (cell,num_geometry, 94);		\
+              /* This BL is a presence flag, not a repeat count.	\
+                 REPEAT4_C keeps rcount1 for the row loop. */	\
+              DECODER {						\
+                if (FIELD_VALUE (cell.num_geometry) > 1)		\
+                  FIELD_VALUE (cell.num_geometry) = 1;		\
+              }							\
               SUB_FIELD_HANDLE (cell,tablegeometry, 4, 330);	\
-              REPEAT (cell.num_geometry, cell.geometry, Dwg_CellContentGeometry) \
+              REPEAT4_C (cell.num_geometry, cell.geometry, Dwg_CellContentGeometry) \
               REPEAT_BLOCK					\
-                  SUB_FIELD_3BD (geom,dist_top_left, 10);	\
-                  SUB_FIELD_3BD (geom,dist_center, 11);		\
-                  SUB_FIELD_BD (geom,content_width, 43);	\
-                  SUB_FIELD_BD (geom,content_height, 44);	\
-                  SUB_FIELD_BD (geom,width, 45);		\
-                  SUB_FIELD_BD (geom,height, 46);		\
+                  SUB_FIELD_3BD_DEFAULT (geom,dist_top_left, 10);	\
+                  SUB_FIELD_3BD_DEFAULT (geom,dist_center, 11);		\
+                  SUB_FIELD_BD_DEFAULT (geom,content_width, 43);	\
+                  SUB_FIELD_BD_DEFAULT (geom,content_height, 44);	\
+                  SUB_FIELD_BD_DEFAULT (geom,width, 45);		\
+                  SUB_FIELD_BD_DEFAULT (geom,height, 46);		\
                   SUB_FIELD_BL (geom,unknown, 95);		\
                   SET_PARENT_FIELD (geom, cell_parent, &_obj->cell); \
               END_REPEAT_BLOCK					\
@@ -430,7 +588,7 @@ DWG_OBJECT_END
       REPEAT3 (row.num_customdata_items, row.customdata_items, Dwg_TABLE_CustomDataItem) \
       REPEAT_BLOCK						\
           SUB_FIELD_T (row.customdata_items[rcount3],name, 300);\
-          TABLE_value_fields (row.customdata_items[rcount3].value);\
+          TABLE_cell_value_fields (row.customdata_items[rcount3].value);\
           if (error & DWG_ERR_INVALIDTYPE)			\
             {							\
               JSON_END_REPEAT (row.customdata_items);		\
@@ -443,7 +601,7 @@ DWG_OBJECT_END
       {								\
         CellStyle_fields (row.cellstyle);			\
         SUB_FIELD_BL (row,style_id, 90);			\
-        SUB_FIELD_BL (row,height, 40);				\
+        SUB_FIELD_BD_DEFAULT (row,height, 40);				\
       }								\
       SET_PARENT (row, &_obj->tdata);				\
   END_REPEAT_BLOCK						\
@@ -479,17 +637,61 @@ DWG_ENTITY (TABLE)
   HANDLE_UNKNOWN_BITS;
   SINCE (R_2010b) //AC1024
     {
+      // R2010+ still starts with the AcDbBlockReference header, then a short
+      // unknown prefix, then the inline TABLECONTENT body.
+      SUBCLASS (AcDbBlockReference)
+      FIELD_3BD (ins_pt, 10);
+      DECODER_OR_ENCODER {
+        FIELD_BB (scale_flag, 0);
+        switch (FIELD_VALUE (scale_flag))
+          {
+            case 0:
+              FIELD_VALUE (scale.x) = 1.0;
+              FIELD_DD (scale.y, FIELD_VALUE (scale.x), 42);
+              FIELD_DD (scale.z, FIELD_VALUE (scale.x), 43);
+              break;
+            case 1:
+              FIELD_VALUE (scale.x) = 1.0;
+              FIELD_DD (scale.y, 1.0, 42);
+              FIELD_DD (scale.z, 1.0, 43);
+              break;
+            case 2:
+              FIELD_RD (scale.x, 41);
+              FIELD_VALUE (scale.y) = FIELD_VALUE (scale.x);
+              FIELD_VALUE (scale.z) = FIELD_VALUE (scale.x);
+              break;
+            case 3:
+              FIELD_VALUE (scale.x) = 1.0;
+              FIELD_VALUE (scale.y) = 1.0;
+              FIELD_VALUE (scale.z) = 1.0;
+              break;
+            default:
+              LOG_ERROR ("Invalid scale_flag in TABLE entity %d\n",
+                         (int)FIELD_VALUE (scale_flag));
+              _obj->scale_flag = 0;
+              DEBUG_HERE_OBJ
+              return DWG_ERR_INVALIDTYPE;
+          }
+      }
+      FIELD_BD0 (rotation, 50);
+      FIELD_3BD (extrusion, 210);
+      FIELD_B (has_attribs, 66);
+      if (FIELD_VALUE (has_attribs))
+        {
+          FIELD_BL (num_owned, 0);
+          VALUEOUTOFBOUNDS (num_owned, 10000)
+        }
+
       FIELD_RC (unknown_rc, 0);
-      FIELD_HANDLE (tablestyle, 5, 342);
-      //FIELD_HANDLE (unknown_h, 5, 0);
+      FIELD_HANDLE (unknown_h, 5, 0);
       FIELD_BL (unknown_bl, 0);
       VERSIONS (R_2010b, R_2010)
         FIELD_B (unknown_b, 0); // default 1
-      VERSIONS (R_2013b, R_2013)
+      SINCE (R_2013b)
         FIELD_BL (unknown_bl1, 0);
       // i.e. TABLECONTENT: 20.4.96.2 AcDbTableContent subclass: 20.4.97
-      // FIXME: same offset as TABLECONTENT, or subclass
       TABLECONTENTs_fields;
+      FIELD_HANDLE (tablestyle, 5, 342);
 
 #undef row
 #undef cell
@@ -696,7 +898,7 @@ DWG_ENTITY (TABLE)
                 SUB_FIELD_BL (cell,unknown, 0);
 
                 // 20.4.99 Value, page 241
-                TABLE_value_fields (cell.value)
+                TABLE_cell_value_fields (cell.value)
                 if (error & DWG_ERR_INVALIDTYPE)
                   {
                     JSON_END_REPEAT (cells);
