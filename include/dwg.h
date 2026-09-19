@@ -4634,33 +4634,6 @@ typedef struct _dwg_CellContentGeometry
   struct _dwg_TABLEGEOMETRY_Cell *geom_parent;
 } Dwg_CellContentGeometry;
 
-typedef struct _dwg_TableCell
-{
-  BITCODE_BL flag;
-  BITCODE_TV tooltip;
-  BITCODE_BL customdata;
-  BITCODE_BL num_customdata_items;
-  Dwg_TABLE_CustomDataItem *customdata_items;
-  BITCODE_BL has_linked_data;
-  BITCODE_H data_link;
-  BITCODE_BL num_rows;
-  BITCODE_BL num_cols;
-  BITCODE_BL unknown;
-  BITCODE_BL num_cell_contents;
-  Dwg_TableCellContent *cell_contents;
-  BITCODE_BL style_id;
-  BITCODE_BL has_geom_data;
-  BITCODE_BL geom_data_flag;
-  BITCODE_BD width_w_gap;
-  BITCODE_BD height_w_gap;
-  BITCODE_H tablegeometry;
-  BITCODE_BL num_geometry;
-  Dwg_CellContentGeometry *geometry;
-
-  struct _dwg_CellStyle *style_parent;
-  struct _dwg_TableRow *row_parent;
-} Dwg_TableCell;
-
 // almost like GridLine/TABLESTYLE_border
 // in ODA named OdTableGridLine, was BorderStyle
 typedef struct _dwg_GridFormat
@@ -4703,6 +4676,34 @@ typedef struct _dwg_CellStyle
   struct _dwg_TableDataColumn *tabledatacolumn_parent;
 } Dwg_CellStyle;
 
+typedef struct _dwg_TableCell
+{
+  BITCODE_BL flag;
+  BITCODE_TV tooltip;
+  BITCODE_BL customdata;
+  BITCODE_BL num_customdata_items;
+  Dwg_TABLE_CustomDataItem *customdata_items;
+  BITCODE_BL has_linked_data;
+  BITCODE_H data_link;
+  BITCODE_BL num_rows;
+  BITCODE_BL num_cols;
+  BITCODE_BL unknown;
+  BITCODE_BL num_cell_contents;
+  Dwg_TableCellContent *cell_contents;
+  Dwg_CellStyle cellstyle;
+  BITCODE_BL style_id;
+  BITCODE_BL has_geom_data;
+  BITCODE_BL geom_data_flag;
+  BITCODE_BD width_w_gap;
+  BITCODE_BD height_w_gap;
+  BITCODE_H tablegeometry;
+  BITCODE_BL num_geometry;
+  Dwg_CellContentGeometry *geometry;
+
+  struct _dwg_CellStyle *style_parent;
+  struct _dwg_TableRow *row_parent;
+} Dwg_TableCell;
+
 typedef struct _dwg_TableRow
 {
   struct _dwg_LinkedTableData *parent;
@@ -4713,7 +4714,7 @@ typedef struct _dwg_TableRow
   Dwg_TABLE_CustomDataItem *customdata_items;
   Dwg_CellStyle cellstyle;
   BITCODE_BL style_id;
-  BITCODE_BL height;
+  BITCODE_BD height;
 } Dwg_TableRow;
 
 typedef struct _dwg_TableDataColumn
@@ -4721,10 +4722,11 @@ typedef struct _dwg_TableDataColumn
   struct _dwg_LinkedTableData *parent;
   BITCODE_T name;
   BITCODE_BL custom_data;
-  // BITCODE_TV data;
+  BITCODE_BL num_customdata_items;
+  Dwg_TABLE_CustomDataItem *customdata_items;
   Dwg_CellStyle cellstyle;
   BITCODE_BL cellstyle_id;
-  BITCODE_BL width;
+  BITCODE_BD width;
 } Dwg_TableDataColumn;
 
 typedef struct _dwg_LinkedTableData
