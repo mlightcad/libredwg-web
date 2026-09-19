@@ -850,7 +850,7 @@ in_word_set (const char *str, size_t len)
 #line 125 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str63,   "ROTATIONPARAMETERENTITY",    DWG_TYPE_ROTATIONPARAMETERENTITY,	1,	DEBUGGING},
 #line 58 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str64,            "ARCALIGNEDTEXT",             DWG_TYPE_ARCALIGNEDTEXT,	1,	DEBUGGING},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str64,            "ARCALIGNEDTEXT",             DWG_TYPE_ARCALIGNEDTEXT,	1,	UNSTABLE},
       {-1},
 #line 181 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str66,       "ACDBASSOCARRAYMODIFYACTIONBODY",    DWG_TYPE_ASSOCARRAYMODIFYACTIONBODY,	0,	DEBUGGING},
@@ -876,7 +876,7 @@ in_word_set (const char *str, size_t len)
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str81,                    "REPEAT",                     DWG_TYPE_REPEAT,	1,	STABLE},
       {-1}, {-1},
 #line 269 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str84,                        "DATATABLE",                         DWG_TYPE_DATATABLE,	0,	DEBUGGING},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str84,                        "DATATABLE",                         DWG_TYPE_DATATABLE,	0,	UNSTABLE},
       {-1},
 #line 303 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str86,                           "LAYOUT",                            DWG_TYPE_LAYOUT,	0,	STABLE},
@@ -898,7 +898,7 @@ in_word_set (const char *str, size_t len)
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str96,       "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION",  DWG_TYPE_DYNAMICBLOCKPURGEPREVENTER,	0,	STABLE},
       {-1}, {-1}, {-1},
 #line 133 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str100,                     "ACAD_TABLE",                 DWG_TYPE_TABLE,	1,	DEBUGGING},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str100,                     "ACAD_TABLE",                 DWG_TYPE_TABLE,	1,	UNSTABLE},
 #line 90 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str101,                    "LEADER",                     DWG_TYPE_LEADER,	1,	STABLE},
       {-1}, {-1}, {-1}, {-1}, {-1}, {-1}, {-1},
@@ -948,7 +948,7 @@ in_word_set (const char *str, size_t len)
 #line 86 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str146,                    "INSERT",                     DWG_TYPE_INSERT,	1,	STABLE},
 #line 353 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str147,                     "TABLECONTENT",                      DWG_TYPE_TABLECONTENT,	0,	DEBUGGING},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str147,                     "TABLECONTENT",                      DWG_TYPE_TABLECONTENT,	0,	UNSTABLE},
       {-1}, {-1}, {-1}, {-1},
 #line 312 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str152,                     "MLEADERSTYLE",                      DWG_TYPE_MLEADERSTYLE,	0,	STABLE},

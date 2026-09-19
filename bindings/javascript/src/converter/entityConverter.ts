@@ -2,6 +2,7 @@ import {
   Dwg3dFaceEntity,
   DwgAlignedDimensionEntity,
   DwgAngularDimensionEntity,
+  DwgArcAlignedTextEntity,
   DwgArcEdge,
   DwgArcEntity,
   DwgAttachmentPoint,
@@ -165,6 +166,8 @@ export class LibreEntityConverter {
         return this.convert3dSolid(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ARC) {
         return this.convertArc(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ARCALIGNEDTEXT) {
+        return this.convertArcAlignedText(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_ATTDEF) {
         return this.convertAttdef(entity_tio, commonAttrs)
         // libredwg stores ATTRIB as children of one INSERT entity.
@@ -336,6 +339,59 @@ export class LibreEntityConverter {
       startAngle: startAngle,
       endAngle: endAngle,
       extrusionDirection: extrusionDirection
+    }
+  }
+
+  private convertArcAlignedText(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgArcAlignedTextEntity {
+    const libredwg = this.libredwg
+    const numberField = (field: string, fallback = 0) => {
+      const value = libredwg.dwg_dynapi_entity_data<string | number>(entity, field)
+      if (typeof value === 'number' && Number.isFinite(value)) return value
+      if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value)
+        if (Number.isFinite(parsed)) return parsed
+      }
+      return fallback
+    }
+    const center = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'center')
+    const extrusion = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
+    const arcRef = libredwg.dwg_dynapi_entity_data<number>(entity, 'arc_handle')
+    const xScale = numberField('xscale', 1)
+    return {
+      type: 'ARCALIGNEDTEXT',
+      ...commonAttrs,
+      text: libredwg.dwg_dynapi_entity_data<string>(entity, 'text_value') ?? '',
+      textSize: numberField('text_size'),
+      xScale: xScale > 0 ? xScale : 1,
+      characterSpacing: numberField('char_spacing'),
+      styleName: libredwg.dwg_dynapi_entity_data<string>(entity, 'style') ?? '',
+      fontName: libredwg.dwg_dynapi_entity_data<string>(entity, 'font_name') ?? '',
+      bigFontName: libredwg.dwg_dynapi_entity_data<string>(entity, 'bigfont_name') ?? '',
+      offsetFromArc: numberField('offset_from_arc'),
+      rightOffset: numberField('right_offset'),
+      leftOffset: numberField('left_offset'),
+      center: center ?? { x: 0, y: 0, z: 0 },
+      radius: libredwg.dwg_dynapi_entity_data<number>(entity, 'radius') ?? 0,
+      startAngle: libredwg.dwg_dynapi_entity_data<number>(entity, 'start_angle') ?? 0,
+      endAngle: libredwg.dwg_dynapi_entity_data<number>(entity, 'end_angle') ?? 0,
+      extrusionDirection: extrusion ?? { x: 0, y: 0, z: 1 },
+      rawTextColor: libredwg.dwg_dynapi_entity_data<number>(entity, 'color') ?? 256,
+      characterSet: libredwg.dwg_dynapi_entity_data<number>(entity, 'character_set') ?? 0,
+      pitchAndFamily: libredwg.dwg_dynapi_entity_data<number>(entity, 'pitch_and_family') ?? 0,
+      isShx: (libredwg.dwg_dynapi_entity_data<number>(entity, 'is_shx') ?? 0) !== 0,
+      isBold: (libredwg.dwg_dynapi_entity_data<number>(entity, 'is_bold') ?? 0) !== 0,
+      isItalic: (libredwg.dwg_dynapi_entity_data<number>(entity, 'is_italic') ?? 0) !== 0,
+      isUnderlined:
+        (libredwg.dwg_dynapi_entity_data<number>(entity, 'is_underlined') ?? 0) !== 0,
+      alignment: libredwg.dwg_dynapi_entity_data<number>(entity, 'alignment') ?? 0,
+      isReverse: (libredwg.dwg_dynapi_entity_data<number>(entity, 'is_reverse') ?? 0) !== 0,
+      wizardFlag: libredwg.dwg_dynapi_entity_data<number>(entity, 'wizard_flag') ?? 0,
+      textPosition: libredwg.dwg_dynapi_entity_data<number>(entity, 'text_position') ?? 1,
+      textDirection: libredwg.dwg_dynapi_entity_data<number>(entity, 'text_direction') ?? 1,
+      arcHandle: arcRef ? (libredwg.dwg_ref_get_id(arcRef) ?? '') : ''
     }
   }
 
@@ -2171,16 +2227,17 @@ export class LibreEntityConverter {
     const startPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
     const directionVector = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'horiz_direction')
     const tableValue = libredwg.dwg_dynapi_entity_data<number>(entity, 'flag_for_table_value')
-    const rowCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_rows')
-    const columnCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cols')
-    const row_heights_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'row_heights')
-    const rowHeightArr = libredwg.dwg_ptr_to_double_array(
-      row_heights_ptr,
+    const linked = this.readLinkedTable(entity)
+    const rowCount = linked?.rowCount
+      ?? libredwg.dwg_dynapi_entity_data<number>(entity, 'num_rows')
+    const columnCount = linked?.columnCount
+      ?? libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cols')
+    const rowHeightArr = linked?.rowHeightArr ?? libredwg.dwg_ptr_to_double_array(
+      libredwg.dwg_dynapi_entity_data<number>(entity, 'row_heights'),
       rowCount
     )
-    const col_widths_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'col_widths')
-    const columnWidthArr = libredwg.dwg_ptr_to_double_array(
-      col_widths_ptr,
+    const columnWidthArr = linked?.columnWidthArr ?? libredwg.dwg_ptr_to_double_array(
+      libredwg.dwg_dynapi_entity_data<number>(entity, 'col_widths'),
       columnCount
     )
     const table_style_ref = libredwg.dwg_dynapi_entity_data<number>(entity, 'tablestyle')
@@ -2191,9 +2248,12 @@ export class LibreEntityConverter {
     const borderColorOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_color_overrides_flag')
     const borderLineWeightOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_lineweight_overrides_flag')
     const borderVisibilityOverrideFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'border_visibility_overrides_flag')
-    const num_cells = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cells')
-    const cells_ptr = libredwg.dwg_dynapi_entity_data<number>(entity, 'cells')
-    const cells = libredwg.dwg_ptr_to_table_cell_array(cells_ptr, num_cells)
+    const cells = linked?.cells ?? this.convertTableCells(
+      libredwg.dwg_ptr_to_table_cell_array(
+        libredwg.dwg_dynapi_entity_data<number>(entity, 'cells'),
+        libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cells')
+      )
+    )
 
     return {
       type: 'ACAD_TABLE',
@@ -2213,9 +2273,100 @@ export class LibreEntityConverter {
       columnWidthArr: columnWidthArr,
       tableStyleId: tableStyleId,
       blockRecordHandle: blockRecordHandle,
-      cells: this.convertTableCells(cells),
+      cells: cells,
       bmpPreview: ''
     }
+  }
+
+  /**
+   * R2010+ ACAD_TABLE stores the grid inline as TABLECONTENT (`tdata`), not in
+   * the pre-2010 `cells` array. Display text is the formatted value string.
+   */
+  private readLinkedTable(entity: Dwg_Object_Entity_Ptr): {
+    rowCount: number
+    columnCount: number
+    rowHeightArr: number[]
+    columnWidthArr: number[]
+    cells: DwgTableCell[]
+  } | undefined {
+    const libredwg = this.libredwg
+    const tdata = entity + libredwg.dwg_dynapi_entity_field_offset(entity, 'tdata')
+    const rowCount = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'num_rows') ?? 0
+    const columnCount = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'num_cols') ?? 0
+    if (rowCount <= 0 || columnCount <= 0) return undefined
+
+    const colSize = libredwg.dwg_dynapi_subclass_size('TableDataColumn')
+    const cols = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'cols')
+    const columnWidthArr: number[] = []
+    for (let i = 0; i < columnCount; i++) {
+      columnWidthArr.push(
+        libredwg.dwg_dynapi_subclass_data<number>(
+          cols + i * colSize,
+          'TableDataColumn',
+          'width'
+        ) ?? 0
+      )
+    }
+
+    const rowSize = libredwg.dwg_dynapi_subclass_size('TableRow')
+    const cellSize = libredwg.dwg_dynapi_subclass_size('TableCell')
+    const contentSize = libredwg.dwg_dynapi_subclass_size('TableCellContent')
+    const valueOff = libredwg.dwg_dynapi_subclass_field_offset('TableCellContent', 'value')
+    const rows = libredwg.dwg_dynapi_subclass_data<number>(tdata, 'LinkedTableData', 'rows')
+    const rowHeightArr: number[] = []
+    const cells: DwgTableCell[] = []
+    for (let r = 0; r < rowCount; r++) {
+      const row = rows + r * rowSize
+      rowHeightArr.push(
+        libredwg.dwg_dynapi_subclass_data<number>(row, 'TableRow', 'height') ?? 0
+      )
+      const ncells = libredwg.dwg_dynapi_subclass_data<number>(row, 'TableRow', 'num_cells') ?? 0
+      const rowCells = libredwg.dwg_dynapi_subclass_data<number>(row, 'TableRow', 'cells')
+      for (let c = 0; c < columnCount; c++) {
+        let text = ''
+        if (c < ncells && rowCells) {
+          const cell = rowCells + c * cellSize
+          const ncontents = libredwg.dwg_dynapi_subclass_data<number>(
+            cell,
+            'TableCell',
+            'num_cell_contents'
+          ) ?? 0
+          const contents = libredwg.dwg_dynapi_subclass_data<number>(
+            cell,
+            'TableCell',
+            'cell_contents'
+          )
+          for (let k = 0; k < ncontents; k++) {
+            const value = contents + k * contentSize + valueOff
+            const formatted = libredwg.dwg_dynapi_subclass_data<string>(
+              value,
+              'TABLE_value',
+              'value_string'
+            )
+            const raw = libredwg.dwg_dynapi_subclass_data<string>(
+              value,
+              'TABLE_value',
+              'data_string'
+            )
+            if (formatted || raw) {
+              text = formatted || raw || ''
+              break
+            }
+          }
+        }
+        cells.push({
+          text,
+          attachmentPoint: DwgAttachmentPoint.TopLeft,
+          cellType: text ? 1 : 0,
+          topBorderVisibility: false,
+          bottomBorderVisibility: false,
+          leftBorderVisibility: false,
+          rightBorderVisibility: false,
+          textHeight: 0
+        })
+      }
+    }
+    return { rowCount, columnCount, rowHeightArr, columnWidthArr, cells }
   }
 
   private convertTableCells(cells: Dwg_TABLE_Cell[]): DwgTableCell[] {

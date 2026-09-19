@@ -1,5 +1,6 @@
 export * from './3dface'
 export * from './arc'
+export * from './arcAlignedText'
 export * from './attdef'
 export * from './attrib'
 export * from './circle'

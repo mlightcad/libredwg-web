@@ -89,8 +89,12 @@ emscripten::val get_obj_value(const Dwg_Data *dwg, T _obj, const Dwg_DYNAPI_fiel
     const bool is_tu = dwg ? IS_FROM_TU_DWG (dwg) : strEQc (f->type, "T");
     if (is_tu && strNE (f->type, "TF")) { /* not TF */
         BITCODE_TU wstr = *(BITCODE_TU*)((char*)_obj + f->offset);
+        if (!wstr) {
+          result.set("data", std::string());
+          return result;
+        }
         char *utf8 = bit_convert_TU(wstr);
-        if (wstr && !utf8) { // some conversion error, invalid wchar (nyi)
+        if (!utf8) { // some conversion error, invalid wchar (nyi)
           result.set("success", false);
           result.set("message", std::string("Failed to convert string!"));
           return result;
@@ -99,6 +103,10 @@ emscripten::val get_obj_value(const Dwg_Data *dwg, T _obj, const Dwg_DYNAPI_fiel
         free(utf8);
     } else {
       char *utf8 = *(char **)((char*)_obj + f->offset);
+      if (!utf8) {
+        result.set("data", std::string());
+        return result;
+      }
       const std::string str = std::string(utf8);
       result.set("data", str);
       result.set("bin", dwg_ptr_to_unsigned_char_array((unsigned char*)utf8, str.length()));
