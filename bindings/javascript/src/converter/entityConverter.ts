@@ -75,6 +75,7 @@ import {
   DwgTextHorizontalAlign,
   DwgTextVerticalAlign,
   DwgToleranceEntity,
+  DwgTraceEntity,
   DwgVertex2dEntity,
   DwgVertex3dEntity,
   DwgViewportEntity,
@@ -231,6 +232,8 @@ export class LibreEntityConverter {
         return this.convertShape(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SOLID) {
         return this.convertSolid(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_TRACE) {
+        return this.convertTrace(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_SPLINE) {
         return this.convertSpline(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_TABLE) {
@@ -2152,6 +2155,17 @@ export class LibreEntityConverter {
       corner4: corner4,
       thickness: thickness,
       extrusionDirection: extrusionDirection
+    }
+  }
+
+  private convertTrace(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgTraceEntity {
+    const solid = this.convertSolid(entity, commonAttrs)
+    return {
+      ...solid,
+      type: 'TRACE'
     }
   }
 
