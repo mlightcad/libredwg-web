@@ -2411,8 +2411,32 @@ export class LibreEntityConverter {
     const snapAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'SNAPANG')
     const viewTwistAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'twist_angle')
     const circleZoomPercent = libredwg.dwg_dynapi_entity_data<number>(entity, 'circle_zoom')
-    // TODO: convert frozenLayerIds and clippingBoundaryId
+    const numFrozenLayers = libredwg.dwg_dynapi_entity_data<number>(
+      entity,
+      'num_frozen_layers'
+    )
+    let frozenLayerIds: string[] | undefined
+    if (numFrozenLayers > 0) {
+      const frozenLayersPtr = libredwg.dwg_dynapi_entity_data<number>(
+        entity,
+        'frozen_layers'
+      )
+      if (frozenLayersPtr) {
+        const frozenLayers = libredwg.dwg_ptr_to_object_ref_ptr_array(
+          frozenLayersPtr,
+          numFrozenLayers
+        )
+        frozenLayerIds = frozenLayers
+          .map(ref => libredwg.dwg_ref_get_id(ref))
+          .filter((id): id is string => !!id)
+      }
+    }
     const statusBitFlags = libredwg.dwg_dynapi_entity_data<number>(entity, 'status_flag')
+    const clip_boundary_ref = libredwg.dwg_dynapi_entity_data<number>(
+      entity,
+      'clip_boundary'
+    )
+    const clippingBoundaryId = libredwg.dwg_ref_get_id(clip_boundary_ref)
     const sheetName = libredwg.dwg_dynapi_entity_data<string>(entity, 'style_sheet')
     const renderMode = libredwg.dwg_dynapi_entity_data<number>(entity, 'render_mode')
     // TODO: Not sure whether UCSVP in libredwg represents ucsPerViewport
@@ -2466,7 +2490,9 @@ export class LibreEntityConverter {
       snapAngle: snapAngle,
       viewTwistAngle: viewTwistAngle,
       circleZoomPercent: circleZoomPercent,
+      frozenLayerIds,
       statusBitFlags: statusBitFlags,
+      clippingBoundaryId,
       sheetName: sheetName,
       renderMode: renderMode,
       ucsPerViewport: ucsPerViewport,
