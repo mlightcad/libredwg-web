@@ -32,7 +32,10 @@ import { BBoxAndElement } from './transformBoundingBoxAndElement'
 type SvgAnchorType = 'start' | 'middle' | 'end'
 
 export class SvgConverter {
-  private blockMap = new Map<string, BBoxAndElement>()
+  private blockMap = new Map<
+    string,
+    BBoxAndElement & { basePoint?: DwgPoint3D }
+  >()
 
   private rotate(point: DwgPoint2D, angle: number) {
     const cos = Math.cos(angle)
@@ -544,11 +547,12 @@ export class SvgConverter {
     if (block) {
       // In SVG, the unit of rotate is degrees — not radians.
       const insertionPoint = entity.insertionPoint
-      // const basePoint = block.bbox.min
+      const basePoint = block.basePoint ?? { x: 0, y: 0, z: 0 }
       const rotation = entity.rotation * (180 / Math.PI)
-      const transform = `translate(${insertionPoint.x},${insertionPoint.y}) rotate(${rotation}) scale(${entity.xScale},${entity.yScale})`
+      const transform = `translate(${insertionPoint.x},${insertionPoint.y}) rotate(${rotation}) scale(${entity.xScale},${entity.yScale}) translate(${-basePoint.x},${-basePoint.y})`
       const newBBox = block.bbox
         .clone()
+        .transform({ x: 1, y: 1 }, { x: -basePoint.x, y: -basePoint.y })
         .transform(
           { x: entity.xScale, y: entity.yScale },
           { x: insertionPoint.x, y: insertionPoint.y }
@@ -724,7 +728,10 @@ export class SvgConverter {
         const item = this.block(block, dwg)
         if (item) {
           blockElements += item.element
-          this.blockMap.set(block.name, item)
+          this.blockMap.set(block.name, {
+            ...item,
+            basePoint: block.basePoint
+          })
         }
       }
     })
