@@ -24,6 +24,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
+    "types": [],
     "downlevelIteration": true,
     "jsx": "react-jsx",
     "moduleResolution": "node"
