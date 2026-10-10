@@ -3,6 +3,13 @@
 
 #include "dwg.h"
 #include "dwg_api.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "bits.h"
+#ifdef __cplusplus
+}
+#endif
 #include "binding_common.h"
 
 
@@ -477,14 +484,50 @@ emscripten::val dwg_object_dictionary_get_texts_wrapper(Dwg_Object_Ptr obj_ptr) 
   Dwg_Object* obj = reinterpret_cast<Dwg_Object*>(obj_ptr);
   if (obj && obj->fixedtype == DWG_TYPE_DICTIONARY) {
     Dwg_Object_DICTIONARY* dict = obj->tio.object->tio.DICTIONARY;
+    // DICTIONARY.texts is BITCODE_T* (version-dependent), not BITCODE_TU*.
+    // Pre-R2007 DWGs store codepage/UTF-8 C strings; R2007+ stores UCS-2LE.
+    // Always decoding as TU turns e.g. "Model" / "布局1" into mojibake
+    // (潍敤l / 벲횾1) and causes duplicate layout dictionary keys downstream.
+    Dwg_Data *dwg = obj->parent;
+    const bool is_tu = dwg ? IS_FROM_TU_DWG (dwg) : false;
+    emscripten::val jsArray = emscripten::val::array();
+    const BITCODE_BL n = dict->numitems;
+    for (BITCODE_BL i = 0; i < n; i++) {
+      BITCODE_T text = (dict->texts && dict->texts[i]) ? dict->texts[i] : NULL;
+      if (!text) {
+        jsArray.call<void> ("push", emscripten::val::null());
+        continue;
+      }
+      if (is_tu) {
+        char *utf8 = bit_convert_TU ((BITCODE_TU)text);
+        if (!utf8) {
+          jsArray.call<void> ("push", emscripten::val::null());
+        } else {
+          jsArray.call<void> ("push", std::string (utf8));
+          free (utf8);
+        }
+      } else {
+        // Pre-R2007: convert DWG codepage (e.g. GB2312) to UTF-8 when needed.
+        // bit_TV_to_utf8 returns NULL, the original pointer, or a malloc'd copy.
+        const BITCODE_RS codepage = dwg ? dwg->header.codepage : 0;
+        char *utf8 = bit_TV_to_utf8 (text, codepage);
+        if (!utf8) {
+          jsArray.call<void> ("push", std::string (text));
+        } else {
+          jsArray.call<void> ("push", std::string (utf8));
+          if (utf8 != text)
+            free (utf8);
+        }
+      }
+    }
     emscripten::val result = emscripten::val::object();
     result.set("success", true);
-    result.set("data", dwg_ptr_to_wchar_string_array((BITCODE_TU*)dict->texts, dict->numitems));
+    result.set("data", jsArray);
     return result;
   } else {
     emscripten::val result = emscripten::val::object();
     result.set("success", false);
-    result.set("message", std::string("Failed to get the number of points!"));
+    result.set("message", std::string("Failed to get dictionary texts!"));
     result.set("data", emscripten::val::array());
     return result;
   }
