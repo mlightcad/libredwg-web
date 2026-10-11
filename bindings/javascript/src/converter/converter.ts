@@ -40,6 +40,7 @@ import {
   Dwg_Object_Supertype,
   Dwg_Object_Type
 } from '../types'
+import { resolveBlockBasePoint } from './blockBasePoint'
 import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor'
 import { LibreEntityConverter } from './entityConverter'
 import { idToString, isModelSpace, isPaperSpace, uint8ArrayToHexString } from './utils'
@@ -337,7 +338,7 @@ export class LibreDwgConverter {
 
     const flags = libredwg.dwg_dynapi_entity_data<number>(item, 'flag')
     const description = libredwg.dwg_dynapi_entity_data<string>(item, 'description')
-    const basePoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'base_pt')
+    const headerBasePoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'base_pt')
     const insertionUnits = libredwg.dwg_dynapi_entity_data<number>(item, 'insert_units')
     const explodability = libredwg.dwg_dynapi_entity_data<number>(item, 'explodable')
     const scalability = libredwg.dwg_dynapi_entity_data<number>(item, 'block_scaling')
@@ -401,6 +402,13 @@ export class LibreDwgConverter {
         }
       }
     }
+
+    const basePoint = resolveBlockBasePoint({
+      headerBase: headerBasePoint,
+      blockEntityBase: block.base_pt,
+      entities,
+      blockName: commonAttrs.name
+    })
 
     return {
       ...commonAttrs,

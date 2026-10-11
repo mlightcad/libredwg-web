@@ -41,7 +41,7 @@
     "link": "node script/create-symlink.js ./wasm/libredwg-web.js ./src/libredwg-web.js",
     "lint": "eslint src/",
     "lint:fix": "eslint --fix --quiet src/",
-    "test": "node --test test/node-api.test.mjs",
+    "test": "node --experimental-strip-types --test test/*.test.mjs",
     "test:node": "pnpm build && pnpm test",
     "publish:npm": "pnpm publish --access public --no-git-checks",
     "release": "node script/release.mjs"
