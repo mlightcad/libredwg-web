@@ -840,52 +840,55 @@ export class LibreEntityConverter {
             })
           } as DwgPolylineBoundaryPath
         } else {
-          const edges = path.segs.map(seg => {
-            if (seg.curve_type == Dwg_Hatch_Edge_Type.Line) {
-              return {
-                type: DwgBoundaryPathEdgeType.Line,
-                start: seg.first_endpoint,
-                end: seg.second_endpoint
-              } as DwgLineEdge
-            } else if (seg.curve_type == Dwg_Hatch_Edge_Type.CircularArc) {
-              return {
-                type: DwgBoundaryPathEdgeType.Circular,
-                center: seg.center,
-                radius: seg.radius,
-                startAngle: seg.start_angle,
-                endAngle: seg.end_angle,
-                isCCW: seg.is_ccw
-              } as DwgArcEdge
-            } else if (seg.curve_type == Dwg_Hatch_Edge_Type.EllipticArc) {
-              return {
-                type: DwgBoundaryPathEdgeType.Elliptic,
-                center: seg.center,
-                end: seg.endpoint,
-                lengthOfMinorAxis: seg.minor_major_ratio,
-                startAngle: seg.start_angle,
-                endAngle: seg.end_angle,
-                isCCW: seg.is_ccw
-              } as DwgEllipseEdge
-            } else if (seg.curve_type == Dwg_Hatch_Edge_Type.Spline) {
-              return {
-                type: DwgBoundaryPathEdgeType.Spline,
-                degree: seg.degree,
-                isRational: seg.is_rational,
-                isPeriodic: seg.is_periodic,
-                numberOfKnots: seg.num_knots,
-                numberOfControlPoints: seg.num_control_points,
-                knots: seg.knots,
-                controlPoints: seg.control_points,
-                numberOfFitData: seg.num_fitpts,
-                fitDatum: seg.fitpts,
-                startTangent: seg.start_tangent,
-                endTangent: seg.end_tangent
-              } as DwgSplineEdge
-            }
-          })
+          const edges = path.segs
+            .map(seg => {
+              if (seg.curve_type == Dwg_Hatch_Edge_Type.Line) {
+                return {
+                  type: DwgBoundaryPathEdgeType.Line,
+                  start: seg.first_endpoint,
+                  end: seg.second_endpoint
+                } as DwgLineEdge
+              } else if (seg.curve_type == Dwg_Hatch_Edge_Type.CircularArc) {
+                return {
+                  type: DwgBoundaryPathEdgeType.Circular,
+                  center: seg.center,
+                  radius: seg.radius,
+                  startAngle: seg.start_angle,
+                  endAngle: seg.end_angle,
+                  isCCW: seg.is_ccw
+                } as DwgArcEdge
+              } else if (seg.curve_type == Dwg_Hatch_Edge_Type.EllipticArc) {
+                return {
+                  type: DwgBoundaryPathEdgeType.Elliptic,
+                  center: seg.center,
+                  end: seg.endpoint,
+                  lengthOfMinorAxis: seg.minor_major_ratio,
+                  startAngle: seg.start_angle,
+                  endAngle: seg.end_angle,
+                  isCCW: seg.is_ccw
+                } as DwgEllipseEdge
+              } else if (seg.curve_type == Dwg_Hatch_Edge_Type.Spline) {
+                return {
+                  type: DwgBoundaryPathEdgeType.Spline,
+                  degree: seg.degree,
+                  isRational: seg.is_rational,
+                  isPeriodic: seg.is_periodic,
+                  numberOfKnots: seg.num_knots,
+                  numberOfControlPoints: seg.num_control_points,
+                  knots: seg.knots,
+                  controlPoints: seg.control_points,
+                  numberOfFitData: seg.num_fitpts,
+                  fitDatum: seg.fitpts,
+                  startTangent: seg.start_tangent,
+                  endTangent: seg.end_tangent
+                } as DwgSplineEdge
+              }
+              return undefined
+            })
+            .filter((edge): edge is DwgBoundaryPathEdge => edge != null)
           return {
             ...commonAttrs,
-            numberOfEdges: path.num_segs_or_paths,
+            numberOfEdges: edges.length,
             edges: edges
           } as DwgEdgeBoundaryPath<DwgBoundaryPathEdge>
         }
