@@ -1,9 +1,20 @@
 #ifndef MY_STAT_H
 #define MY_STAT_H
 
-#ifdef HAVE_SYS_STAT_H
+/* config.h leaves HAVE_SYS_STAT_H unset when configure never checks for the
+   header. Emscripten still provides <sys/stat.h>, and C99 rejects the
+   implicit stat/fstat/S_ISREG declarations that the fallback struct needs. */
+#if defined(HAVE_SYS_STAT_H)
 #  include <sys/stat.h>
-#else
+#  define MY_STAT_HAVE_HEADER 1
+#elif !defined(_MSC_VER) && defined(__has_include)
+#  if __has_include(<sys/stat.h>)
+#    include <sys/stat.h>
+#    define MY_STAT_HAVE_HEADER 1
+#  endif
+#endif
+
+#ifndef MY_STAT_HAVE_HEADER
 #  include <stdint.h>
 #  if defined _MSC_VER
 struct _stat
@@ -25,7 +36,7 @@ struct stat
 };
 #endif
 
-#if defined _MSC_VER & !defined HAVE_SYS_STAT_H
+#if defined _MSC_VER && !defined MY_STAT_HAVE_HEADER
 typedef struct _stat struct_stat_t;
 #else
 typedef struct stat struct_stat_t;

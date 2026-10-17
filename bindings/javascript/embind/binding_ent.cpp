@@ -140,7 +140,10 @@ emscripten::val dwg_entity_polyline_2d_get_vertices_wrapper(Dwg_Object_Ptr obj_p
             result.set("success", false);
             result.set("message", std::string("Not all of vertices returned!"));
           }
-        } while ((vobj = dwg_next_object (vobj)) && vobj != vlast);
+          /* Stop after vlast. Advancing first skipped that vertex. */
+          if (vlast && vobj == vlast)
+            break;
+        } while ((vobj = dwg_next_object (vobj)));
         result.set("data", vertices_obj);
       }
     }
@@ -388,7 +391,10 @@ emscripten::val dwg_entity_polyline_3d_get_vertices_wrapper(Dwg_Object_Ptr obj_p
             result.set("success", false);
             result.set("message", std::string("Not all of vertices returned!"));
           }
-        } while ((vobj = dwg_next_object (vobj)) && vobj != vlast);
+          /* Stop after vlast. Advancing first skipped that vertex. */
+          if (vlast && vobj == vlast)
+            break;
+        } while ((vobj = dwg_next_object (vobj)));
         result.set("data", vertices_obj);
       }
     }
