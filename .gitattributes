@@ -1,0 +1,21 @@
+# Working tree and repository both use LF. core.autocrlf on Windows
+# otherwise checks out CRLF, and config.status then fails to replace
+# "#undef NAME" in src/config.h.in.
+* text=auto eol=lf
+
+# Windows batch files are executed by cmd.exe.
+*.bat text eol=crlf
+
+# Binary assets. text=auto usually detects these; list them so a
+# heuristic miss cannot rewrite them.
+*.dwg binary
+*.dxfb binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.pdf binary
+*.wasm binary
+*.zip binary
+*.gz binary
+*.xz binary
