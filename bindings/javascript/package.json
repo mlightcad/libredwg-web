@@ -3,7 +3,7 @@
   "description": "A DWG/DXF JavaScript parser based on libredwg",
   "license": "GPL-3.0",
   "private": false,
-  "version": "0.8.1",
+  "version": "0.8.2",
   "author": "MLight Lee <mlight.lee@outlook.com>",
   "type": "module",
   "engines": {
@@ -28,6 +28,7 @@
     "webassembly"
   ],
   "scripts": {
+    "fix:esm-imports": "node script/fix-relative-esm-imports.mjs",
     "demo": "live-server examples --entry-file=index.html",
     "doc": "typedoc",
     "build": "tsc && vite build && node script/copy-build-artifacts.js",
@@ -49,7 +50,9 @@
   "files": [
     "dist",
     "lib/**/*.js",
-    "lib/**/*.ts",
+    "lib/**/*.js.map",
+    "lib/**/*.d.ts",
+    "lib/**/*.d.ts.map",
     "wasm",
     "README.md",
     "package.json"
@@ -58,9 +61,11 @@
   "module": "./dist/libredwg-web.js",
   "types": "./lib/index.d.ts",
   "exports": {
-    "types": "./lib/index.d.ts",
-    "import": "./dist/libredwg-web.js",
-    "require": "./dist/libredwg-web.umd.cjs"
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./dist/libredwg-web.js",
+      "require": "./dist/libredwg-web.umd.cjs"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

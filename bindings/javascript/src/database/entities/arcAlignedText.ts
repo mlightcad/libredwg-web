@@ -1,5 +1,5 @@
-import { DwgPoint3D } from '../common'
-import { DwgEntity } from './entity'
+import { DwgPoint3D } from '../common.js'
+import { DwgEntity } from './entity.js'
 
 /**
  * Express Tools arc-aligned text (DXF ARCALIGNEDTEXT / AcDbArcAlignedText).

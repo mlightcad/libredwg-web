@@ -1,4 +1,4 @@
-import { Box2D } from './box2d'
+import { Box2D } from './box2d.js'
 
 type Transform =
   | { type: 'translate'; x: number; y: number }

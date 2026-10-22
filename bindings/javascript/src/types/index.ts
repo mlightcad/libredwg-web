@@ -1,2 +1,2 @@
-export * from './common'
-export * from './enums'
+export * from './common.js'
+export * from './enums.js'

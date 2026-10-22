@@ -1,5 +1,5 @@
-import { DwgPoint3D } from '../common'
-import { DwgCommonObject } from './common'
+import { DwgPoint3D } from '../common.js'
+import { DwgCommonObject } from './common.js'
 
 /**
  * MLEADERSTYLE object fields mapped from AutoCAD DXF group codes.

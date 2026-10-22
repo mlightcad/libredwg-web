@@ -1,4 +1,4 @@
-import { DwgCommonTableEntry } from './table'
+import { DwgCommonTableEntry } from './table.js'
 
 export interface DwgStyleTableEntry extends DwgCommonTableEntry {
   standardFlag: number

@@ -1,4 +1,4 @@
-import { isModelSpace } from '../converter/utils'
+import { isModelSpace } from '../converter/utils.js'
 import {
   DwgArcEntity,
   DwgAttachmentPoint,
@@ -22,12 +22,12 @@ import {
   DwgTextEntity,
   DwgTextHorizontalAlign,
   DwgXlineEntity
-} from '../database'
-import { Box2D } from './box2d'
-import { evaluateBSpline } from './bspline'
-import { Color } from './color'
-import { interpolatePolyline } from './polyline'
-import { BBoxAndElement } from './transformBoundingBoxAndElement'
+} from '../database/index.js'
+import { Box2D } from './box2d.js'
+import { evaluateBSpline } from './bspline.js'
+import { Color } from './color.js'
+import { interpolatePolyline } from './polyline.js'
+import { BBoxAndElement } from './transformBoundingBoxAndElement.js'
 
 type SvgAnchorType = 'start' | 'middle' | 'end'
 

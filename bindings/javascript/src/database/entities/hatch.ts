@@ -1,5 +1,5 @@
-import { DwgPoint2D, DwgPoint3D } from '../common'
-import { DwgEntity } from './entity'
+import { DwgPoint2D, DwgPoint3D } from '../common.js'
+import { DwgEntity } from './entity.js'
 
 export enum DwgHatchSolidFill {
   PatternFill = 0,

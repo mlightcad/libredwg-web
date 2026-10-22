@@ -81,8 +81,8 @@ import {
   DwgViewportEntity,
   DwgWipeoutEntity,
   DwgXlineEntity
-} from '../database'
-import { LibreDwgEx } from '../libredwg'
+} from '../database/index.js'
+import { LibreDwgEx } from '../libredwg.js'
 import {
   Dwg_Color,
   Dwg_Entity_PROXY_ENTITY_Ptr,
@@ -92,13 +92,13 @@ import {
   Dwg_Object_Ptr,
   Dwg_Object_Type,
   Dwg_TABLE_Cell
-} from '../types'
-import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor'
+} from '../types/index.js'
+import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor.js'
 import {
   decodeOle2FrameCornersFromData,
   idToString,
   uint8ArrayToHexString
-} from './utils'
+} from './utils.js'
 
 type DwgCommonAttributes = Omit<DwgEntity, 'type'>
 type DwgDimensionCommonAttributes = Omit<

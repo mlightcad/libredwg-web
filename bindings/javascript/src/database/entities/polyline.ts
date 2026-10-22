@@ -1,6 +1,6 @@
-import { DwgPoint3D } from '../common'
-import { DwgEntity } from './entity'
-import { DwgVertex2dEntity, DwgVertex3dEntity } from './vertex'
+import { DwgPoint3D } from '../common.js'
+import { DwgEntity } from './entity.js'
+import { DwgVertex2dEntity, DwgVertex3dEntity } from './vertex.js'
 
 export enum DwgPolylineFlag {
   CLOSED_POLYLINE = 1,
