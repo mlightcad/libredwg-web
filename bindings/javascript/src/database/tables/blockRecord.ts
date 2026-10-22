@@ -1,5 +1,4 @@
 import { DwgPoint3D } from '../common.js'
-
 import { DwgEntity } from '../entities/index.js'
 import { DwgCommonTableEntry } from './table.js'
 
