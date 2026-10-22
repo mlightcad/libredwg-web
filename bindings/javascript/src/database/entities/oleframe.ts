@@ -1,4 +1,4 @@
-import { DwgEntity } from './entity'
+import { DwgEntity } from './entity.js'
 
 export interface DwgOleFrameEntity extends DwgEntity {
   /**

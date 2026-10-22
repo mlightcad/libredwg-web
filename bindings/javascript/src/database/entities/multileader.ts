@@ -1,5 +1,5 @@
-import { DwgPoint3D } from '../common'
-import { DwgEntity } from './entity'
+import { DwgPoint3D } from '../common.js'
+import { DwgEntity } from './entity.js'
 
 /**
  * MULTILEADER entity fields mapped from AutoCAD DXF MLEADER group codes.

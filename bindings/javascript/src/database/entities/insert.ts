@@ -1,6 +1,6 @@
-import { DwgPoint3D } from '../common'
-import { DwgAttribEntity } from './attrib'
-import { DwgEntity } from './entity'
+import { DwgPoint3D } from '../common.js'
+import { DwgAttribEntity } from './attrib.js'
+import { DwgEntity } from './entity.js'
 
 export interface DwgInsertEntity extends DwgEntity {
   /**

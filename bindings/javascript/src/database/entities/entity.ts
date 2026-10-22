@@ -1,4 +1,4 @@
-import { DwgXData } from '../shared/xdata'
+import { DwgXData } from '../shared/xdata.js'
 
 export interface DwgEntity {
   /**

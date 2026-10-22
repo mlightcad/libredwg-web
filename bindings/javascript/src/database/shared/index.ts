@@ -1,1 +1,1 @@
-export * from './xdata'
+export * from './xdata.js'

@@ -1,5 +1,5 @@
-import { DwgClass } from '../classes'
-import { DwgEntity } from './entity'
+import { DwgClass } from '../classes/index.js'
+import { DwgEntity } from './entity.js'
 
 /**
  * Original custom object data format (DXF group 70).

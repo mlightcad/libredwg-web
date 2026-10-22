@@ -1,5 +1,5 @@
-import { DwgLWPolylineEntity, DwgPoint2D } from '../database'
-import { Vector2D } from './vector'
+import { DwgLWPolylineEntity, DwgPoint2D } from '../database/index.js'
+import { Vector2D } from './vector.js'
 
 export function createPolylineArcPoints(
   from: DwgPoint2D,

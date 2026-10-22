@@ -1,6 +1,6 @@
-import { DwgPoint3D } from '../common'
-import { DwgAttachmentPoint } from './dimension'
-import { DwgEntity } from './entity'
+import { DwgPoint3D } from '../common.js'
+import { DwgAttachmentPoint } from './dimension.js'
+import { DwgEntity } from './entity.js'
 
 export interface DwgTableCell {
   text: string

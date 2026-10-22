@@ -1,4 +1,4 @@
-import { Dwg_Color, Dwg_Color_Method } from '../types'
+import { Dwg_Color, Dwg_Color_Method } from '../types/index.js'
 
 /** MLEADER / MLEADERSTYLE packed raw-color type flags (DXF high byte). */
 const RAW_COLOR_TYPE_BY_LAYER = 0xc0

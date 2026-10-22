@@ -1,6 +1,6 @@
-import { MainModule } from '../wasm/libredwg-web'
+import { MainModule } from '../wasm/libredwg-web.js'
 import createModule from '../wasm/libredwg-web.js'
-import { LibreDwgConverter } from './converter'
+import { LibreDwgConverter } from './converter/index.js'
 import {
   decodeUnicodeEscapes,
   DwgCodePage,
@@ -13,8 +13,8 @@ import {
   DwgVersion,
   dwgVersions,
   DwgXData
-} from './database'
-import { SvgConverter } from './svg'
+} from './database/index.js'
+import { SvgConverter } from './svg/index.js'
 import {
   Dwg_Array_Ptr,
   Dwg_Class,
@@ -60,7 +60,7 @@ import {
   Dwg_Object_VERTEX_3D_Ptr,
   Dwg_Object_VPORT_Ptr,
   Dwg_TABLE_Cell
-} from './types'
+} from './types/index.js'
 
 export { createModule }
 

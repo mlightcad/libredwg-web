@@ -1,1 +1,1 @@
-export * from './class'
+export * from './class.js'

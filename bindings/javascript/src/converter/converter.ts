@@ -26,8 +26,8 @@ import {
   DwgVPortTableEntry,
   DwgXRecordObject,
   HEADER_VARIABLES
-} from '../database'
-import { LibreDwgEx } from '../libredwg'
+} from '../database/index.js'
+import { LibreDwgEx } from '../libredwg.js'
 import {
   Dwg_Array_Ptr,
   Dwg_Color,
@@ -39,10 +39,10 @@ import {
   Dwg_Object_Ref_Ptr,
   Dwg_Object_Supertype,
   Dwg_Object_Type
-} from '../types'
-import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor'
-import { LibreEntityConverter } from './entityConverter'
-import { idToString, isModelSpace, isPaperSpace, uint8ArrayToHexString } from './utils'
+} from '../types/index.js'
+import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor.js'
+import { LibreEntityConverter } from './entityConverter.js'
+import { idToString, isModelSpace, isPaperSpace, uint8ArrayToHexString } from './utils.js'
 
 /**
  * Class used to convert Dwg_Data instance to DwgDatabase instance.

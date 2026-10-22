@@ -1,6 +1,6 @@
-import { DwgClass } from './classes'
-import { DwgEntity } from './entities'
-import { DwgHeader } from './header'
+import { DwgClass } from './classes/index.js'
+import { DwgEntity } from './entities/index.js'
+import { DwgHeader } from './header/index.js'
 import {
   DwgDictionaryObject,
   DwgImageDefObject,
@@ -10,7 +10,7 @@ import {
   DwgMLeaderStyleObject,
   DwgSpatialFilterObject,
   DwgXRecordObject
-} from './objects'
+} from './objects/index.js'
 import {
   DwgAppIdEntry,
   DwgBlockRecordTableEntry,
@@ -20,7 +20,7 @@ import {
   DwgStyleTableEntry,
   DwgTable,
   DwgVPortTableEntry
-} from './tables'
+} from './tables/index.js'
 
 export interface DwgDatabase {
   tables: {
