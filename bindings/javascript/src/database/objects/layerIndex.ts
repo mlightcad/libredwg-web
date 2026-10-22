@@ -1,4 +1,4 @@
-import { DwgCommonObject } from './common'
+import { DwgCommonObject } from './common.js'
 
 /**
  * DWG LAYER_INDEX object fields.

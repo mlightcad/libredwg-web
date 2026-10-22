@@ -1,2 +1,2 @@
-export * from './header'
-export * from './variables'
+export * from './header.js'
+export * from './variables.js'

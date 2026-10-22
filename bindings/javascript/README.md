@@ -1,6 +1,12 @@
 # libredwg-web
 
-This is a DWG/DXF JavaScript parser based on libredwg. It can be used in browser and Node.js environments. 
+This is a DWG/DXF JavaScript parser based on libredwg. It can be used in browser and Node.js environments.
+
+## Node ESM / TypeScript `NodeNext`
+
+Published `lib/**/*.d.ts` (and the TypeScript sources that emit them) use explicit
+`.js` relative import specifiers so consumers with `moduleResolution: "NodeNext"`
+(for example `@mlightcad/libredwg-converter`) can resolve types correctly. 
 
 - [Live demo](https://mlightcad.github.io/libredwg-web/)
 - [API docs](https://mlightcad.github.io/libredwg-web/docs/)

@@ -1,4 +1,4 @@
-import { DwgCommonObject } from './common'
+import { DwgCommonObject } from './common.js'
 
 /**
  * Duplicate record cloning flag (determines how to merge duplicate entries)

@@ -1,3 +1,3 @@
-export * from './database'
-export * from './libredwg'
-export * from './types'
+export * from './database/index.js'
+export * from './libredwg.js'
+export * from './types/index.js'

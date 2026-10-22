@@ -1,7 +1,7 @@
-import { DwgPoint3D } from '../common'
-import { DwgEmbeddedMText } from './attdef'
-import { DwgEntity } from './entity'
-import { DwgTextBase } from './text'
+import { DwgPoint3D } from '../common.js'
+import { DwgEmbeddedMText } from './attdef.js'
+import { DwgEntity } from './entity.js'
+import { DwgTextBase } from './text.js'
 
 export interface DwgAttribEntity extends DwgEntity {
   /**

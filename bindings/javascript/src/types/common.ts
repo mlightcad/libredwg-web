@@ -1,5 +1,5 @@
-import { DwgPoint2D, DwgPoint2DWithWeight, DwgPoint3D } from '../database'
-import { Dwg_Color_Method } from './enums'
+import { DwgPoint2D, DwgPoint2DWithWeight, DwgPoint3D } from '../database/index.js'
+import { Dwg_Color_Method } from './enums.js'
 
 export type Dwg_Array_Ptr = number
 export type Dwg_Data_Ptr = number

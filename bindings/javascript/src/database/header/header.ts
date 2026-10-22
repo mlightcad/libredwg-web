@@ -1,5 +1,5 @@
-import { Dwg_Color } from '../../types'
-import { DwgPoint3D } from '../common'
+import { Dwg_Color } from '../../types/index.js'
+import { DwgPoint3D } from '../common.js'
 
 export interface DwgHeader {
   /**

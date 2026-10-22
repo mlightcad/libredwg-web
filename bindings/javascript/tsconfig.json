@@ -5,7 +5,8 @@
     "baseUrl": "./src",
 
     "target": "esnext",
-    "module": "esnext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": false,
@@ -26,11 +27,10 @@
     "skipLibCheck": true,
     "types": [],
     "downlevelIteration": true,
-    "jsx": "react-jsx",
-    "moduleResolution": "node"
+    "jsx": "react-jsx"
   },
   "ts-node": {
-    "esm": true,
+    "esm": true
   },
   "include": [
     "src"

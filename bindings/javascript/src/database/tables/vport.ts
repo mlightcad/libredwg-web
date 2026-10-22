@@ -1,5 +1,5 @@
-import { DwgPoint2D, DwgPoint3D } from '../common'
-import { DwgCommonTableEntry } from './table'
+import { DwgPoint2D, DwgPoint3D } from '../common.js'
+import { DwgCommonTableEntry } from './table.js'
 
 export interface DwgVPortTableEntry extends DwgCommonTableEntry {
   name: string

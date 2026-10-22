@@ -1,4 +1,4 @@
-import { DwgPoint2D } from '../database'
+import { DwgPoint2D } from '../database/index.js'
 
 /**
  * Represents a 2D axis-aligned bounding box.

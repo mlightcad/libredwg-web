@@ -1,7 +1,6 @@
-import { DwgPoint3D } from 'database/common'
-
-import { DwgEntity } from '../entities'
-import { DwgCommonTableEntry } from './table'
+import { DwgPoint3D } from '../common.js'
+import { DwgEntity } from '../entities/index.js'
+import { DwgCommonTableEntry } from './table.js'
 
 export interface DwgBlockRecordTableEntry extends DwgCommonTableEntry {
   /**

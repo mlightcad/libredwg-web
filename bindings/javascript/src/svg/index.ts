@@ -1,1 +1,1 @@
-export * from './svgConverter'
+export * from './svgConverter.js'

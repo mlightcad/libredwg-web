@@ -1,4 +1,4 @@
-import { DwgCommonObject } from './common'
+import { DwgCommonObject } from './common.js'
 
 /**
  * One DXF group-code / value pair stored in an XRECORD.

@@ -1,7 +1,7 @@
-import { DwgPoint2D, DwgPoint3D } from '../common'
-import { DwgAttachmentPoint } from './dimension'
-import { DwgEntity } from './entity'
-import { DwgTextBase } from './text'
+import { DwgPoint2D, DwgPoint3D } from '../common.js'
+import { DwgAttachmentPoint } from './dimension.js'
+import { DwgEntity } from './entity.js'
+import { DwgTextBase } from './text.js'
 
 export interface DwgEmbeddedMText {
   /**

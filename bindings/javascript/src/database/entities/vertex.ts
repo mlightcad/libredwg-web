@@ -1,5 +1,5 @@
-import { DwgPoint3D } from '../common'
-import { DwgEntity } from './entity'
+import { DwgPoint3D } from '../common.js'
+import { DwgEntity } from './entity.js'
 
 export declare enum DwgVertexFlag {
   CREATED_BY_CURVE_FIT = 1,
