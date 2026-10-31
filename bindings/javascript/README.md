@@ -47,6 +47,8 @@ pnpm build:prepare
 pnpm build:obj
 
 # Use emscripten to build web assembly for libredwg
+# (script/build-wasm.mjs: coalesces tsgen.wasm locals for --emit-tsd;
+#  prefers this package's TypeScript 5.x over a global tsc 6+)
 pnpm build:wasm
 
 # Copy web assembly (wasm file and JavaScript glue code file) from build directory to distribution directory of this package

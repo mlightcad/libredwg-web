@@ -1021,8 +1021,18 @@ export class LibreEntityConverter {
     commonAttrs: DwgCommonAttributes
   ): DwgLeaderEntity {
     const libredwg = this.libredwg
-    const styleName = libredwg.dwg_entity_mtext_get_style_name(entity)
-    const isArrowheadEnabled = libredwg.dwg_dynapi_entity_data<number>(entity, 'arrowhead_type')
+    // LEADER stores its dimension style on `dimstyle`. The MTEXT getter reads
+    // `style`, which this entity does not have, so the name was always empty
+    // and arrow size fell back to the default 2.5 drawing units.
+    let styleName = ''
+    try {
+      styleName = libredwg.dwg_entity_get_dimstyle_name(entity) || ''
+    } catch {
+      styleName = ''
+    }
+    // DXF group 71. arrowhead_type is a separate field and does not control this flag.
+    const arrowheadOn = libredwg.dwg_dynapi_entity_data<number>(entity, 'arrowhead_on')
+    const isArrowheadEnabled = arrowheadOn > 0
     const isSpline = libredwg.dwg_dynapi_entity_data<number>(entity, 'path_type')
     const leaderCreationFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'annot_type')
     const isHooklineSameDirection = libredwg.dwg_dynapi_entity_data<number>(entity, 'hookline_dir')
@@ -1045,7 +1055,7 @@ export class LibreEntityConverter {
       type: 'LEADER',
       ...commonAttrs,
       styleName: styleName,
-      isArrowheadEnabled: isArrowheadEnabled > 0,
+      isArrowheadEnabled: isArrowheadEnabled,
       isSpline: isSpline > 0,
       leaderCreationFlag: leaderCreationFlag,
       isHooklineSameDirection: isHooklineSameDirection > 0,
