@@ -1,4 +1,3 @@
-#include <stack>
 #include <cstdio>
 #include <cstdlib>
 #include "binding_common.h"
@@ -953,24 +952,30 @@ emscripten::val dwg_object_entity_get_xdata_wrapper(Dwg_Object_Entity_Ptr ent_pt
   Dwg_Object_Entity* ent = reinterpret_cast<Dwg_Object_Entity*>(ent_ptr);
 
   emscripten::val result = emscripten::val::array();
+  // One decoded item per record. `size` is the byte length of a new APPID
+  // section (0 on continuation items), not the number of data items.
+  emscripten::val entries_obj = emscripten::val::undefined();
   for (int i = 0; i < ent->num_eed; i++) {
     Dwg_Eed *eed = &ent->eed[i];
-    emscripten::val eed_obj = emscripten::val::object();
+    if (!eed->data) continue;
 
-    // name of APPID
-    Dwg_Object *appid = dwg_resolve_handle(ent->dwg, eed->handle.value);
-    if (appid && appid->fixedtype == DWG_TYPE_APPID) {
-      char *utf8 = bit_convert_TU((BITCODE_TU)appid->tio.object->tio.APPID->name);
-      eed_obj.set("appName", std::string(utf8));
-    } else {
-      eed_obj.set("appName", std::string("ACAD"));
+    if (eed->size != 0 || entries_obj.isUndefined()) {
+      entries_obj = emscripten::val::array();
+      emscripten::val eed_obj = emscripten::val::object();
+      Dwg_Object *appid = dwg_resolve_handle(ent->dwg, eed->handle.value);
+      if (appid && appid->fixedtype == DWG_TYPE_APPID) {
+        char *utf8 = bit_convert_TU((BITCODE_TU)appid->tio.object->tio.APPID->name);
+        eed_obj.set("appName", utf8 ? std::string(utf8) : std::string("ACAD"));
+        free(utf8);
+      } else {
+        eed_obj.set("appName", std::string("ACAD"));
+      }
+      eed_obj.set("value", entries_obj);
+      result.call<void>("push", eed_obj);
     }
 
-    emscripten::val entries_obj = emscripten::val::array();
-    std::stack<emscripten::val> stack;
-    stack.push(entries_obj);
-    for (int j = 0; j < eed->size; j++) {
-      Dwg_Eed_Data *data = &eed->data[j];
+    {
+      Dwg_Eed_Data *data = eed->data;
       const int code = data->code + 1000;
 
       emscripten::val entry_obj = emscripten::val::object();
@@ -979,24 +984,16 @@ emscripten::val dwg_object_entity_get_xdata_wrapper(Dwg_Object_Entity_Ptr ent_pt
         case 0: {
           if (!data->u.eed_0.length)
             entry_obj.set("value", std::string(""));
-          else if (data->u.eed_0.is_tu)
-            entry_obj.set("value", std::string(bit_convert_TU(data->u.eed_0_r2007.string)));
-          else
+          else if (data->u.eed_0.is_tu) {
+            char *utf8 = bit_convert_TU(data->u.eed_0_r2007.string);
+            entry_obj.set("value", utf8 ? std::string(utf8) : std::string(""));
+            free(utf8);
+          } else
             entry_obj.set("value", std::string(data->u.eed_0.string));
           break;
         }
         case 2:
-          if (data->u.eed_2.close) {
-            if (!stack.empty()) {
-              stack.pop();
-            }
-            if (stack.size() >= 1) {
-              entries_obj = stack.top();
-            }
-          } else {
-            entries_obj = emscripten::val::array();
-            stack.push(entries_obj);
-          }
+          entry_obj.set("value", data->u.eed_2.close ? std::string("}") : std::string("{"));
           break;
         case 3:
           entry_obj.set("value", data->u.eed_3.layer);
@@ -1036,9 +1033,6 @@ emscripten::val dwg_object_entity_get_xdata_wrapper(Dwg_Object_Entity_Ptr ent_pt
       }
       entries_obj.call<void>("push", entry_obj);
     }
-
-    eed_obj.set("value", entries_obj);
-    result.call<void>("push", eed_obj);
   }
   return result;
 }
