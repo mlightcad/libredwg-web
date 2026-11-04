@@ -93,6 +93,7 @@ import {
   Dwg_Object_Type,
   Dwg_TABLE_Cell
 } from '../types/index.js'
+import { dwgColorToBackgroundFillColor } from './dwgColorToBackgroundFillColor.js'
 import { dwgColorToMLeaderRawColor } from './dwgColorToMLeaderRawColor.js'
 import {
   decodeOle2FrameCornersFromData,
@@ -1818,6 +1819,14 @@ export class LibreEntityConverter {
     const fillBoxScale = libredwg.dwg_dynapi_entity_data<number>(entity, 'bg_fill_scale')
     const backgroundFillColor = libredwg.dwg_dynapi_entity_data<Dwg_Color>(entity, 'bg_fill_color')
     const backgroundFillTransparency = libredwg.dwg_dynapi_entity_data<number>(entity, 'bg_fill_trans')
+    // Only when bg_fill_flag is 1 (use fill colour). Decode CMC — do not
+    // pass through packed method bytes (e.g. ByLayer 0xC0000000), which
+    // paint as black when treated as RGB. Omit for flags 2/3 (window /
+    // canvas) and for ByLayer / ByBlock placeholders.
+    const decodedBackgroundFillColor =
+      backgroundFill === 1
+        ? dwgColorToBackgroundFillColor(backgroundFillColor)
+        : undefined
 
     const columnType = libredwg.dwg_dynapi_entity_data<number>(entity, 'column_type')
     const columnFlowReversed = libredwg.dwg_dynapi_entity_data<number>(entity, 'flow_reversed')
@@ -1850,9 +1859,10 @@ export class LibreEntityConverter {
       lineSpacingStyle: lineSpacingStyle,
       lineSpacing: lineSpacing,
       backgroundFill: backgroundFill,
-      // backgroundColor: backgroundColor.rgb, // TODO: Double check whether it should be color index
       fillBoxScale: fillBoxScale,
-      backgroundFillColor: backgroundFillColor.rgb, // TODO: Double check whether it should be color index
+      ...(decodedBackgroundFillColor !== undefined
+        ? { backgroundFillColor: decodedBackgroundFillColor }
+        : {}),
       backgroundFillTransparency: backgroundFillTransparency,
       columnType: columnType,
       // columnCount: columnCount,
