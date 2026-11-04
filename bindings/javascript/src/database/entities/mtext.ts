@@ -98,9 +98,11 @@ export interface DwgMTextEntity extends DwgEntity {
   fillBoxScale: number
   /**
    * Background fill color (optional):
-   * Color to use for background fill when 'backgroundFill' is 1.
+   * Color to use for background fill when `backgroundFill` is 1.
+   * ACI index `1..255`, or a 24-bit RGB. Omitted for ByLayer / window /
+   * canvas-background placeholders (`backgroundFill` 2 or 3).
    */
-  backgroundFillColor: number
+  backgroundFillColor?: number
   /**
    * Transparency of background fill color (not implemented)
    */
