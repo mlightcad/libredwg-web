@@ -87,6 +87,11 @@ export interface DwgTextBase {
    */
   valign: DwgTextVerticalAlign
   /**
+   * Elevation of the text plane (OCS Z). LibreDWG stores insertion /
+   * alignment as 2D points plus this separate elevation field.
+   */
+  elevation?: number
+  /**
    * Extrusion direction (optional; default = 0, 0, 1)
    */
   extrusionDirection: DwgPoint3D
