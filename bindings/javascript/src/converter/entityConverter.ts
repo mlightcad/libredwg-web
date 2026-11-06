@@ -2359,6 +2359,7 @@ export class LibreEntityConverter {
     const generationFlag = libredwg.dwg_dynapi_entity_data<number>(entity, 'generation')
     const halign = libredwg.dwg_dynapi_entity_data<number>(entity, 'horiz_alignment')
     const valign = libredwg.dwg_dynapi_entity_data<number>(entity, 'vert_alignment')
+    const elevation = libredwg.dwg_dynapi_entity_data<number>(entity, 'elevation')
     const extrusionDirection = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'extrusion')
 
     return {
@@ -2374,6 +2375,7 @@ export class LibreEntityConverter {
       generationFlag: generationFlag,
       halign: halign as DwgTextHorizontalAlign,
       valign: valign as DwgTextVerticalAlign,
+      elevation: elevation,
       extrusionDirection: extrusionDirection
     }
   }
