@@ -553,6 +553,7 @@ interface EmbindModule {
   dwg_entity_insert_get_attribs(_0: number): any;
   dwg_object_dictionary_get_texts(_0: number): any;
   dwg_read_file(_0: EmbindString): any;
+  dxf_read_file(_0: EmbindString): any;
   dwg_bmp(_0: number): any;
   dwg_get_class(_0: number, _1: number): any;
 }

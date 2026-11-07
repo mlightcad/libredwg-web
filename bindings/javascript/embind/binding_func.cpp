@@ -1,4 +1,5 @@
 #include <emscripten/bind.h>
+#include <cstring>
 #include <string>
 #include <sstream>
 
@@ -81,32 +82,33 @@ int dwg_write_dxf_wrapper(
 #endif
 }
 
-// emscripten::val dxf_read_file_wrapper(const std::string& filename) {
-//   emscripten::val result = emscripten::val::object();
-// #if defined(DISABLE_DXF) || !defined(USE_WRITE)
-//   (void)filename;
-//   result.set("error", DWG_ERR_NOTYETSUPPORTED);
-//   result.set("data", static_cast<uintptr_t>(0));
-//   return result;
-// #else
-//   Dwg_Data* dwg = new Dwg_Data();
-//   int error = dxf_read_file(filename.c_str(), dwg);
-//   if (error < DWG_ERR_CRITICAL)
-//     {
-//       for (BITCODE_BL i = 0; i < dwg->num_object_refs; i++)
-//         {
-//           Dwg_Object *restrict obj
-//               = dwg_resolve_handle (dwg, dwg->object_ref[i]->absolute_ref);
-//           dwg->object_ref[i]->obj = obj;
-//         }
-//       dwg->dirty_refs = 0;
-//     }
+emscripten::val dxf_read_file_wrapper(const std::string& filename) {
+  emscripten::val result = emscripten::val::object();
+#if defined(DISABLE_DXF) || !defined(USE_WRITE)
+  (void)filename;
+  result.set("error", DWG_ERR_NOTYETSUPPORTED);
+  result.set("data", static_cast<uintptr_t>(0));
+  return result;
+#else
+  Dwg_Data* dwg = new Dwg_Data();
+  memset(dwg, 0, sizeof(Dwg_Data));
+  int error = dxf_read_file(filename.c_str(), dwg);
+  if (error < DWG_ERR_CRITICAL)
+    {
+      for (BITCODE_BL i = 0; i < dwg->num_object_refs; i++)
+        {
+          Dwg_Object *restrict obj
+              = dwg_resolve_handle (dwg, dwg->object_ref[i]->absolute_ref);
+          dwg->object_ref[i]->obj = obj;
+        }
+      dwg->dirty_refs = 0;
+    }
 
-//   result.set("error", error);
-//   result.set("data", reinterpret_cast<uintptr_t>(dwg));
-//   return result;
-// #endif
-// }
+  result.set("error", error);
+  result.set("data", reinterpret_cast<uintptr_t>(dwg));
+  return result;
+#endif
+}
 
 // emscripten::val dwg_write_file_wrapper(
 //   const std::string& filename,
@@ -947,7 +949,7 @@ uintptr_t dwg_absref_get_object_wrapper(
 EMSCRIPTEN_BINDINGS(libredwg_api) {
   DEFINE_FUNC(dwg_read_file);
   DEFINE_FUNC(dwg_write_dxf);
-  // DEFINE_FUNC(dxf_read_file);
+  DEFINE_FUNC(dxf_read_file);
   // DEFINE_FUNC(dwg_write_file);
   DEFINE_FUNC(dwg_get_version_type);
   DEFINE_FUNC(dwg_get_codepage);
