@@ -96,14 +96,23 @@ export class LibreDwg {
     })
   }
 
+  /**
+   * Reads a DWG or DXF file into a native `Dwg_Data` pointer.
+   *
+   * DXF support requires a WASM build with write/DXF-import enabled
+   * (`build:prepare` without `--disable-write`). ASCII DXF may be passed as a
+   * UTF-8 string or as encoded bytes; binary DXF must be an `ArrayBuffer`.
+   */
   dwg_read_data(fileContent: string | ArrayBuffer, fileType: number) {
+    const bytes =
+      typeof fileContent === 'string'
+        ? new TextEncoder().encode(fileContent)
+        : new Uint8Array(fileContent)
+
     if (fileType == Dwg_File_Type.DWG) {
       const fileName = 'tmp.dwg'
       try {
-        this.wasmInstance.FS.writeFile(
-          fileName,
-          new Uint8Array(fileContent as ArrayBuffer)
-        )
+        this.wasmInstance.FS.writeFile(fileName, bytes)
         const result = this.wasmInstance.dwg_read_file(fileName)
         if (result.error & Dwg_Error.OUTOFMEM) {
           this.wasmInstance.dwg_abandon(result.data)
@@ -120,17 +129,30 @@ export class LibreDwg {
           this.wasmInstance.FS.unlink(fileName)
         }
       }
+    } else if (fileType == Dwg_File_Type.DXF) {
+      const fileName = 'tmp.dxf'
+      try {
+        this.wasmInstance.FS.writeFile(fileName, bytes)
+        const result = this.wasmInstance.dxf_read_file(fileName)
+        if (result.error & Dwg_Error.OUTOFMEM) {
+          this.wasmInstance.dwg_abandon(result.data)
+          throw new Error(
+            'Failed to decode DXF: out of WASM memory. Rebuild with pnpm build:wasm (INITIAL_MEMORY=1GB) or use a smaller file.'
+          )
+        }
+        if (result.error != 0) {
+          console.warn('Open dxf file with error code:', result.error)
+        }
+        if (!result.data) {
+          return undefined
+        }
+        return result.data as Dwg_Data_Ptr
+      } finally {
+        if (this.wasmInstance.FS.analyzePath(fileName, false).exists) {
+          this.wasmInstance.FS.unlink(fileName)
+        }
+      }
     }
-    // else if (fileType == Dwg_File_Type.DXF) {
-    //   const fileName = "tmp.dxf";
-    //   this.wasmInstance.FS.writeFile(fileName, new Uint8Array(fileContent as ArrayBuffer));
-    //   const result = this.wasmInstance.dxf_read_file(fileName);
-    //   if (result.error != 0) {
-    //     console.log('Open dxf file with error code: ', result.error);
-    //   }
-    //   this.wasmInstance.FS.unlink(fileName);
-    //   return result.data as Dwg_Data_Ptr;
-    // }
   }
 
   /**

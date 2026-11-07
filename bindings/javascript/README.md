@@ -43,7 +43,9 @@ pnpm install
 # Check for dependencies, available tools, and system configurations and prepare the software package for building libredwg on a specific system
 pnpm build:prepare
 
-# Compile and build libredwg
+# Compile libredwg object files needed for WASM (src/ only).
+# Full `make` also builds examples/programs; with --disable-json that fails
+# in examples/dwgadd.c (undeclared dwg_read_json). WASM linking does not need them.
 pnpm build:obj
 
 # Use emscripten to build web assembly for libredwg
@@ -58,17 +60,15 @@ pnpm copy
 pnpm build
 ```
 
-In order to reduce the size of wasm file, the following functionalities are not included by default when building web assembly.
+In order to reduce the size of wasm file, JSON import/export is not included by
+default when building web assembly (`--disable-json`). DWG write support and DXF
+read support share LibreDWG's `USE_WRITE` gate, so the default `build:prepare`
+enables write so `dxf_read_file` / `LibreDwg.dwg_read_data(..., Dwg_File_Type.DXF)`
+work in WASM.
 
-- write dwg file
-- write dxf file
-- import/export json file
-
-If you want those functionalities, just modify command `build:prepare` defined in [package.json](./package.json) and remove the following options.
-
-- disable-write
-- disable-json
-- disable-dxf
+If you want to shrink the wasm further and do not need DXF reading or DWG
+writing, add `--disable-write` back to `build:prepare`. To also drop DXF write
+helpers, add `--disable-dxf`. To include JSON in/out, remove `--disable-json`.
 
 ## Usage
 

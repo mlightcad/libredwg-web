@@ -47,3 +47,21 @@ test('LibreDwg.create() resolves wasm next to the package', async () => {
   assert.equal(version.hdr, 'AC1015')
   assert.equal(database.entities.length, 1)
 })
+
+test('LibreDwg.dwg_read_data parses an ASCII DXF file', async () => {
+  const sampleDxf = join(packageRoot, '../../test/test-data/example_2000.dxf')
+  const fileContent = readFileSync(sampleDxf)
+  const libredwg = await LibreDwg.create(wasmDir)
+  const ptr = libredwg.dwg_read_data(fileContent, Dwg_File_Type.DXF)
+  assert.ok(ptr)
+  try {
+    const { database } = libredwg.convertEx(ptr)
+    assert.ok(database.entities.length > 0)
+    assert.ok(database.tables.VPORT.entries.length > 0)
+    assert.ok(
+      database.tables.VPORT.entries.some(e => /^\*ACTIVE$/i.test(e.name))
+    )
+  } finally {
+    libredwg.dwg_free(ptr)
+  }
+})
