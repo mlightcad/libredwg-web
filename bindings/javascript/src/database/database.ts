@@ -3,6 +3,7 @@ import { DwgEntity } from './entities/index.js'
 import { DwgHeader } from './header/index.js'
 import {
   DwgDictionaryObject,
+  DwgGroupObject,
   DwgImageDefObject,
   DwgLayerFilterObject,
   DwgLayerIndexObject,
@@ -34,6 +35,7 @@ export interface DwgDatabase {
   }
   objects: {
     DICTIONARY: DwgDictionaryObject[]
+    GROUP: DwgGroupObject[]
     IMAGEDEF: DwgImageDefObject[]
     LAYER_FILTER: DwgLayerFilterObject[]
     LAYER_INDEX: DwgLayerIndexObject[]

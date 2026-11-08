@@ -8,6 +8,7 @@ import {
   DwgDictionaryObject,
   DwgDimStyleTableEntry,
   DwgEntity,
+  DwgGroupObject,
   DwgHeader,
   DwgImageDefObject,
   DwgInsertEntity,
@@ -96,6 +97,7 @@ export class LibreDwgConverter {
       },
       objects: {
         DICTIONARY: [],
+        GROUP: [],
         IMAGEDEF: [],
         LAYER_FILTER: [],
         LAYER_INDEX: [],
@@ -183,6 +185,9 @@ export class LibreDwgConverter {
               break
             case Dwg_Object_Type.DWG_TYPE_DICTIONARY:
               db.objects.DICTIONARY.push(this.convertDictionary(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_GROUP:
+              db.objects.GROUP.push(this.convertGroup(tio, obj))
               break
             case Dwg_Object_Type.DWG_TYPE_IMAGEDEF:
               db.objects.IMAGEDEF.push(this.convertImageDef(tio, obj))
@@ -1267,6 +1272,40 @@ export class LibreDwgConverter {
       backClippingPlaneDistance: backClippingPlaneDistance,
       matrix: matrix,
       invertBlockMatrix: invertBlockMatrix
+    }
+  }
+
+  private convertGroup(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgGroupObject {
+    const libredwg = this.libredwg
+    const commonAttrs = this.getCommonObjectAttrs(obj)
+    // LibreDWG `name` is the DXF-300 description, not the ACAD_GROUP key.
+    const description =
+      libredwg.dwg_dynapi_entity_data<string>(item, 'name') ?? ''
+    const unnamed = !!libredwg.dwg_dynapi_entity_data<number>(item, 'unnamed')
+    const selectableRaw =
+      libredwg.dwg_dynapi_entity_data<number>(item, 'selectable')
+    // ObjectARX defaults selectable groups to true when the flag is absent.
+    const selectable = selectableRaw != null ? !!selectableRaw : true
+    const numGroups =
+      libredwg.dwg_dynapi_entity_data<number>(item, 'num_groups') ?? 0
+    const groupsPtr =
+      libredwg.dwg_dynapi_entity_data<number>(item, 'groups') ?? 0
+    const refs =
+      numGroups > 0 && groupsPtr
+        ? libredwg.dwg_ptr_to_object_ref_array(groupsPtr, numGroups)
+        : []
+    // Keep 1:1 with LibreDWG `num_groups` / DXF 340 order (do not filter).
+    const objectHandles = refs.map(ref => idToString(ref.absolute_ref))
+
+    return {
+      ...commonAttrs,
+      description,
+      unnamed,
+      selectable,
+      objectHandles
     }
   }
 
