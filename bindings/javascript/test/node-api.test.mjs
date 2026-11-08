@@ -65,3 +65,30 @@ test('LibreDwg.dwg_read_data parses an ASCII DXF file', async () => {
     libredwg.dwg_free(ptr)
   }
 })
+
+test('convertEx decodes GROUP objects from DXF', async () => {
+  const sampleDxf = join(packageRoot, '../../test/test-data/2000/Leader.dxf')
+  const fileContent = readFileSync(sampleDxf)
+  const libredwg = await LibreDwg.create(wasmDir)
+  const ptr = libredwg.dwg_read_data(fileContent, Dwg_File_Type.DXF)
+  assert.ok(ptr)
+  try {
+    const { database } = libredwg.convertEx(ptr)
+    const groups = database.objects.GROUP
+    assert.ok(Array.isArray(groups))
+    assert.ok(groups.length >= 1)
+
+    const group = groups.find(g => g.handle === '829')
+    assert.ok(group, 'expected GROUP handle 829')
+    assert.equal(group.description, 'Superhatch')
+    assert.equal(group.unnamed, true)
+    assert.equal(group.selectable, true)
+    assert.deepEqual(group.objectHandles, ['81B', '82A', '82E', '830', '836'])
+
+    const acadGroup = database.objects.DICTIONARY.find(d => d.handle === 'D')
+    assert.ok(acadGroup, 'expected ACAD_GROUP dictionary handle D')
+    assert.equal(acadGroup.entries['*A1'], '829')
+  } finally {
+    libredwg.dwg_free(ptr)
+  }
+})

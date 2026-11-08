@@ -1,5 +1,6 @@
 export * from './common.js'
 export * from './dictionary.js'
+export * from './group.js'
 export * from './imageDef.js'
 export * from './layerFilter.js'
 export * from './layerIndex.js'
