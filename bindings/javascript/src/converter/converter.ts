@@ -34,6 +34,7 @@ import {
   Dwg_Color,
   Dwg_Data_Ptr,
   Dwg_LTYPE_Dash,
+  Dwg_Object_Entity_TIO_Ptr,
   Dwg_Object_Object_Ptr,
   Dwg_Object_Object_TIO_Ptr,
   Dwg_Object_Ptr,
@@ -484,6 +485,35 @@ export class LibreDwgConverter {
     return entities
   }
 
+  /**
+   * True when the entity is block-owned (`entmode` 0) but its owner handle
+   * names an object that does not exist in the drawing.
+   *
+   * These are leftovers of erased blocks (typically stale anonymous `*D`
+   * dimension pictures). AutoCAD never draws them, so they must not be
+   * adopted into *Model_Space as ownerless orphans. Entities without an owner
+   * handle are still adopted because some writers omit it for genuine
+   * model-space entities.
+   */
+  private isOwnedByMissingBlock(
+    data: Dwg_Data_Ptr,
+    etio: Dwg_Object_Entity_TIO_Ptr
+  ): boolean {
+    if (!etio) return false
+    const libredwg = this.libredwg
+    try {
+      const entmode = libredwg.dwg_dynapi_common_value(etio, 'entmode')
+      if (!entmode.success || Number(entmode.data) !== 0) return false
+      const ref = libredwg.dwg_dynapi_common_value(etio, 'ownerhandle')
+      if (!ref.success || !ref.data) return false
+      const absref = libredwg.dwg_ref_get_absref(ref.data as number)
+      if (absref == null) return false
+      return !libredwg.dwg_resolve_handle_silent(data, BigInt(absref))
+    } catch {
+      return false
+    }
+  }
+
   private ensureOrphanEntityIndex(data: Dwg_Data_Ptr): void {
     if (this.orphanEntitiesByBlock) {
       return
@@ -541,7 +571,7 @@ export class LibreDwgConverter {
         const owned = orphansByBlock.get(owner)
         if (owned) owned.push(index)
         else orphansByBlock.set(owner, [index])
-      } else {
+      } else if (!this.isOwnedByMissingBlock(data, etio)) {
         ownerless.push(index)
       }
     }
