@@ -3187,10 +3187,10 @@ typedef struct _dwg_entity_LEADER
   BITCODE_BE extrusion;
   BITCODE_3DPOINT x_direction;  /*< DXF(211) */
   BITCODE_3DPOINT inspt_offset; /*< DXF(212) */
-  BITCODE_3DPOINT endptproj; /* DXF(213) R_13c3-R_2007 */
+  BITCODE_3DPOINT endptproj; /* DXF(213) R_13c3+ (incl. R2010+) */
   BITCODE_BD dimgap;         /* R_13-R_14 only */
-  BITCODE_BD box_height;     /*< DXF(40) */
-  BITCODE_BD box_width;      /*< DXF(41) */
+  BITCODE_BD box_height;     /*< DXF(40) R_13-R_2007 only in DWG */
+  BITCODE_BD box_width;      /*< DXF(41) R_13-R_2007 only in DWG */
   BITCODE_B hookline_dir;    /* if hook line is on x direction */
   BITCODE_B hookline_on;     /*< DXF(75) computed from arrowhead_type & 8 */
   BITCODE_B arrowhead_on;
