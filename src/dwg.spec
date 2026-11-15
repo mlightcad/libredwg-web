@@ -3012,15 +3012,23 @@ DWG_ENTITY (LEADER)
   FIELD_3DPOINT (extrusion, 210);
   FIELD_3DPOINT (x_direction, 211);
   FIELD_3DPOINT (inspt_offset, 212);
-  VERSIONS (R_13c3, R_2007) {
+  // endptproj (DXF 213) is present from R13c3 through R2010+ (verified against
+  // the same leader saved as AC1021 and AC1027). Earlier LibreDWG stopped it
+  // at R_2007 and kept reading box_height/width unconditionally; on AC1027
+  // that swallowed endptproj into box_width (e.g. -0.09) and shifted
+  // arrowhead_on / arrowhead_type, so leader arrows vanished.
+  SINCE (R_13c3) {
     FIELD_3DPOINT (endptproj, 213);
   }
 
   VERSIONS (R_13b1, R_14) {
     FIELD_BD (dimgap, 0);
   }
-  FIELD_BD (box_height, 0);
-  FIELD_BD (box_width, 0);
+  // Box height/width (DXF 40/41) stop after R2007 (AC1021).
+  UNTIL (R_2007) {
+    FIELD_BD (box_height, 0);
+    FIELD_BD (box_width, 0);
+  }
   FIELD_B (hookline_dir, 0); // if hook line is on x direction
   FIELD_B (arrowhead_on, 0);
   ENCODER {
