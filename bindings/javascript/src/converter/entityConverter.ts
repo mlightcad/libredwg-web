@@ -178,11 +178,10 @@ export class LibreEntityConverter {
         //   return this.convertAttrib(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_CIRCLE) {
         return this.convertCircle(entity_tio, commonAttrs)
-      } else if (
-        fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_ALIGNED ||
-        fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_LINEAR
-      ) {
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_ALIGNED) {
         return this.convertAlignedDimension(entity_tio, commonAttrs)
+      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_LINEAR) {
+        return this.convertRotatedDimension(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_ANG3PT) {
         return this.convert3PointAngularDimension(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_DIMENSION_ANG2LN) {
@@ -564,17 +563,54 @@ export class LibreEntityConverter {
     entity: Dwg_Object_Entity_Ptr,
     commonAttrs: DwgCommonAttributes
   ): DwgAlignedDimensionEntity {
+    return this.convertLinearOrAlignedDimension(
+      entity,
+      commonAttrs,
+      'AcDbAlignedDimension'
+    )
+  }
+
+  private convertRotatedDimension(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes
+  ): DwgAlignedDimensionEntity {
+    return this.convertLinearOrAlignedDimension(
+      entity,
+      commonAttrs,
+      'AcDbRotatedDimension'
+    )
+  }
+
+  /**
+   * Shared fields for DIMENSION_ALIGNED / DIMENSION_LINEAR.
+   *
+   * Rotated (linear) dimensions must use subclass marker AcDbRotatedDimension
+   * and `dim_rotation` (DXF group 50). Using AcDbAlignedDimension plus
+   * `ins_rotation` (block insert / OCS rotation) makes consumers regenerate
+   * the dimension along the slanted chord between extension-line origins.
+   */
+  private convertLinearOrAlignedDimension(
+    entity: Dwg_Object_Entity_Ptr,
+    commonAttrs: DwgCommonAttributes,
+    subclassMarker: 'AcDbAlignedDimension' | 'AcDbRotatedDimension'
+  ): DwgAlignedDimensionEntity {
     const libredwg = this.libredwg
     const dimensionCommonAttrs = this.getDimensionCommonAttrs(entity)
     // TODO: Not sure whether 'clone_ins_pt' is same as 'insertionPoint'
     const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint2D>(entity, 'clone_ins_pt')
     const subDefinitionPoint1 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline1_pt')
     const subDefinitionPoint2 = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'xline2_pt')
-    const rotationAngle = libredwg.dwg_dynapi_entity_data<number | undefined>(entity, 'ins_rotation')
+    // Aligned dimensions have no dim_rotation; rotated ones store DXF 50 there.
+    // Never use ins_rotation here — that is the block/OCS insert angle
+    // (exposed separately as ocsRotation on the common dimension attrs).
+    const rotationAngle =
+      subclassMarker === 'AcDbRotatedDimension'
+        ? libredwg.dwg_dynapi_entity_data<number | undefined>(entity, 'dim_rotation')
+        : 0
     const obliqueAngle = libredwg.dwg_dynapi_entity_data<number>(entity, 'oblique_angle')
 
     return {
-      subclassMarker: 'AcDbAlignedDimension',
+      subclassMarker,
       ...commonAttrs,
       ...dimensionCommonAttrs,
       insertionPoint: insertionPoint,

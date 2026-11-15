@@ -67,11 +67,20 @@ export class LibreDwgConverter {
     this.entityConverter = new LibreEntityConverter(instance)
   }
 
+  /**
+   * True when LAYER.plotflag (DXF 290) is present in the file format
+   * (LibreDWG: SINCE R_2000b / binary version >= 0x16).
+   * Cleared for older versions so convertLayer defaults plotFlag to 1 instead
+   * of LibreDWG's zeroed bit (which would mark every layer non-plottable).
+   */
+  private layerPlotFlagSupported = true
+
   convert(data: Dwg_Data_Ptr) {
     this.entityConverter.clear()
     this.orphanEntitiesByBlock = null
     this.ownerlessOrphanIndices = null
     this.orphanIndexDataPtr = data
+    this.layerPlotFlagSupported = true
     const db: DwgDatabase = {
       tables: {
         APPID: {
@@ -113,6 +122,10 @@ export class LibreDwgConverter {
     }
     const libredwg = this.libredwg
     this.convertHeader(data, db.header)
+    // Prefer the binary DWG version over ACADVER string compares (MC0.0 etc.).
+    // Unknown/invalid (version 0) also defaults plotFlag to 1 below.
+    this.layerPlotFlagSupported =
+      libredwg.dwg_get_version_type(data).version >= 0x16
     this.convertClasses(data, db.classes)
     this.entityConverter.setClasses(db.classes)
     const num_objects = libredwg.dwg_get_num_objects(data)
@@ -765,8 +778,13 @@ export class LibreDwgConverter {
     const frozen = libredwg.dwg_dynapi_entity_data<number>(item, 'frozen')
     const off = libredwg.dwg_dynapi_entity_data<number>(item, 'off')
     const frozenInNew = libredwg.dwg_dynapi_entity_data<number>(item, 'frozen_in_new')
-    const locked = libredwg.dwg_dynapi_entity_data<number>(item, 'plotflockedlag')
-    const plotFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'plotflag')
+    const locked = libredwg.dwg_dynapi_entity_data<number>(item, 'locked')
+    let plotFlag = libredwg.dwg_dynapi_entity_data<number>(item, 'plotflag')
+    // Pre-R2000 DWGs have no LAYER plot flag; LibreDWG reports 0 which would
+    // incorrectly mark every layer non-plottable for consumers that honor it.
+    if (!this.layerPlotFlagSupported) {
+      plotFlag = 1
+    }
     const linewt = libredwg.dwg_dynapi_entity_data<number>(item, 'linewt')
     const color = libredwg.dwg_dynapi_entity_data<Dwg_Color>(item, 'color')
     const ltypeRef = libredwg.dwg_dynapi_entity_data<number>(item, 'ltype')
