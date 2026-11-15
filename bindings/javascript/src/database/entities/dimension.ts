@@ -169,6 +169,11 @@ export interface DwgAlignedDimensionEntity extends DwgDimensionEntityCommon {
   insertionPoint?: DwgPoint2D
   subDefinitionPoint1: DwgPoint3D
   subDefinitionPoint2: DwgPoint3D
+  /**
+   * Dimension rotation (DXF 50 / dim_rotation), in radians.
+   * 0 for aligned dimensions; for rotated (linear) dimensions this is the
+   * measurement-axis angle, not the block/OCS insert angle (ocsRotation).
+   */
   rotationAngle: number
   obliqueAngle: number
 }
