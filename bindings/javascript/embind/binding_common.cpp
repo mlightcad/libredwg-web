@@ -1001,9 +1001,19 @@ emscripten::val dwg_object_entity_get_xdata_wrapper(Dwg_Object_Entity_Ptr ent_pt
         case 4:
           entry_obj.set("value", dwg_ptr_to_unsigned_char_array(data->u.eed_4.data, data->u.eed_4.length));
           break;
-        case 5:
-          entry_obj.set("value", data->u.eed_5.entity);
-          break; // not in DXF
+        case 5: {
+          // DXF group 1005: soft-pointer handle. Emit an uppercase hex string
+          // (same form as XRECORD handles below) so JS consumers never see a
+          // BigInt — BigInt values were dropped by libredwg-converter's XData
+          // normalizer, which cleared DSTYLE DIMLDRBLK overrides such as
+          // `(1070 . 341) (1005 . 0)` and left leaders pointing at the style's
+          // oversized custom Dot block.
+          char buf[32];
+          std::snprintf(buf, sizeof(buf), "%llX",
+                        static_cast<unsigned long long>(data->u.eed_5.entity));
+          entry_obj.set("value", std::string(buf));
+          break;
+        }
         case 10:
         case 11:
         case 12:
