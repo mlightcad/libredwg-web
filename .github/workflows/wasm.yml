@@ -1,0 +1,180 @@
+name: WASM
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'bindings/javascript/embind/**'
+      - 'bindings/javascript/script/build-wasm.mjs'
+      - 'bindings/javascript/script/wasm-inputs-hash.mjs'
+      - 'bindings/javascript/package.json'
+      - 'bindings/javascript/wasm/**'
+      - 'src/**'
+      - 'include/**'
+      - '.github/workflows/wasm.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'bindings/javascript/embind/**'
+      - 'bindings/javascript/script/build-wasm.mjs'
+      - 'bindings/javascript/script/wasm-inputs-hash.mjs'
+      - 'bindings/javascript/package.json'
+      - 'bindings/javascript/wasm/**'
+      - 'src/**'
+      - 'include/**'
+      - '.github/workflows/wasm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wasm-${{ github.workflow }}-${{ github.ref }}
+  # Do not cancel an in-flight rebuild; wasm builds are expensive.
+  cancel-in-progress: false
+
+jobs:
+  check-or-rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    # Avoid rebuild loops when this workflow pushes updated wasm artifacts.
+    if: github.actor != 'github-actions[bot]'
+    env:
+      EMSCRIPTEN_VERSION: '4.0.10'
+      EM_CACHE_FOLDER: 'emsdk-cache'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      # Stamp check is plain Node — no pnpm install needed for the common path.
+      - name: Check wasm inputs stamp
+        id: stamp
+        working-directory: ./bindings/javascript
+        run: |
+          if node script/wasm-inputs-hash.mjs --check; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fail PR when wasm is stale
+        if: steps.stamp.outputs.stale == 'true' && github.event_name == 'pull_request'
+        working-directory: ./bindings/javascript
+        run: |
+          echo "::error::WASM inputs changed but bindings/javascript/wasm/.inputs-sha256 is stale."
+          echo "Rebuild locally (see bindings/javascript/README.md), then commit wasm/ including .inputs-sha256."
+          node script/wasm-inputs-hash.mjs --check
+
+      - name: Skip rebuild (stamp up to date)
+        if: steps.stamp.outputs.stale != 'true'
+        run: echo "WASM inputs stamp matches; nothing to rebuild."
+
+      - name: Install JS toolchain
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+          cache-dependency-path: bindings/javascript/pnpm-lock.yaml
+
+      - name: Install JS dependencies
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        working-directory: ./bindings/javascript
+        run: pnpm install --frozen-lockfile
+
+      - name: Install build tools
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y automake autoconf libtool pkg-config texinfo
+
+      - name: Cache Emscripten
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.EM_CACHE_FOLDER }}
+          key: emsdk-${{ env.EMSCRIPTEN_VERSION }}-${{ runner.os }}
+
+      - name: Setup Emscripten
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: emscripten-core/setup-emsdk@v16
+        with:
+          version: ${{ env.EMSCRIPTEN_VERSION }}
+          actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
+
+      - name: Autogen
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        run: ./autogen.sh
+
+      - name: Build wasm
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        working-directory: ./bindings/javascript
+        run: |
+          pnpm build:prepare
+          pnpm build:obj
+          pnpm build:wasm
+          pnpm copy
+
+      # GITHUB_TOKEN pushes do not re-trigger workflows, so validate here
+      # before committing (ci-cd.yml will not run on the bot commit).
+      - name: Build package and run tests
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        working-directory: ./bindings/javascript
+        run: |
+          pnpm build
+          pnpm test
+
+      - name: Commit and push wasm artifacts
+        if: >-
+          steps.stamp.outputs.stale == 'true' &&
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bindings/javascript/wasm/
+          if git diff --staged --quiet; then
+            echo "No wasm file changes after rebuild (stamp-only or identical outputs)."
+            exit 0
+          fi
+          git commit -m "javascript: rebuild wasm artifacts" \
+            -m "Auto-generated by the WASM workflow after detecting a stale bindings/javascript/wasm/.inputs-sha256 stamp."
+          # Rebase onto latest master in case other commits landed during the build.
+          git pull --rebase origin master
+          git push origin "HEAD:master"
