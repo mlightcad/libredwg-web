@@ -43,8 +43,12 @@ const emccDir = path.dirname(path.resolve(emcc))
 const wasmOptCandidates = [
   which('wasm-opt'),
   path.join(emccDir, '../bin/wasm-opt'),
+  path.join(emccDir, '../bin/wasm-opt.exe'),
   process.env.EMSDK
     ? path.join(process.env.EMSDK, 'upstream/bin/wasm-opt')
+    : null,
+  process.env.EMSDK
+    ? path.join(process.env.EMSDK, 'upstream/bin/wasm-opt.exe')
     : null
 ].filter(Boolean)
 const wasmOpt = wasmOptCandidates.find((p) => fs.existsSync(p))
