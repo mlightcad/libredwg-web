@@ -54,11 +54,23 @@ pnpm build:obj
 pnpm build:wasm
 
 # Copy web assembly (wasm file and JavaScript glue code file) from build directory to distribution directory of this package
+# (also refreshes wasm/.inputs-sha256 so CI can skip a redundant rebuild)
 pnpm copy
 
 # Build web assembly wrapper so that it is easier to use it
 pnpm build
 ```
+
+Committed wasm artifacts under `wasm/` are guarded by `wasm/.inputs-sha256`, a hash of
+`embind/`, repo-root `src/` + `include/`, `script/build-wasm.mjs`, and the
+`build:prepare` / `build:obj` / `build:wasm` script bodies. After changing those
+inputs, run the steps above and commit `wasm/` (including `.inputs-sha256`).
+
+- `pnpm wasm:check` — verify the stamp matches current inputs (used by CI on PRs).
+- On `master`, if the stamp is stale, the **WASM** GitHub Actions workflow rebuilds
+  (Emscripten via `emscripten-core/setup-emsdk`, currently 4.0.10), runs
+  `pnpm build` / `pnpm test`, and pushes an updated `wasm/` commit. If you already
+  rebuilt and committed the stamp locally, that workflow skips the rebuild.
 
 In order to reduce the size of wasm file, JSON import/export is not included by
 default when building web assembly (`--disable-json`). DWG write support and DXF
