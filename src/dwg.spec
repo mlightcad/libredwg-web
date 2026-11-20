@@ -5740,29 +5740,77 @@ DWG_ENTITY (PROXY_ENTITY)
     FIELD_B (from_dxf, 70); // Original Data Format: 0 dwg, 1 dxf
   }
 
-  // proxy_data_size is _ent->preview_size. see par 29
+  // Graphics live in the common-entity preview (ODA 20.4.1 / DXF 92+310).
+  // The PROXY object stream does not repeat them. Re-reading preview_size
+  // bytes here used to consume the entity-data bits and underflow
+  // data_numbits to ~UINT32_MAX, so dwg2dxf wrote multi-GB ACAD_PROXY_ENTITY
+  // records (GH #41).
   DXF_OR_PRINT {
-    // preview 92/310 is also proxy data
+    if (!_obj->proxy_data_size && _ent->preview_size)
+      FIELD_VALUE (proxy_data_size) = (BITCODE_BL)_ent->preview_size;
     FIELD_BL (proxy_data_size, 92)
-  } else {
-    FIELD_VALUE (proxy_data_size) = _ent->preview_size;
+    if (_obj->proxy_data)
+      {
+        FIELD_TF (proxy_data, _obj->proxy_data_size, 310);
+      }
+    else if (_ent->preview && _ent->preview_size)
+      {
+        FIELD_VALUE (proxy_data_size) = (BITCODE_BL)_ent->preview_size;
+        VALUE_BINARY (_ent->preview, _ent->preview_size, 310);
+      }
   }
-  FIELD_TF (proxy_data, _obj->proxy_data_size, 310);
+  DECODER {
+    FIELD_VALUE (proxy_data_size) = (BITCODE_BL)_ent->preview_size;
+    /* Alias; freed with the common preview, not here. */
+    FIELD_VALUE (proxy_data) = _ent->preview;
+  }
+  FREE {
+    if (_obj->proxy_data && _obj->proxy_data != (BITCODE_RC *)_ent->preview)
+      {
+        FIELD_TF (proxy_data, _obj->proxy_data_size, 310);
+      }
+    _obj->proxy_data = NULL;
+  }
 
   DECODER {
-    _obj->data_numbits = (obj->hdlpos - bit_position (dat)) & 0xFFFFFFFF;
+    size_t cur = bit_position (dat);
+    size_t endbits = obj->hdlpos;
     if (dat->size > obj->size)
       {
         LOG_TRACE ("dat not restricted, dat->size %" PRIuSIZE
                    " > obj->size " FORMAT_RL "\n",
                    dat->size, obj->size);
-        _obj->data_numbits
-            = (((obj->address * 8) + obj->bitsize) - bit_position (dat))
-              & 0xFFFFFFFF;
+        endbits = ((size_t)obj->address * 8) + (size_t)obj->bitsize;
       }
-    _obj->data = bit_read_bits (dat, _obj->data_numbits);
-    LOG_TRACE ("> data_numbits: " FORMAT_BL " [ 93]\n", _obj->data_numbits);
-    LOG_TRACE_TF (_obj->data, (_obj->data_numbits / 8) + (_obj->data_numbits % 8 ? 1 : 0));
+    if (cur >= endbits)
+      {
+        LOG_TRACE ("> data_numbits: 0 (cur %" PRIuSIZE " >= end %" PRIuSIZE
+                   ")\n",
+                   cur, endbits);
+        _obj->data_numbits = 0;
+        _obj->data = NULL;
+      }
+    else
+      {
+        size_t bits = endbits - cur;
+        if (bits > 0xffffffffUL)
+          bits = 0xffffffffUL;
+        /* A bogus endbits must not explode DXF output. */
+        if (obj->size && (bits / 8) > (size_t)obj->size)
+          {
+            LOG_WARN ("PROXY_ENTITY.data_numbits %" PRIuSIZE
+                      " / 8 > obj->size " FORMAT_RL ", clamping to 0",
+                      bits, obj->size);
+            bits = 0;
+          }
+        _obj->data_numbits = (BITCODE_BL)bits;
+        _obj->data = bit_read_bits (dat, _obj->data_numbits);
+        LOG_TRACE ("> data_numbits: " FORMAT_BL " [ 93]\n",
+                   _obj->data_numbits);
+        LOG_TRACE_TF (_obj->data,
+                      (_obj->data_numbits / 8)
+                          + (_obj->data_numbits % 8 ? 1 : 0));
+      }
   }
   ENCODER {
     LOG_TRACE ("data_numbits: " FORMAT_BL " [ 93]\n", _obj->data_numbits);
@@ -5770,7 +5818,18 @@ DWG_ENTITY (PROXY_ENTITY)
   }
   DXF_OR_PRINT {
     unsigned bytes = _obj->data_numbits / 8;
-    if (_obj->data_numbits % 8) bytes++;
+    if (_obj->data_numbits % 8)
+      bytes++;
+    /* Guard against underflowed/oversized data_numbits (GH #41). */
+    if (!_obj->data || (obj->size && bytes > obj->size))
+      {
+        if (bytes && obj->size && bytes > obj->size)
+          LOG_WARN ("Skip oversized PROXY_ENTITY data_numbits " FORMAT_BL
+                    " (%u bytes) for %s",
+                    _obj->data_numbits, bytes, obj->name);
+        bytes = 0;
+        FIELD_VALUE (data_numbits) = 0;
+      }
     FIELD_BL (data_numbits, 93)
     FIELD_BINARY (data, bytes, 310);
   }
@@ -5879,19 +5938,43 @@ DWG_OBJECT (PROXY_OBJECT)
   }
 
   DECODER {
-    _obj->data_numbits = (obj->hdlpos - bit_position (dat)) & 0xFFFFFFFF;
+    size_t cur = bit_position (dat);
+    size_t endbits = obj->hdlpos;
     if (dat->size > obj->size)
       {
         LOG_TRACE ("dat not restricted, dat->size %" PRIuSIZE
                    " > obj->size " FORMAT_RL "\n",
                    dat->size, obj->size);
-        _obj->data_numbits
-            = (((obj->address * 8) + obj->bitsize) - bit_position (dat))
-              & 0xFFFFFFFF;
+        endbits = ((size_t)obj->address * 8) + (size_t)obj->bitsize;
       }
-    _obj->data = bit_read_bits (dat, _obj->data_numbits);
-    LOG_TRACE ("> data_numbits: " FORMAT_BL " [ 93]\n", _obj->data_numbits);
-    LOG_TRACE_TF (_obj->data, (_obj->data_numbits / 8) + (_obj->data_numbits % 8 ? 1 : 0));
+    if (cur >= endbits)
+      {
+        LOG_TRACE ("> data_numbits: 0 (cur %" PRIuSIZE " >= end %" PRIuSIZE
+                   ")\n",
+                   cur, endbits);
+        _obj->data_numbits = 0;
+        _obj->data = NULL;
+      }
+    else
+      {
+        size_t bits = endbits - cur;
+        if (bits > 0xffffffffUL)
+          bits = 0xffffffffUL;
+        if (obj->size && (bits / 8) > (size_t)obj->size)
+          {
+            LOG_WARN ("PROXY_OBJECT.data_numbits %" PRIuSIZE
+                      " / 8 > obj->size " FORMAT_RL ", clamping to 0",
+                      bits, obj->size);
+            bits = 0;
+          }
+        _obj->data_numbits = (BITCODE_BL)bits;
+        _obj->data = bit_read_bits (dat, _obj->data_numbits);
+        LOG_TRACE ("> data_numbits: " FORMAT_BL " [ 93]\n",
+                   _obj->data_numbits);
+        LOG_TRACE_TF (_obj->data,
+                      (_obj->data_numbits / 8)
+                          + (_obj->data_numbits % 8 ? 1 : 0));
+      }
   }
   ENCODER {
     LOG_TRACE ("data_numbits: " FORMAT_BL " [ 93]\n", _obj->data_numbits);
@@ -5899,7 +5982,17 @@ DWG_OBJECT (PROXY_OBJECT)
   }
   DXF_OR_PRINT {
     unsigned bytes = _obj->data_numbits / 8;
-    if (_obj->data_numbits % 8) bytes++;
+    if (_obj->data_numbits % 8)
+      bytes++;
+    if (!_obj->data || (obj->size && bytes > obj->size))
+      {
+        if (bytes && obj->size && bytes > obj->size)
+          LOG_WARN ("Skip oversized PROXY_OBJECT data_numbits " FORMAT_BL
+                    " (%u bytes) for %s",
+                    _obj->data_numbits, bytes, obj->name);
+        bytes = 0;
+        FIELD_VALUE (data_numbits) = 0;
+      }
     FIELD_BL (data_numbits, 93)
     FIELD_BINARY (data, bytes, 310);
   }
