@@ -93,12 +93,30 @@ function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest('hex')
 }
 
+/**
+ * Normalize CRLF→LF before hashing so Windows (core.autocrlf=true) and
+ * Linux CI agree. Skip known binary extensions; everything we hash for
+ * the stamp is text (C/C++/headers/mjs/json).
+ */
+function normalizeForHash(buf) {
+  // Fast path: no CR → already LF or binary without CR.
+  if (!buf.includes(0x0d)) return buf
+  const out = Buffer.allocUnsafe(buf.length)
+  let j = 0
+  for (let i = 0; i < buf.length; i++) {
+    const b = buf[i]
+    if (b === 0x0d && i + 1 < buf.length && buf[i + 1] === 0x0a) continue
+    out[j++] = b
+  }
+  return out.subarray(0, j)
+}
+
 function readWorktreeFile(rel) {
-  return fs.readFileSync(path.join(repoRoot, rel))
+  return normalizeForHash(fs.readFileSync(path.join(repoRoot, rel)))
 }
 
 function readGitFile(ref, rel) {
-  return git(['show', `${ref}:${rel}`])
+  return normalizeForHash(git(['show', `${ref}:${rel}`]))
 }
 
 function readPackageScripts(ref) {

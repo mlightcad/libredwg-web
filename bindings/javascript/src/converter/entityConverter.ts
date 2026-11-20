@@ -198,7 +198,13 @@ export class LibreEntityConverter {
         return this.convertHatch(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_IMAGE) {
         return this.convertImage(entity_tio, commonAttrs)
-      } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_INSERT) {
+      } else if (
+        fixedtype == Dwg_Object_Type.DWG_TYPE_INSERT ||
+        fixedtype == Dwg_Object_Type.DWG_TYPE_MINSERT
+      ) {
+        // MINSERT is an INSERT plus num_cols/num_rows/col_spacing/row_spacing,
+        // which convertInsert already reads. DXF has no MINSERT entity either:
+        // it is written as INSERT with groups 70/71/44/45.
         return this.convertInsert(entity_tio, commonAttrs)
       } else if (fixedtype == Dwg_Object_Type.DWG_TYPE_LEADER) {
         return this.convertLeader(entity_tio, commonAttrs)
@@ -1013,6 +1019,8 @@ export class LibreEntityConverter {
     const insertionPoint = libredwg.dwg_dynapi_entity_data<DwgPoint3D>(entity, 'ins_pt')
     const scale = libredwg.dwg_dynapi_entity_data<DwgPoint3D | null>(entity, 'scale')
     const rotation = libredwg.dwg_dynapi_entity_data<number>(entity, 'rotation')
+    // DXF 70/71/44/45. R13+ DWG stores them only on MINSERT, so a plain
+    // INSERT reads 0 counts; apply the DXF defaults (counts 1, spacing 0).
     const columnCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_cols')
     const rowCount = libredwg.dwg_dynapi_entity_data<number>(entity, 'num_rows')
     const columnSpacing = libredwg.dwg_dynapi_entity_data<number>(entity, 'col_spacing')
@@ -1044,10 +1052,10 @@ export class LibreEntityConverter {
       yScale: scale ? scale.y : 1,
       zScale: scale ? scale.z : 1,
       rotation: rotation,
-      columnCount: columnCount,
-      rowCount: rowCount,
-      columnSpacing: columnSpacing,
-      rowSpacing: rowSpacing,
+      columnCount: columnCount || 1,
+      rowCount: rowCount || 1,
+      columnSpacing: columnSpacing || 0,
+      rowSpacing: rowSpacing || 0,
       extrusionDirection: extrusionDirection,
       attribs: attribs
     }
