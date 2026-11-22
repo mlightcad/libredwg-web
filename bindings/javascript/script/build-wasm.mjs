@@ -123,6 +123,12 @@ const args = [
   'MAXIMUM_MEMORY=4GB',
   '-s',
   'MALLOC=mimalloc',
+  // Emscripten's default 64KB stack is far below the 8MB native default.
+  // Some decoders (e.g. dwg_decode_TABLE_private) use frames that overflow
+  // it, and release builds have no stack check, so the overflow silently
+  // corrupts static data and a later call fails with a bare "Aborted()".
+  '-s',
+  'STACK_SIZE=5MB',
   '-s',
   'EXPORT_ES6=1',
   '-s',
