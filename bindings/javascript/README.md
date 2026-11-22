@@ -68,7 +68,7 @@ inputs, run the steps above and commit `wasm/` (including `.inputs-sha256`).
 
 - `pnpm wasm:check` — verify the stamp matches current inputs (used by CI on PRs).
 - On `master`, if the stamp is stale, the **WASM** GitHub Actions workflow rebuilds
-  (Emscripten via `emscripten-core/setup-emsdk`, currently 4.0.10), runs
+  (Emscripten via `emscripten-core/setup-emsdk`, currently 6.0.0), runs
   `pnpm build` / `pnpm test`, and pushes an updated `wasm/` commit. If you already
   rebuilt and committed the stamp locally, that workflow skips the rebuild.
 

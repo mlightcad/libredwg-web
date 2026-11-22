@@ -40,7 +40,7 @@ jobs:
     # Avoid rebuild loops when this workflow pushes updated wasm artifacts.
     if: github.actor != 'github-actions[bot]'
     env:
-      EMSCRIPTEN_VERSION: '4.0.10'
+      EMSCRIPTEN_VERSION: '6.0.0'
       EM_CACHE_FOLDER: 'emsdk-cache'
     steps:
       - name: Checkout
