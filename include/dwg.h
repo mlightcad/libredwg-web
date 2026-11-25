@@ -7034,6 +7034,10 @@ typedef struct _dwg_ARRAYITEMLOCATOR
   Dwg_ASSOCPARAMBASEDACTIONBODY pab;           \
   BITCODE_BL aaab_version;                     \
   BITCODE_T paramblock; /* classname, i.e. AcDbAssocArrayPolarParameters */ \
+  BITCODE_BL aap_version;  /* embedded parameters block version, 0 */ \
+  BITCODE_BL num_arrayitems;                   \
+  BITCODE_T itemclass;  /* "AcDbAssocArrayItem" */ \
+  Dwg_ASSOCARRAYITEM *arrayitems;              \
   BITCODE_BD *transmatrix
 
 typedef struct _dwg_object_ASSOCARRAYACTIONBODY

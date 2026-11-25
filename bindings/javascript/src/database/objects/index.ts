@@ -1,3 +1,4 @@
+export * from './assoc.js'
 export * from './common.js'
 export * from './dictionary.js'
 export * from './group.js'

@@ -114,6 +114,9 @@ emscripten::val get_obj_value(const Dwg_Data *dwg, T _obj, const Dwg_DYNAPI_fiel
   } else if (strEQc(f->type, "RL") || strEQc(f->type, "BL") || strEQc (f->type, "MS")) {
     // INT32
     result.set("data", *reinterpret_cast<BITCODE_BL*>(&((char *)_obj)[f->offset]));
+  } else if (strEQc(f->type, "BLd")) {
+    // signed INT32 (e.g. ASSOCDEPENDENCY.order)
+    result.set("data", *reinterpret_cast<BITCODE_BLd*>(&((char *)_obj)[f->offset]));
   } else if (strEQc (f->type, "RS") || strEQc (f->type, "BS")) {
     // INT16
     result.set("data", *reinterpret_cast<BITCODE_BS*>(&((char *)_obj)[f->offset]));

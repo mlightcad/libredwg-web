@@ -1105,7 +1105,7 @@ in_word_set (const char *str, size_t len)
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str280,                     "LIGHT",                      DWG_TYPE_LIGHT,	1,	STABLE},
       {-1}, {-1}, {-1}, {-1},
 #line 192 "src/objects.in"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str285,             "ACDBASSOCEDGEACTIONPARAM",          DWG_TYPE_ASSOCEDGEACTIONPARAM,	0,	DEBUGGING},
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str285,             "ACDBASSOCEDGEACTIONPARAM",          DWG_TYPE_ASSOCEDGEACTIONPARAM,	0,	UNSTABLE},
       {-1},
 #line 176 "src/objects.in"
       {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str287,           "ACDBASSOC2DCONSTRAINTGROUP",        DWG_TYPE_ASSOC2DCONSTRAINTGROUP,	0,	UNSTABLE},
