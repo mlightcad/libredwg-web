@@ -2,6 +2,12 @@ import { DwgClass } from './classes/index.js'
 import { DwgEntity } from './entities/index.js'
 import { DwgHeader } from './header/index.js'
 import {
+  DwgAssocActionObject,
+  DwgAssocArrayActionBodyObject,
+  DwgAssocDependencyObject,
+  DwgAssocEdgeActionParamObject,
+  DwgAssocNetworkObject,
+  DwgAssocVertexActionParamObject,
   DwgDictionaryObject,
   DwgGroupObject,
   DwgImageDefObject,
@@ -34,6 +40,18 @@ export interface DwgDatabase {
     VPORT: DwgTable<DwgVPortTableEntry>
   }
   objects: {
+    /** Associative networks (ACDBASSOCNETWORK). */
+    ASSOCNETWORK: DwgAssocNetworkObject[]
+    /** Associative actions (ACDBASSOCACTION). */
+    ASSOCACTION: DwgAssocActionObject[]
+    /** Associative dependencies (ACDBASSOCDEPENDENCY). */
+    ASSOCDEPENDENCY: DwgAssocDependencyObject[]
+    /** Associative array action bodies (ACDBASSOCARRAYACTIONBODY). */
+    ASSOCARRAYACTIONBODY: DwgAssocArrayActionBodyObject[]
+    /** Point action parameters (ACDBASSOCVERTEXACTIONPARAM). */
+    ASSOCVERTEXACTIONPARAM: DwgAssocVertexActionParamObject[]
+    /** Edge action parameters (ACDBASSOCEDGEACTIONPARAM). */
+    ASSOCEDGEACTIONPARAM: DwgAssocEdgeActionParamObject[]
     DICTIONARY: DwgDictionaryObject[]
     GROUP: DwgGroupObject[]
     IMAGEDEF: DwgImageDefObject[]

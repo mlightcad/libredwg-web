@@ -1,5 +1,15 @@
 import {
   DwgAppIdEntry,
+  DwgAssocActionObject,
+  DwgAssocActionParamObject,
+  DwgAssocArrayActionBodyObject,
+  DwgAssocArrayItem,
+  DwgAssocDependencyObject,
+  DwgAssocEdgeActionParamObject,
+  DwgAssocHandleRef,
+  DwgAssocNetworkObject,
+  DwgAssocValueParam,
+  DwgAssocVertexActionParamObject,
   DwgBlockRecordTableEntry,
   DwgClass,
   DwgCommonObject,
@@ -106,6 +116,12 @@ export class LibreDwgConverter {
         }
       },
       objects: {
+        ASSOCNETWORK: [],
+        ASSOCACTION: [],
+        ASSOCDEPENDENCY: [],
+        ASSOCARRAYACTIONBODY: [],
+        ASSOCVERTEXACTIONPARAM: [],
+        ASSOCEDGEACTIONPARAM: [],
         DICTIONARY: [],
         GROUP: [],
         IMAGEDEF: [],
@@ -225,6 +241,32 @@ export class LibreDwgConverter {
               break
             case Dwg_Object_Type.DWG_TYPE_XRECORD:
               db.objects.XRECORD.push(this.convertXRecord(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_ASSOCNETWORK:
+              db.objects.ASSOCNETWORK.push(this.convertAssocNetwork(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_ASSOCACTION:
+              db.objects.ASSOCACTION.push(this.convertAssocAction(tio, obj))
+              break
+            case Dwg_Object_Type.DWG_TYPE_ASSOCDEPENDENCY:
+              db.objects.ASSOCDEPENDENCY.push(
+                this.convertAssocDependency(tio, obj)
+              )
+              break
+            case Dwg_Object_Type.DWG_TYPE_ASSOCARRAYACTIONBODY:
+              db.objects.ASSOCARRAYACTIONBODY.push(
+                this.convertAssocArrayActionBody(tio, obj)
+              )
+              break
+            case Dwg_Object_Type.DWG_TYPE_ASSOCVERTEXACTIONPARAM:
+              db.objects.ASSOCVERTEXACTIONPARAM.push(
+                this.convertAssocVertexActionParam(tio, obj)
+              )
+              break
+            case Dwg_Object_Type.DWG_TYPE_ASSOCEDGEACTIONPARAM:
+              db.objects.ASSOCEDGEACTIONPARAM.push(
+                this.convertAssocEdgeActionParam(tio, obj)
+              )
               break
             default:
               break
@@ -1380,6 +1422,340 @@ export class LibreDwgConverter {
       ...(cloning != null ? { cloning } : {}),
       ...(extensionDictionary ? { extensionDictionary } : {}),
       data
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Associative framework (associative arrays)
+  // ---------------------------------------------------------------------------
+
+  private refId(ref: number | null | undefined): string {
+    if (!ref) return '0'
+    return this.libredwg.dwg_ref_get_id(ref) ?? '0'
+  }
+
+  /** Reads `count` handle refs of a `BITCODE_H*` array. */
+  private refIds(ptr: number | null | undefined, count: number): string[] {
+    if (!ptr || count <= 0) return []
+    return this.libredwg
+      .dwg_ptr_to_object_ref_array(ptr, count)
+      .map(ref => idToString(ref.absolute_ref))
+  }
+
+  /** Reads a `Dwg_ASSOCACTION_Deps*` array (dependencies or network actions). */
+  private assocHandleRefs(
+    ptr: number | null | undefined,
+    count: number
+  ): DwgAssocHandleRef[] {
+    const libredwg = this.libredwg
+    const size = libredwg.dwg_dynapi_subclass_size('ASSOCACTION_Deps')
+    const refs: DwgAssocHandleRef[] = []
+    if (!ptr || size <= 0) return refs
+    for (let i = 0; i < count; i++) {
+      const p = ptr + i * size
+      refs.push({
+        handle: this.refId(
+          libredwg.dwg_dynapi_subclass_data<number>(
+            p,
+            'ASSOCACTION_Deps',
+            'dep'
+          )
+        ),
+        isOwned: !!libredwg.dwg_dynapi_subclass_data<number>(
+          p,
+          'ASSOCACTION_Deps',
+          'is_owned'
+        )
+      })
+    }
+    return refs
+  }
+
+  /** Decodes an `AcDbEvalVariant` at `ptr`. */
+  private assocVariant(ptr: number): {
+    code: number
+    value: number | string | null
+  } {
+    const libredwg = this.libredwg
+    const code =
+      libredwg.dwg_dynapi_subclass_data<number>(ptr, 'EvalVariant', 'code') ?? 0
+    const read = (field: string) =>
+      libredwg.dwg_dynapi_subclass_data<number | string>(
+        ptr,
+        'EvalVariant',
+        field
+      )
+    const inRange = (lo: number, hi: number) => code >= lo && code <= hi
+    let value: number | string | null = null
+    if (
+      inRange(38, 59) ||
+      inRange(140, 149) ||
+      inRange(460, 469) ||
+      inRange(1040, 1042)
+    ) {
+      value = read('u.bd') as number
+    } else if (
+      inRange(90, 99) ||
+      inRange(420, 429) ||
+      inRange(440, 459) ||
+      code === 1071
+    ) {
+      value = (read('u.bl') as number) | 0
+    } else if (
+      inRange(60, 79) ||
+      inRange(170, 179) ||
+      inRange(270, 279) ||
+      inRange(370, 389) ||
+      inRange(400, 409) ||
+      code === 1070
+    ) {
+      value = ((read('u.bs') as number) << 16) >> 16
+    } else if (inRange(280, 289)) {
+      value = read('u.rc') as number
+    } else if (
+      inRange(1, 4) ||
+      inRange(6, 9) ||
+      inRange(100, 102) ||
+      inRange(300, 309) ||
+      inRange(410, 419) ||
+      inRange(430, 439) ||
+      inRange(470, 479) ||
+      code === 999 ||
+      inRange(1000, 1009)
+    ) {
+      // String values (BITCODE_T in the union) are UTF-16 since R2007 and
+      // the dynapi subclass reader cannot tell; leave them undecoded rather
+      // than return garbage.
+      value = null
+    }
+    return { code, value }
+  }
+
+  private assocValueParams(
+    ptr: number | null | undefined,
+    count: number
+  ): DwgAssocValueParam[] {
+    const libredwg = this.libredwg
+    const size = libredwg.dwg_dynapi_subclass_size('VALUEPARAM')
+    const varSize = libredwg.dwg_dynapi_subclass_size('VALUEPARAM_vars')
+    const params: DwgAssocValueParam[] = []
+    if (!ptr || size <= 0) return params
+    for (let i = 0; i < count; i++) {
+      const p = ptr + i * size
+      const field = <T>(name: string) =>
+        libredwg.dwg_dynapi_subclass_data<T>(p, 'VALUEPARAM', name)
+      const numVars = field<number>('num_vars') ?? 0
+      const varsPtr = field<number>('vars')
+      const values = []
+      for (let j = 0; varsPtr && varSize > 0 && j < numVars; j++) {
+        const v = varsPtr + j * varSize
+        // `value` (Dwg_EvalVariant) is the first member of VALUEPARAM_vars.
+        values.push({
+          ...this.assocVariant(v),
+          variableHandle: this.refId(
+            libredwg.dwg_dynapi_subclass_data<number>(
+              v,
+              'VALUEPARAM_vars',
+              'handle'
+            )
+          )
+        })
+      }
+      params.push({
+        classVersion: field<number>('class_version') ?? 0,
+        name: field<string>('name') ?? '',
+        unitType: field<number>('unit_type') ?? 0,
+        values,
+        controlledObjectDependencyHandle: this.refId(
+          field<number>('controlled_objdep')
+        )
+      })
+    }
+    return params
+  }
+
+  private convertAssocAction(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgAssocActionObject {
+    const libredwg = this.libredwg
+    const data = <T>(name: string) =>
+      libredwg.dwg_dynapi_entity_data<T>(item, name)
+    return {
+      ...this.getCommonObjectAttrs(obj),
+      classVersion: data<number>('class_version') ?? 0,
+      status: data<number>('geometry_status') ?? 0,
+      owningNetworkHandle: this.refId(data<number>('owningnetwork')),
+      actionBodyHandle: this.refId(data<number>('actionbody')),
+      actionIndex: data<number>('action_index') ?? 0,
+      maxDependencyIndex: data<number>('max_assoc_dep_index') ?? 0,
+      dependencies: this.assocHandleRefs(
+        data<number>('deps'),
+        data<number>('num_deps') ?? 0
+      ),
+      ownedParamHandles: this.refIds(
+        data<number>('owned_params'),
+        data<number>('num_owned_params') ?? 0
+      ),
+      valueParams: this.assocValueParams(
+        data<number>('values'),
+        data<number>('num_values') ?? 0
+      )
+    }
+  }
+
+  private convertAssocNetwork(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgAssocNetworkObject {
+    const libredwg = this.libredwg
+    const data = <T>(name: string) =>
+      libredwg.dwg_dynapi_entity_data<T>(item, name)
+    return {
+      ...this.convertAssocAction(item, obj),
+      networkVersion: data<number>('network_version') ?? 0,
+      maxActionIndex: data<number>('network_action_index') ?? 0,
+      actions: this.assocHandleRefs(
+        data<number>('actions'),
+        data<number>('num_actions') ?? 0
+      ),
+      ownedActionHandles: this.refIds(
+        data<number>('owned_actions'),
+        data<number>('num_owned_actions') ?? 0
+      )
+    }
+  }
+
+  private convertAssocDependency(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgAssocDependencyObject {
+    const libredwg = this.libredwg
+    const data = <T>(name: string) =>
+      libredwg.dwg_dynapi_entity_data<T>(item, name)
+    return {
+      ...this.getCommonObjectAttrs(obj),
+      classVersion: data<number>('class_version') ?? 0,
+      status: data<number>('status') ?? 0,
+      isReadDependency: !!data<number>('is_read_dep'),
+      isWriteDependency: !!data<number>('is_write_dep'),
+      isAttachedToObject: !!data<number>('is_attached_to_object'),
+      isDelegatingToOwningAction: !!data<number>(
+        'is_delegating_to_owning_action'
+      ),
+      order: (data<number>('order') ?? 0) | 0,
+      name: data<number>('has_name') ? (data<string>('name') ?? '') : '',
+      dependentOnHandle: this.refId(data<number>('dep_on')),
+      prevDependencyHandle: this.refId(data<number>('readdep')),
+      nextDependencyHandle: this.refId(data<number>('node')),
+      dependencyBodyHandle: this.refId(data<number>('dep_body')),
+      dependencyIndex: (data<number>('depbodyid') ?? 0) | 0
+    }
+  }
+
+  private convertAssocArrayActionBody(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgAssocArrayActionBodyObject {
+    const libredwg = this.libredwg
+    const data = <T>(name: string) =>
+      libredwg.dwg_dynapi_entity_data<T>(item, name)
+    const matrix = (ptr: number | null | undefined) =>
+      ptr ? libredwg.dwg_ptr_to_double_array(ptr, 16) : []
+
+    const items: DwgAssocArrayItem[] = []
+    const count = data<number>('num_arrayitems') ?? 0
+    const itemsPtr = data<number>('arrayitems')
+    const size = libredwg.dwg_dynapi_subclass_size('ASSOCARRAYITEM')
+    for (let i = 0; itemsPtr && size > 0 && i < count; i++) {
+      const p = itemsPtr + i * size
+      const field = <T>(name: string, base = p) =>
+        libredwg.dwg_dynapi_subclass_data<T>(base, 'ASSOCARRAYITEM', name)
+      const flags = field<number>('flags') ?? 0
+      let m: number[]
+      if (flags & 4) {
+        m = matrix(field<number>('transmatrix'))
+      } else {
+        const t = field<DwgPoint3D>('x_dir') ?? { x: 0, y: 0, z: 0 }
+        m = [1, 0, 0, t.x, 0, 1, 0, t.y, 0, 0, 1, t.z, 0, 0, 0, 1]
+      }
+      // itemloc is BITCODE_BL[3]; dynapi returns the first element, so read
+      // the next two by shifting the base pointer one / two BLs.
+      // flags & 2: relative transform of an individually edited item.
+      const relativeMatrix =
+        flags & 2 ? matrix(field<number>('rel_transform')) : undefined
+      items.push({
+        ...(relativeMatrix ? { relativeMatrix } : {}),
+        ...(flags & 0x10
+          ? { secondaryEntityHandle: this.refId(field<number>('h2')) }
+          : {}),
+        classVersion: field<number>('class_version') ?? 0,
+        itemIndex: field<number>('itemloc') ?? 0,
+        rowIndex: field<number>('itemloc', p + 4) ?? 0,
+        levelIndex: field<number>('itemloc', p + 8) ?? 0,
+        flags,
+        matrix: m,
+        entityHandle: this.refId(field<number>('h1'))
+      })
+    }
+
+    return {
+      ...this.getCommonObjectAttrs(obj),
+      actionBodyVersion: data<number>('aab_version') ?? 0,
+      classVersion: data<number>('aaab_version') ?? 0,
+      parametersClassName: data<string>('paramblock') ?? '',
+      parametersVersion: data<number>('aap_version') ?? 0,
+      items,
+      arrayTransform: matrix(data<number>('transmatrix'))
+    }
+  }
+
+  private convertAssocActionParamBase(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgAssocActionParamObject {
+    const libredwg = this.libredwg
+    const data = <T>(name: string) =>
+      libredwg.dwg_dynapi_entity_data<T>(item, name)
+    return {
+      ...this.getCommonObjectAttrs(obj),
+      classVersion: data<number>('is_r2013') ?? 0,
+      paramVersion: data<number>('aap_version') ?? 0,
+      name: data<string>('name') ?? '',
+      singleDependencyVersion: data<number>('asdap_class_version') ?? 0,
+      dependencyHandle: this.refId(data<number>('dep'))
+    }
+  }
+
+  private convertAssocVertexActionParam(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgAssocVertexActionParamObject {
+    const libredwg = this.libredwg
+    return {
+      ...this.convertAssocActionParamBase(item, obj),
+      vertexVersion:
+        libredwg.dwg_dynapi_entity_data<number>(item, 'class_version') ?? 0,
+      point: libredwg.dwg_dynapi_entity_data<DwgPoint3D>(item, 'pt') ?? {
+        x: 0,
+        y: 0,
+        z: 0
+      }
+    }
+  }
+
+  private convertAssocEdgeActionParam(
+    item: Dwg_Object_Object_Ptr,
+    obj: Dwg_Object_Ptr
+  ): DwgAssocEdgeActionParamObject {
+    const libredwg = this.libredwg
+    const data = <T>(name: string) =>
+      libredwg.dwg_dynapi_entity_data<T>(item, name)
+    return {
+      ...this.convertAssocActionParamBase(item, obj),
+      edgeVersion: data<number>('class_version') ?? 0,
+      hasCachedCurve: !!data<number>('has_action'),
+      curveType: data<number>('action_type') ?? 0
     }
   }
 

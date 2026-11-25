@@ -5097,6 +5097,48 @@ DWG_ENTITY (LAYOUTPRINTCONFIG)
   COMMON_ENTITY_HANDLE_DATA;
 DWG_ENTITY_END
 
+// stable enough for associative arrays (path RowProfile)
+DWG_OBJECT (ASSOCEDGEACTIONPARAM)
+  HANDLE_UNKNOWN_BITS;
+  AcDbAssocActionParam_fields;
+  SUBCLASS (AcDbAssocSingleDependencyActionParam);
+  FIELD_BL (asdap_class_version, 90);
+  FIELD_HANDLE (dep, 4, 330);
+  SUBCLASS (AcDbAssocEdgeActionParam);
+  FIELD_BL (class_version, 90);
+  FIELD_HANDLE (param, 3, 330);
+  FIELD_B (has_action, 290);
+  /* action_type: 11 arc, 17 ellipse, 19 line, 23 3d line segment,
+     27 generic 3d curve, 42 3d nurbs curve */
+  FIELD_BL (action_type, 90);
+  switch (_obj->action_type)
+    {
+    case 11:
+      CALL_SUBCURVE (subent, ARC);
+      break;
+    case 17:
+      CALL_SUBCURVE (subent, ELLIPSE);
+      break;
+    case 19:
+      CALL_SUBCURVE (subent, LINE);
+      break;
+    case 23:
+      CALL_SUBCURVE (subent, LINESEG3D);
+      break;
+    case 42:
+      CALL_SUBCURVE (subent, NURB3D);
+      break;
+    case 27:
+      CALL_SUBCURVE (subent, CURVE3D);
+      break;
+    case 47: /* composite curve, e.g. a path array RowProfile */
+      break;
+    default:
+      LOG_ERROR ("Unknown ASSOCEDGEACTIONPARAM.action_type %d", _obj->action_type);
+    }
+  START_OBJECT_HANDLE_STREAM;
+DWG_OBJECT_END
+
 #if defined (DEBUG_CLASSES) || defined (IS_FREE)
 
 // AutoCAD Mechanical
@@ -5254,45 +5296,6 @@ DWG_ENTITY (RTEXT)
   COMMON_ENTITY_HANDLE_DATA;
   FIELD_HANDLE (style, 5, 0);
 DWG_ENTITY_END
-
-DWG_OBJECT (ASSOCEDGEACTIONPARAM)
-  HANDLE_UNKNOWN_BITS;
-  AcDbAssocActionParam_fields;
-  SUBCLASS (AcDbAssocSingleDependencyActionParam);
-  FIELD_BL (asdap_class_version, 90);
-  FIELD_HANDLE (dep, 4, 330);
-  SUBCLASS (AcDbAssocEdgeActionParam);
-  FIELD_BL (class_version, 90);
-  FIELD_HANDLE (param, 3, 330);
-  FIELD_B (has_action, 290);
-  /* action_type: 11 arc, 17 ellipse, 19 line, 23 3d line segment,
-     27 generic 3d curve, 42 3d nurbs curve */
-  FIELD_BL (action_type, 90);
-  switch (_obj->action_type)
-    {
-    case 11:
-      CALL_SUBCURVE (subent, ARC);
-      break;
-    case 17:
-      CALL_SUBCURVE (subent, ELLIPSE);
-      break;
-    case 19:
-      CALL_SUBCURVE (subent, LINE);
-      break;
-    case 23:
-      CALL_SUBCURVE (subent, LINESEG3D);
-      break;
-    case 42:
-      CALL_SUBCURVE (subent, NURB3D);
-      break;
-    case 27:
-      CALL_SUBCURVE (subent, CURVE3D);
-      break;
-    default:
-      LOG_ERROR ("Unknown ASSOCEDGEACTIONPARAM.action_type %d", _obj->action_type);
-    }
-  START_OBJECT_HANDLE_STREAM;
-DWG_OBJECT_END
 
 
 DWG_ENTITY (ALIGNMENTPARAMETERENTITY)
@@ -6153,7 +6156,42 @@ DWG_OBJECT_END
   SUBCLASS (AcDbAssocArrayActionBody);                      \
   FIELD_BL (aaab_version, 90);                              \
   FIELD_T (paramblock, 1);                                  \
+  /* The parameters block with its items is embedded here. */ \
+  FIELD_BL (aap_version, 90);                               \
+  FIELD_BL (num_arrayitems, 90);                            \
+  FIELD_T (itemclass, 1);                                   \
+  REPEAT (num_arrayitems, arrayitems, Dwg_ASSOCARRAYITEM)   \
+  REPEAT_BLOCK                                              \
+      AcDbAssocArrayBodyItem_fields (arrayitems[rcount1]);  \
+      SET_PARENT (arrayitems[rcount1], (Dwg_Object_ASSOCARRAYPARAMETERS*)_obj); \
+  END_REPEAT_BLOCK                                          \
+  END_REPEAT (arrayitems)                                   \
   FIELD_VECTOR_N (transmatrix, BD, 16, 40)
+
+/* Item of an array action body: flags & 4 selects a full 4x4 transform,
+   otherwise only the translation is stored (DXF 11). As in
+   AcDbAssocArrayItem_fields, flags & 2 adds a relative transform and
+   flags & 0x10 a second handle. The item entity handle (DXF 330) follows
+   in the handle stream. */
+#define AcDbAssocArrayBodyItem_fields(item)                      \
+  SUB_FIELD_BL (item, class_version, 90);                        \
+  SUB_FIELD_VECTOR_INL (item, itemloc, BL, 3, 90);               \
+  SUB_FIELD_BLx (item, flags, 90);                               \
+  if (FIELD_VALUE (item.flags) & 4)                              \
+    {                                                            \
+      SUB_FIELD_VECTOR_N (item, transmatrix, BD, 16, 40);        \
+    }                                                            \
+  else                                                           \
+    {                                                            \
+      SUB_FIELD_3BD (item, x_dir, 11);                           \
+    }                                                            \
+  if (FIELD_VALUE (item.flags) & 2)                              \
+    {                                                            \
+      SUB_FIELD_VECTOR_N (item, rel_transform, BD, 16, 40);      \
+    }                                                            \
+  SUB_FIELD_HANDLE (item, h1, 4, 330);                           \
+  if (FIELD_VALUE (item.flags) & 0x10)                           \
+    SUB_FIELD_HANDLE (item, h2, 4, 330)
 
 #define AcDbAssocArrayItem_fields(item)                          \
   SUB_FIELD_BL (item, class_version, 90);                        \
