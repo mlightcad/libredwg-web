@@ -385,10 +385,9 @@
   DEBUGGING_CLASS     (ACTION, REVOLVEDSURFACE)   /* ent */
   DEBUGGING_CLASS     (ACTION, SWEPTSURFACE)      /* ent */
   STABLE_CLASS_DXF (ACTION, TABLE, ACAD_TABLE) /* ent, r2010+ needs subclassing */
-  // ARCALIGNEDTEXT is only defined in dwg2.spec under DEBUG_CLASSES || IS_FREE,
-  // so it must use DEBUGGING_CLASS here (degrades to UNHANDLED_CLASS) or the
-  // linker sees an undefined dwg_decode_ARCALIGNEDTEXT.
-  DEBUGGING_CLASS     (ACTION, ARCALIGNEDTEXT)    // ent expresstools
+  // Express Tools ATEXT. Spec is outside DEBUG_CLASSES so release builds
+  // (no -DDEBUG_CLASSES) still compile and dispatch dwg_decode_ARCALIGNEDTEXT.
+  UNSTABLE_CLASS      (ACTION, ARCALIGNEDTEXT)    // ent expresstools
   DEBUGGING_CLASS     (ACTION, RTEXT)             // ent expresstools
   DEBUGGING_CLASS     (ACTION, MPOLYGON)          // hatch-like ent
   DEBUGGING_CLASS_CPP (ACTION, NAVISWORKSMODEL, AcDbNavisworksModel)   /* ent,
